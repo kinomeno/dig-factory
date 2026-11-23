@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.29（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.30（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.29';
+const VERSION = '0.30';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -147,7 +147,7 @@ const TXT = {
     title: 'ほりほり工場', money: '資金', date: (y, m) => `${y}年${m}月`, depthM: n => `${n}m`,
     pan: '移動', drill: 'ドリル', dig: '掘削', conv: 'コンベア', sort: '仕分け', machine: '機械', remove: '撤去', power: '強化',
     menu: 'メニュー', info: '情報', admin: '管理', map: '地図',
-    play: '▶︎ 再生', pause: '❚❚ 停止', top: '地上', dir: '向き', move: '移動', uiOpt: '画面', uiStd: 'ふつう', uiDash: 'タブ（試験）',
+    play: '▶︎ 再生', pause: '❚❚ 停止', top: '地上', dir: '向き', zoom: 'ズーム', move: '移動', uiOpt: '画面', uiStd: 'ふつう', uiDash: 'タブ（試験）',
     help: '遊び方', settings: '設定', lang: '表示', reset: '最初から',
     confirmReset: '最初からやり直しますか？', confirmReload: 'リセットしますか？（ページを読み込み直します）', yes: 'はい', no: 'いいえ',
     noMoney: '資金が足りません', cantPlace: 'ここには置けません', underOnly: 'ドリル・コンベア・機械は地下に置きます',
@@ -206,7 +206,7 @@ const TXT = {
       '「情報」で経営の様子をグラフで見られます。',
       '下のタブの「スキル」で研究すると便利な力が手に入ります。10mごとの硬い岩盤は「掘削レベル」を研究しないと掘れません。事務所はタップでレベルアップできます。セーブは設定から。',
     ],
-    skill: 'スキル', researching: '研究中', researchDone: n => `研究完了：${n}`, busy: 'ほかの研究中です', months: 'か月',
+    skill: '研究', researching: '研究中', researchDone: n => `研究完了：${n}`, busy: 'ほかの研究中です', months: 'か月',
     startRes: '研究', got: '取得済み', resInfo: 'お金を払って研究すると、何か月か後にスキルが手に入ります（研究は1つずつ）。',
     sk: {
       autoConv: ['コンベア自動設置', 'ドリルが掘り進むと、後ろに自動でコンベアを置きます（1マス5）。設定でオン・オフできます。'],
@@ -250,7 +250,7 @@ const TXT = {
     title: 'ほりほりこうじょう', money: 'おかね', date: (y, m) => `${y}ねん${m}がつ`, depthM: n => `${n}m`,
     pan: 'うごかす', drill: 'ドリル', dig: 'あなほり', conv: 'コンベア', sort: 'しわけ', machine: 'きかい', remove: 'とりのぞく', power: 'パワーアップ',
     menu: 'メニュー', info: 'じょうほう', admin: 'かんり', map: 'ちず',
-    play: '▶︎ うごかす', pause: '❚❚ とめる', top: 'ちじょう', dir: 'むき', move: 'いどう', uiOpt: 'がめん', uiStd: 'ふつう', uiDash: 'タブ（ためし）',
+    play: '▶︎ うごかす', pause: '❚❚ とめる', top: 'ちじょう', dir: 'むき', zoom: 'ズーム', move: 'いどう', uiOpt: 'がめん', uiStd: 'ふつう', uiDash: 'タブ（ためし）',
     help: 'あそびかた', settings: 'せってい', lang: 'もじ', reset: 'さいしょから',
     confirmReset: 'さいしょから やりなおしますか？', confirmReload: 'リセット しますか？（さいしょから よみこみ なおします）', yes: 'はい', no: 'いいえ',
     noMoney: 'おかねが たりません', cantPlace: 'ここには おけません', underOnly: 'ドリル・コンベア・きかいは ちかに おきます',
@@ -309,7 +309,7 @@ const TXT = {
       '「じょうほう」で ようすを グラフで みられます。',
       'したの タブの「スキル」で けんきゅうすると べんりな ちからが てに はいります。10mごとの かたい がんばんは「あなほり レベル」が ないと ほれません。セーブは せっていから。',
     ],
-    skill: 'スキル', researching: 'けんきゅうちゅう', researchDone: n => `けんきゅう おわり：${n}`, busy: 'ほかの けんきゅうちゅう です', months: 'かげつ',
+    skill: 'けんきゅう', researching: 'けんきゅうちゅう', researchDone: n => `けんきゅう おわり：${n}`, busy: 'ほかの けんきゅうちゅう です', months: 'かげつ',
     startRes: 'けんきゅう', got: 'てにいれた', resInfo: 'おかねを はらって けんきゅうすると、なんかげつか あとに スキルが てに はいります（けんきゅうは 1つずつ）。',
     sk: {
       autoConv: ['コンベア じどう おき', 'ドリルが ほりすすむと、うしろに じどうで コンベアを おきます（1マス5）。せっていで オン・オフ できます。'],
@@ -353,7 +353,7 @@ const TXT = {
     title: 'Dig Factory', money: 'Money', date: (y, m) => `Y${y} M${m}`, depthM: n => `${n}m`,
     pan: 'Move', drill: 'Drill', dig: 'Dig', conv: 'Conveyor', sort: 'Sorter', machine: 'Machines', remove: 'Remove', power: 'Upgrade',
     menu: 'Menu', info: 'Info', admin: 'Admin', map: 'Map',
-    play: '▶︎ Play', pause: '❚❚ Pause', top: 'Top', dir: 'Dir', move: 'Move', uiOpt: 'Screen', uiStd: 'Standard', uiDash: 'Tabs (test)',
+    play: '▶︎ Play', pause: '❚❚ Pause', top: 'Top', dir: 'Dir', zoom: 'Zoom', move: 'Move', uiOpt: 'Screen', uiStd: 'Standard', uiDash: 'Tabs (test)',
     help: 'How to play', settings: 'Settings', lang: 'Text', reset: 'Restart',
     confirmReset: 'Start over from the beginning?', confirmReload: 'Reset? (reloads the page)', yes: 'Yes', no: 'No',
     noMoney: 'Not enough money', cantPlace: 'Cannot place here', underOnly: 'Drills, conveyors and machines go underground',
@@ -412,7 +412,7 @@ const TXT = {
       '"Info" shows how your business is doing, with graphs.',
       'Research "Skills" from the menu. The hard bedrock every 10m needs the Dig level skill. Tap the office to upgrade it. Save from Settings.',
     ],
-    skill: 'Skills', researching: 'Researching', researchDone: n => `Research done: ${n}`, busy: 'Another research is in progress', months: ' mo',
+    skill: 'Research', researching: 'Researching', researchDone: n => `Research done: ${n}`, busy: 'Another research is in progress', months: ' mo',
     startRes: 'Research', got: 'Acquired', resInfo: 'Pay to research; the skill arrives after a few in-game months (one at a time).',
     sk: {
       autoConv: ['Auto conveyor', 'Drills lay conveyors behind them as they dig (5 per cell). Toggle in Settings.'],
@@ -2706,6 +2706,7 @@ function updateUI() {
   $('date').textContent = T.date(Math.floor(month / 12) + 1, month % 12 + 1);
   $('playBtn').textContent = running ? T.pause : T.play;
   $('speedBtn').textContent = '×' + speeds()[speedIdx];
+  $('speedBtn').hidden = speeds().length < 2;   // 速くできるようになるまで「×1」は出さない
   $('panBtn').classList.toggle('active', tool === 'pan');
   $('mapBtn').classList.toggle('active', !$('mapPanel').hidden);
   $('menuBtn').hidden = menuOpen;
