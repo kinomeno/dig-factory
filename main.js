@@ -1,10 +1,10 @@
-// 採掘ゲーム v0.06
+// 採掘ゲーム v0.07
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 (() => {
 'use strict';
 
-const VERSION = '0.06';
+const VERSION = '0.07';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 const TEST_LOAN = true;        // テスト用の借り入れボタン（公開前に false にする）
 
@@ -509,11 +509,11 @@ function digAt(c, r) {
 }
 
 // ---- 設置・レベル ----
-let tool = 'pan', machSel = 'kiln', dir = 'right', running = true, speedIdx = 0;
+let tool = 'none', machSel = 'kiln', dir = 'right', running = true, speedIdx = 0;
 
 function costOf(s) { return s.type === 'machine' ? MACHINES[s.m].cost : COST[s.type]; }
 function apply(c, r, dragging) {
-  if (!inB(c, r) || tool === 'pan') return;
+  if (!inB(c, r) || tool === 'pan' || tool === 'none') return;
   if (tool === 'dig') { if (!dragging) digAt(c, r); return; }
   const k = key(c, r), s = S.st.get(k);
   if (tool === 'remove') { if (s) removeAt(k); return; }
@@ -863,7 +863,7 @@ function draw() {
     ctx.strokeRect((isT ? BED : p.c) * cell + 1, p.r * cell + 1, cell * (isT ? 2 : 1) - 2, cell - 2);
   }
   // マウス位置（掘削のときは費用も）
-  if (hover && inB(hover.c, hover.r) && tool !== 'pan') {
+  if (hover && inB(hover.c, hover.r) && tool !== 'pan' && tool !== 'none') {
     ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 2;
     ctx.strokeRect(hover.c * cell + 1, hover.r * cell + 1, cell - 2, cell - 2);
     if (tool === 'dig' && digSet && digSet.has(key(hover.c, hover.r))) {
@@ -1042,7 +1042,7 @@ function updateUI() {
   // カーソル：移動のときは手のひら、つかんでいる間は握った手
   cv.classList.toggle('grab', tool === 'pan' && !(gesture && gesture.type === 'pan'));
   cv.classList.toggle('grabbing', !!(gesture && gesture.type === 'pan'));
-  cv.classList.toggle('place', tool !== 'pan');
+  cv.classList.toggle('place', tool !== 'pan' && tool !== 'none');
   layoutFloats();
 }
 let msgTimer = 0;
@@ -1169,8 +1169,9 @@ function applyMove(dt) {
 }
 
 document.querySelectorAll('.tool').forEach(b => b.addEventListener('click', () => {
-  if (b.dataset.tool === 'machine') { togglePanel('machList'); return; }
-  tool = b.dataset.tool; closePop(); closePanels(); updateUI();
+  if (b.dataset.tool === 'machine' && tool !== 'machine') { togglePanel('machList'); return; }
+  tool = tool === b.dataset.tool ? 'none' : b.dataset.tool;   // もう一度押すと解除（通常モード）
+  closePop(); closePanels(); updateUI();
 }));
 document.querySelectorAll('.dir').forEach(b => b.addEventListener('click', () => { dir = b.dataset.dir; updateUI(); }));
 $('playBtn').addEventListener('click', () => { running = !running; updateUI(); });
@@ -1189,13 +1190,13 @@ window.addEventListener('keydown', e => {
   if (!$('confirm').hidden) return;
   if (e.code === 'Space') { e.preventDefault(); running = !running; }
   else if (e.key === 'r' || e.key === 'R') dir = ROT[(ROT.indexOf(dir) + 1) % 4];
-  else if (e.key === '0') tool = 'pan';
+  else if (e.key === '0') tool = tool === 'pan' ? 'none' : 'pan';
   else if (e.key === '1') tool = 'drill';
   else if (e.key === '2') tool = 'conv';
   else if (e.key === '3') tool = 'sort';
   else if (e.key === '4') tool = 'remove';
   else if (e.key === '5') tool = 'dig';
-  else if (e.key === 'Escape') { closePop(); closePanels(); }
+  else if (e.key === 'Escape') { if (!popTarget && PANELS.every(id => $(id).hidden)) tool = 'none'; closePop(); closePanels(); }
   else return;
   updateUI();
 });
