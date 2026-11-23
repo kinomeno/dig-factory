@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.40（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.41（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.40';
+const VERSION = '0.41';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -581,7 +581,7 @@ const TXT_ADD = {
     catalog: 'カタログ', catNote: '今つくれる・売れる物の一覧（売値は今の値段）。', catSold: '売った数',
     priceSec: '売値アップ', priceName: n => `${n}の売値`, priceSpec: (m, list) => `売値 ×${m}` + (list ? `（${list}にも掛かる）` : ''),
     priceNote: '売ったことのある資源だけ出ます。加工した物・袋詰めにも同じ倍率が掛かります。', yardHas: 'ヤードの中身',
-    infoPick: '見たいものを選ぶ', close: '閉じる',
+    infoPick: '見たいものを選ぶ', close: '閉じる', facStaff: (n, m) => `作業員 ${n}/${m}人（多いほど速い）`,
     giftMsg: v => `社長、資金が底をつきそうです。\n会長からプレゼントが届きました！\n資金 +${v}（返さなくてよいお金です）`, giftHist: '会長からプレゼント 1000',
     stageUp: (n, names) => `岩盤Lv${n}を突破しました！` + (names.length ? `\n新しく：${names.join('・')}` : ''), stagePop: n => `岩盤Lv${n}突破`, hStage: n => `岩盤Lv${n}を突破`,
     greetT: 'ごあいさつ',
@@ -606,7 +606,7 @@ const TXT_ADD = {
     catalog: 'カタログ', catNote: 'いま つくれる・うれる ものの いちらん（ねだんは いまの ねだん）。', catSold: 'うった かず',
     priceSec: 'ねだん アップ', priceName: n => `${n}の ねだん`, priceSpec: (m, list) => `ねだん ×${m}` + (list ? `（${list}にも かかる）` : ''),
     priceNote: 'うった ことの ある ものだけ でます。つくった ものにも おなじ ばいりつが かかります。', yardHas: 'おきばの なかみ',
-    infoPick: 'みたい ものを えらぶ', close: 'とじる',
+    infoPick: 'みたい ものを えらぶ', close: 'とじる', facStaff: (n, m) => `さぎょういん ${n}/${m}にん（おおいほど はやい）`,
     adm: { liveOn: 'じどう プレイ（みる）', liveOff: 'じどう プレイ（みる）おわり', liveOnMsg: 'じどう プレイちゅう', liveTag: 'じどう プレイちゅう' },
     giftMsg: v => `しゃちょう、おかねが なくなりそうです。\nかいちょうから プレゼントが とどきました！\nおかね +${v}（かえさなくて いい おかねです）`, giftHist: 'かいちょうから プレゼント 1000',
     stageUp: (n, names) => `がんばん Lv${n}を とっぱ しました！` + (names.length ? `\nあたらしく：${names.join('・')}` : ''), stagePop: n => `がんばん Lv${n} とっぱ`, hStage: n => `がんばん Lv${n}を とっぱ`,
@@ -632,7 +632,7 @@ const TXT_ADD = {
     catalog: 'Catalog', catNote: 'Everything you can make and sell now (current prices).', catSold: 'Sold',
     priceSec: 'Price up', priceName: n => `${n} price`, priceSpec: (m, list) => `Price ×${m}` + (list ? ` (also ${list})` : ''),
     priceNote: 'Only resources you have sold are shown. The same rate applies to products made from them and to bags.', yardHas: 'In the yard',
-    infoPick: 'Pick a page', close: 'Close',
+    infoPick: 'Pick a page', close: 'Close', facStaff: (n, m) => `Workers ${n}/${m} (more = faster)`,
     adm: { liveOn: 'Auto play (watch)', liveOff: 'Stop auto play (watch)', liveOnMsg: 'Auto play: the AI decides every 3 seconds', liveTag: 'Auto play' },
     giftMsg: v => `Boss, we are almost out of money.\nA present from the chairman has arrived!\nMoney +${v} (no need to pay it back)`, giftHist: 'Present from the chairman: 1000',
     stageUp: (n, names) => `Broke through bedrock Lv${n}!` + (names.length ? `\nNew: ${names.join(', ')}` : ''), stagePop: n => `Bedrock Lv${n} cleared`, hStage: n => `Broke through bedrock Lv${n}`,
@@ -1088,7 +1088,9 @@ function updateLiquids(dt) {
   }
 }
 // 地上の施設：製油所（石油2→燃料1、ヤードへ）・発電所（お湯か石油を燃やして売電）・温泉（お客さんが来る）
-const facRate = f => { const w = opOf(f); return w ? techFactor(w) : FAC_SLOW; };
+const FAC_SLOTS = 3;   // 地上施設で同時に働ける人数
+const facWorkers = f => S.workers.filter(w => w.target === f && w.state === 'work');
+const facRate = f => { const ws = facWorkers(f); return ws.length ? ws.reduce((a, w) => a + techFactor(w), 0) : FAC_SLOW; };
 const visitors = f => S.cars.filter(c => c.f === f.c).length;
 const CAR_COLS = ['#d8543c', '#3f7cc4', '#e8c34a', '#5aa36a', '#eeeeea', '#4a4a50'];
 function updateFacs(dt) {
@@ -1324,7 +1326,7 @@ function drillHit(k, s) {
   if (g.mat === 'rock') {   // 岩盤：掘り進みは遅くても、石は普通の石のマスと同じ速さで出る
     s.racc = (s.racc || 0) + pw;
     const he = hardAt(tr - SKY) * 1.6;
-    while (s.racc >= he) { s.racc -= he; emitOre(c, r, s, 'stone'); }
+    while (s.racc >= he) { s.racc -= he; emitOre(c, r, s, g.layer === 1 ? 'soil' : 'stone'); }   // 岩盤Lv0（5m）は土が出る
     g.p += pw * slow;
     while (g.p >= g.h && g.left > 0) { g.p -= g.h; g.left--; }
   } else {
@@ -1651,7 +1653,9 @@ function walk(w, dt) {
 }
 
 function updateWorkers(dt) {
-  const taken = new Set(S.workers.filter(w => w.target && (w.state === 'toWork' || w.state === 'work' || w.state === 'drive')).map(w => w.target));
+  const busyW = S.workers.filter(w => w.target && (w.state === 'toWork' || w.state === 'work' || w.state === 'drive'));
+  const taken = new Set(busyW.map(w => w.target));
+  const facN = new Map(); for (const w of busyW) if (w.target.type === 'fac') facN.set(w.target, (facN.get(w.target) || 0) + 1);   // 地上施設は数人まで
   for (const w of S.workers) {
     const maxS = maxStamina(w);
     // 持ち場が無くなった → 戻る
@@ -1683,14 +1687,15 @@ function updateWorkers(dt) {
           if (sc < bd) { bd = sc; best = st; }
         }
         if (!advBest) for (const f of S.fac) {   // 地上の施設（上級勤務に決まった人は除く）
-          if (taken.has(f)) continue;
+          const fn = facN.get(f) || 0;
+          if (fn >= FAC_SLOTS) continue;
           const d = dist.get(postKey(f));
           if (d === undefined) continue;
           const sc = d - workNeed(f) * 3 - (f.prio === undefined ? 1 : f.prio) * 40;
           if (sc < bd) { bd = sc; best = f; }
         }
         if (best) {
-          w.target = best; taken.add(best);
+          w.target = best; taken.add(best); if (best.type === 'fac') facN.set(best, (facN.get(best) || 0) + 1);
           w.path = pathFromOffice(postKey(best)) || [];
           w.state = 'toWork';
         }
@@ -2083,7 +2088,7 @@ function updatePop() {
   if (t.type === 'fac' || t.type === 'well' || t.type === 'pipe') {
     document.querySelectorAll('#pop [data-pp]').forEach(b => b.classList.toggle('active', +b.dataset.pp === (t.prio === undefined ? 1 : t.prio)));
     const tanks = `${T.tankOil} ${Math.floor(S.tank.oil)}/${TANK_CAP}　${T.tankHot} ${Math.floor(S.tank.hot)}/${TANK_CAP}`;
-    if (t.type === 'fac') { const w = opOf(t); $('popInfo').innerText = `${T.facDesc[t.f]}\n${tanks}\n${w ? T.manned(`Lv${w.lv}`) : T.facNoOp}` + (t.f === 'spa' ? `\n${T.guests(visitors(t))}` : ''); }
+    if (t.type === 'fac') { const ws = facWorkers(t); $('popInfo').innerText = `${T.facDesc[t.f]}\n${tanks}\n${ws.length ? T.facStaff(ws.length, FAC_SLOTS) : T.facNoOp}` + (t.f === 'spa' ? `\n${T.guests(visitors(t))}` : ''); }
     else if (t.type === 'well') { const n = pipeNet().get(findKey(t)); $('popInfo').innerText = `${T.wellDesc[t.kind]}\n${n && n.surface ? T.wellOn : T.wellOff}`; }
     else { const n = pipeNet().get(findKey(t)); $('popInfo').innerText = `${T.pipeDesc}\n${n && n.surface && n.kind ? T.wellOn : T.wellOff}\n${tanks}`; }
     return;
@@ -3099,9 +3104,9 @@ function hatch(x, y, cell) {
 }
 function drawLvPix(x, y, w, lv) {   // x,y＝並べ始め、w＝本体の幅
   if (!lv) return;
-  const d = Math.max(1, Math.round(cp / 16)), n = Math.min(lv, Math.floor(w / (d * 2)));
+  const d = 1 / (window.devicePixelRatio || 1), n = Math.min(lv, Math.floor(w / (d * 3)));   // d＝モニターの1ドット
   ctx.fillStyle = THEME.level;
-  for (let i = 0; i < n; i++) ctx.fillRect(Math.round(x + i * d * 2), Math.round(y), d, d);
+  for (let i = 0; i < n; i++) ctx.fillRect(x + i * d * 3, y, d, d);
 }
 function drawLevel(x, y, lv) {
   if (!lv) return;
@@ -3384,7 +3389,7 @@ function drawFacs() {
   for (const f of S.fac) {
     const x = f.c * cell, y = YARD_R * cell;
     ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(sprite(f.f), x, y, cell, cell); ctx.restore();
-    if (!opOf(f)) { ctx.fillStyle = THEME.zMark || '#2b2b2e'; ctx.font = `bold ${Math.round(cell * 0.22)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('z', x + cell * 0.84, y + cell * 0.17); }
+    if (!facWorkers(f).length) { ctx.fillStyle = THEME.zMark || '#2b2b2e'; ctx.font = `bold ${Math.round(cell * 0.22)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('z', x + cell * 0.84, y + cell * 0.17); }
     const tk = f.f === 'refinery' ? S.tank.oil : f.f === 'spa' ? S.tank.hot : S.tank.hot + S.tank.oil;   // タンクの残り
     ctx.fillStyle = THEME.gaugeBg; ctx.fillRect(x + 3, y + cell - 5, cell - 6, 3);
     ctx.fillStyle = f.f === 'refinery' ? THEME.pipe.oil : THEME.pipe.hot; ctx.fillRect(x + 3, y + cell - 5, (cell - 6) * Math.min(1, tk / TANK_CAP), 3);
