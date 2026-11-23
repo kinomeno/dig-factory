@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.27（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.28（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.27';
+const VERSION = '0.28';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -2013,7 +2013,8 @@ $('confirmYes').addEventListener('click', () => { $('confirm').hidden = true; co
 const THEME = {
   // 明るいグレーが基本。色を付けるのは「資源（中身）・ドリル・お金・選択」だけに絞る
   bg: '#e6e6e3', skyTop: '#6fa9d6', skyLow: '#b9d7ec',   // 空は青（原色より少しだけ彩度を落とす）
-  dug: '#8fa8ba', grass: '#9a9d94', paved: '#8d8f93',     // 穴＝空より少し暗い水色
+  dug: '#8fa8ba', grass: '#5f8a44', paved: '#8d8f93',     // 穴＝空より少し暗い水色
+  grassMid: '#7aa35a', grassDark: '#5f8a44', grassLight: '#a3c47e',   // 地表の草（ドット絵）
   soil: [[196, 190, 180], [140, 134, 125]], stone: [[168, 169, 170], [112, 113, 115]], rock: '#5b5a60', rockLine: 'rgba(255,255,255,.3)',
   gauge: '#2b2b2e', gaugeBg: 'rgba(255,255,255,.55)', depth: 'rgba(0,0,0,.45)',
   conv: { dark: '#000000', slat: '#6b6b6b' },   // コンベアのドット絵（参考画像の色）
@@ -2060,8 +2061,14 @@ function draw() {
     for (let c = 0; c < COLS; c++) {
       const b = a[c]; if (!b) continue;
       const x = c * cell, y = r * cell;
-      ctx.fillStyle = groundColor(b, r); ctx.fillRect(x + 1, y + 1, cell - 2, cell - 2);
-      if (b.mat === 'rock') drawRock(x, y, b);
+      const v = (c * 7 + r * 13) % 4;   // 模様の種類（隣と同じにならないよう散らす）
+      ctx.imageSmoothingEnabled = false;
+      if (b.mat === 'rock') ctx.drawImage(rockTex(v), x + 1, y + 1, cell - 2, cell - 2);
+      else {
+        ctx.fillStyle = groundColor(b, r); ctx.fillRect(x + 1, y + 1, cell - 2, cell - 2);
+        ctx.drawImage(groundTex(b.mat, v), x + 1, y + 1, cell - 2, cell - 2);
+      }
+      if (r === SKY && c < YARD_C) ctx.drawImage(grassTex(v), x, y, cell, cell);   // 地表の1段目は草
       if (S.reveal && b.ore) { ctx.fillStyle = ITEMS[b.ore].c[0]; ctx.fillRect(x + cell * 0.4, y + cell * 0.4, cell * 0.2, cell * 0.2); } // 管理：中身を見る
       if (b.left < b.yieldN || b.p > 0) {
         ctx.fillStyle = THEME.gaugeBg; ctx.fillRect(x + 3, y + cell - 6, cell - 6, 3);
@@ -2069,8 +2076,9 @@ function draw() {
       }
       if (digSet && digSet.has(key(c, r)) && !(b.mat === 'rock' && sk('digLv') < b.layer)) { ctx.fillStyle = THEME.okFill; ctx.fillRect(x, y, cell, cell); }   // 掘れる所だけ薄い青
     }
+    drawRockLabel(r, a);
   }
-  ctx.fillStyle = THEME.grass; ctx.fillRect(0, SKY * cell - 2, W, 2);
+  ctx.fillStyle = THEME.grass; ctx.fillRect(0, SKY * cell - 1, YARD_C * cell, 1);
   ctx.fillStyle = THEME.depth; ctx.font = `${Math.max(9, Math.round(cell * 0.3))}px sans-serif`;
   ctx.textAlign = 'left'; ctx.textBaseline = 'top';
   for (let r = g0; r <= r1; r++) if (r > SKY && (r - SKY) % 5 === 0) ctx.fillText(tx().depthM(r - SKY), 2, r * cell + 2);
@@ -2171,13 +2179,73 @@ function draw() {
 }
 
 // 硬い岩盤：ひびの線と必要な掘削レベル（足りないと赤字）
-function drawRock(x, y, b) {
-  const cell = cp;
-  ctx.strokeStyle = THEME.rockLine; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(x + cell * 0.18, y + cell * 0.3); ctx.lineTo(x + cell * 0.48, y + cell * 0.52); ctx.lineTo(x + cell * 0.82, y + cell * 0.32); ctx.stroke();
-  ctx.fillStyle = sk('digLv') >= b.layer ? 'rgba(255,255,255,.5)' : '#ff9b8a';
-  ctx.font = `bold ${Math.round(cell * 0.24)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('Lv' + b.layer, x + cell / 2, y + cell * 0.74);
+// ---- 地面のドット絵（16×16。種類ごとに4通り、作ったら使い回す） ----
+function seeded(n) { let s2 = (n * 9301 + 49297) % 233280; return () => (s2 = (s2 * 9301 + 49297) % 233280) / 233280; }
+const TEX = {};
+function texOf(k, make) {
+  if (TEX[k]) return TEX[k];
+  const c = document.createElement('canvas'); c.width = c.height = 16;
+  make(c.getContext('2d')); return (TEX[k] = c);
+}
+// 土・石：ベタ塗りの上に重ねる、明るい点と暗い点の模様（色は深さで変わる下地のまま）
+function groundTex(mat, v) {
+  return texOf(mat + v, g => {
+    const rnd = seeded((mat === 'stone' ? 50 : 10) + v * 7);
+    if (mat === 'stone') {   // 小石：上に光、下に影
+      for (let i = 0; i < 5; i++) {
+        const x = Math.floor(rnd() * 12) + 1, y = Math.floor(rnd() * 12) + 1, w = 2 + Math.floor(rnd() * 2);
+        g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(x, y + 1, w, 2);
+        g.fillStyle = 'rgba(255,255,255,.28)'; g.fillRect(x, y, w, 1);
+      }
+    }
+    for (let i = 0; i < 20; i++) {   // 土の粒
+      const x = Math.floor(rnd() * 16), y = Math.floor(rnd() * 16), dark = rnd() < 0.62;
+      g.fillStyle = dark ? 'rgba(70,45,20,.16)' : 'rgba(255,255,255,.18)';
+      g.fillRect(x, y, rnd() < 0.4 ? 2 : 1, 1);
+    }
+  });
+}
+// 草：マスの上の方に緑の帯。下のふちはギザギザ、ところどころ明るい葉先
+function grassTex(v) {
+  return texOf('grass' + v, g => {
+    const rnd = seeded(90 + v * 5);
+    for (let x = 0; x < 16; x++) {
+      const d = 2 + Math.floor(rnd() * 3);
+      g.fillStyle = THEME.grassMid; g.fillRect(x, 0, 1, d);
+      g.fillStyle = THEME.grassDark; g.fillRect(x, d, 1, 1);
+      if (rnd() < 0.35) { g.fillStyle = THEME.grassLight; g.fillRect(x, 0, 1, 1); }
+    }
+  });
+}
+// 岩盤：角ばった塊が組み合わさった、固そうな絵（塊ごとに少し明るさを変え、境目は暗く、境目の右下に光）
+function rockTex(v) {
+  return texOf('rock' + v, g => {
+    const rnd = seeded(200 + v * 11), pts = [];
+    for (let i = 0; i < 5; i++) pts.push([rnd() * 16, rnd() * 16, (rnd() - 0.5) * 0.22]);
+    const near = (x, y) => {
+      let a = 1e9, b2 = 1e9, ia = 0;
+      pts.forEach(([px, py], i) => { const d = Math.max(Math.abs(px - x), Math.abs(py - y)); if (d < a) { b2 = a; a = d; ia = i; } else if (d < b2) b2 = d; });
+      return [ia, b2 - a];
+    };
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      const [i, gap] = near(x + 0.5, y + 0.5);
+      let col = shade(THEME.rock, pts[i][2]);
+      if (gap < 1) col = shade(THEME.rock, -0.45);                                   // 割れ目
+      else if (near(x - 0.5, y - 0.5)[1] < 1) col = shade(THEME.rock, 0.28);          // 割れ目の右下は光る
+      g.fillStyle = col; g.fillRect(x, y, 1, 1);
+    }
+  });
+}
+// 岩盤の段：Lvの字は、段の真ん中にいちばん近い岩のマスに1つだけ
+function drawRockLabel(r, a) {
+  let best = -1;
+  for (let c = 0; c < COLS; c++) if (a[c] && a[c].mat === 'rock' && (best < 0 || Math.abs(c - (COLS - 1) / 2) < Math.abs(best - (COLS - 1) / 2))) best = c;
+  if (best < 0) return;
+  const b = a[best], cell = cp, x = best * cell + cell / 2, y = r * cell + cell / 2;
+  ctx.font = `bold ${Math.round(cell * 0.32)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.strokeText('Lv' + b.layer, x, y);
+  ctx.fillStyle = sk('digLv') >= b.layer ? '#ffffff' : '#ffb09f';   // 掘れない間は赤っぽく
+  ctx.fillText('Lv' + b.layer, x, y);
 }
 // コンベアのドット絵：16×16ドット、4コマ。基本は2×2ドット（＝8×8に見える）、中割りで1ドットずつ板が流れる
 // 0=透明 1=黒 2=灰色。上向き（↑）に流れる絵を、向きに合わせて回して使う
