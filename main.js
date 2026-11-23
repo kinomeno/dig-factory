@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.14（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.15（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.14';
+const VERSION = '0.15';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -76,6 +76,9 @@ const MACHINES = {
 };
 const MACHINE_ORDER = Object.keys(MACHINES);
 
+// フォークリフト：地上に出た資源を、出た場所（荷おろし場）からヤードまで運ぶ
+const FORK = { cap: 6, speed: 2.4, rate: 8 };   // 積める数・走る速さ（マス/秒）・積みおろしの速さ（個/秒）
+const newFork = () => ({ x: 0, state: 'idle', load: [], tc: null, acc: 0, face: 1 });
 const LAYER_EVERY = 10;   // 10mごとに硬い岩盤の層（スキル「掘削レベル」が足りないと掘れない）
 // 事務所のレベル：休憩の速さ・定員
 const OFFICE_LV = { rest: [1, 1.5, 2, 3], cap: [3, 5, 8, 12], cost: [500, 1500, 4000] };
@@ -152,7 +155,7 @@ const TXT = {
       '手のひら（右上）でドラッグ、または画面の端の▲▼◀▶で画面が動きます。2本指・Ctrl＋ホイール・＋－で拡大縮小。「地図」で全体を見られます。',
       '下の「メニュー」から道具を選びます。項目をタップすると、さらに上に種類が出ます。もう一度押すと解除。',
       'ドリルを空いたマスに置くと下へ掘ります。掘った資源はドリルの後ろに出ます。空中の資源は下に落ちます。',
-      '地上に出た資源は右上のヤードに溜まります。トラックが積んで出発し、帰ってきたら売上になります。',
+      '地上に出た資源は、出た場所に置かれます。小さなフォークリフトがヤードまで運び、トラックが積んで出発し、帰ってきたら売上になります。',
       'コンベアと機械は地下に置きます。「掘削」で穴の隣を掘って場所を広げられます（お金がかかります）。',
       '地上中央の事務所で作業員を雇えます（最初は自分ひとり＝0人）。作業員は自分でドリルや機械へ歩いて行って操作します。作業員がいないととても遅くなります（「z」の印）。疲れると事務所で休みます。給料は毎月払います。',
       '置いた物をタップすると、向きの変更やレベルアップができます。レベルは黄色い点の数で分かります。',
@@ -226,7 +229,7 @@ const TXT = {
       'てのひら（みぎうえ）で ひっぱるか、がめんの はしの ▲▼◀▶で がめんが うごきます。「ちず」で ぜんたいを みられます。',
       'したの「メニュー」から どうぐを えらびます。もう いちど おすと やめます。',
       'ドリルを あいている マスに おくと したへ ほります。ほった ものは ドリルの うしろに でます。',
-      'ちじょうに でた ものは みぎうえの おきばに たまります。トラックが はこんで、かえってきたら おかねに なります。',
+      'ちじょうに でた ものは、フォークリフトが おきばまで はこびます。トラックが はこんで、かえってきたら おかねに なります。',
       'コンベアと きかいは ちかに おきます。「あなほり」で ばしょを ひろげられます。',
       'ちじょう まんなかの じむしょで さぎょういんを やとえます。さぎょういんが いないと とても おそく なります（「z」の しるし）。つかれると やすみます。きゅうりょうは まいつき はらいます。',
       'おいた ものを タップすると むきを かえたり レベルアップ できます。',
@@ -300,7 +303,7 @@ const TXT = {
       'Drag with the hand (top right) or use the edge arrows to scroll. Pinch, Ctrl+wheel or +/- to zoom. "Map" shows everything.',
       'Pick tools from "Menu" at the bottom. Tap a category to see its items. Tap again to cancel.',
       'Place a drill on an empty cell and it digs down. Mined items come out behind it. Items in the air fall.',
-      'Items that reach the surface pile up in the yard. The truck carries them away and you get paid when it returns.',
+      'Items that reach the surface are dropped there; a little forklift carries them to the yard. The truck takes them away and you get paid when it returns.',
       'Conveyors and machines go underground. Use "Dig" to make room next to existing holes (costs money).',
       'Hire workers at the office (center of the surface; you start alone). They walk to drills and machines and run them; without one ("z" mark) they are very slow. Tired workers rest at the office. Wages are paid monthly.',
       'Tap anything you placed to turn it or level it up. Yellow dots show the level.',
@@ -430,11 +433,14 @@ function newGame() {
     time: 0,
     deepest: SKY + 6,
     pops: [],
+    dock: {},           // 地上に出て、フォークリフトを待っている資源（列ごと）
+    forks: [],          // フォークリフト（最初から1台）
     digVer: 0,          // 地形が変わった回数（掘れる場所・歩ける道の再計算用）
     stats: { saleTotal: 0, costTotal: 0, ships: 0, cur: { sale: 0, cost: 0 }, months: [], hist: [], histT: 0 },
     reveal: false,
   };
   // 最初は作業員0人（自分ひとりでやっている設定）。事務所で雇う
+  S.forks.push(Object.assign(newFork(), { x: PARK_X }));
   S.cands = newCands();
   resetCam();
 }
@@ -559,6 +565,60 @@ function spawnItem(k, x, y, cc, cr) {
   return it;
 }
 function toYard(it) { S.yard.push({ k: it.k, v: it.v, of: it.of, rx: Math.random(), ry: Math.random() }); }
+const PARK_X = OFFICE_C - 0.35;   // フォークリフトの待機場所（事務所の左横）
+function toSurface(it) {
+  const c = clamp(Math.floor(it.x), 0, COLS - 1);
+  if (c >= YARD_C) { toYard(it); return; }
+  (S.dock[c] || (S.dock[c] = [])).push({ k: it.k, v: it.v, of: it.of, rx: Math.random(), ry: Math.random() });
+}
+// 次に取りに行く荷おろし場（他の車が向かっていない、いちばん近い所）
+function pickDock(f) {
+  const taken = new Set(S.forks.filter(o => o !== f && o.tc !== null && (o.state === 'toPick' || o.state === 'loading')).map(o => o.tc));
+  let best = null, bd = Infinity;
+  for (const c of Object.keys(S.dock)) {
+    if (!S.dock[c].length || taken.has(+c)) continue;
+    const d = Math.abs(+c + 0.5 - f.x);
+    if (d < bd) { bd = d; best = +c; }
+  }
+  return best;
+}
+function updateForks(dt) {
+  for (const f of S.forks) {
+    const move = tx => {
+      const d = tx - f.x;
+      if (Math.abs(d) > 0.01) f.face = Math.sign(d);
+      f.x += Math.sign(d) * Math.min(Math.abs(d), FORK.speed * dt);
+      f.moving = Math.abs(tx - f.x) > 0.01;
+      return !f.moving;
+    };
+    f.moving = false;
+    if (f.state === 'idle' || f.state === 'toPark') {
+      const c = pickDock(f);
+      if (c !== null) { f.tc = c; f.state = 'toPick'; }
+      else if (Math.abs(f.x - PARK_X) > 0.01) { f.state = 'toPark'; if (move(PARK_X)) f.state = 'idle'; }   // 仕事が無ければ事務所の横へ
+      else f.state = 'idle';
+      continue;
+    }
+    if (f.state === 'toPick') { if (move(f.tc + 0.5)) { f.state = 'loading'; f.acc = 0; } continue; }
+    if (f.state === 'loading') {
+      const pile = S.dock[f.tc] || [];
+      f.acc += dt * FORK.rate;
+      while (f.acc >= 1 && pile.length && f.load.length < FORK.cap) { f.load.push(pile.shift()); f.acc--; }
+      if (!pile.length) delete S.dock[f.tc];
+      if (f.load.length >= FORK.cap || !pile.length) {
+        const c = f.load.length < FORK.cap ? pickDock(f) : null;   // まだ積めるなら、ほかの山にも寄る
+        if (c !== null) { f.tc = c; f.state = 'toPick'; } else { f.tc = null; f.state = 'toYard'; }
+      }
+      continue;
+    }
+    if (f.state === 'toYard') { if (move(YARD_C + 0.5)) { f.state = 'unloading'; f.acc = 0; } continue; }
+    if (f.state === 'unloading') {
+      f.acc += dt * FORK.rate * 1.5;
+      while (f.acc >= 1 && f.load.length) { const it = f.load.shift(); S.yard.push({ ...it, rx: Math.random(), ry: Math.random() }); f.acc--; }
+      if (!f.load.length) f.state = 'idle';
+    }
+  }
+}
 
 // ---- 時間を進める ----
 function sim(sec) {
@@ -570,6 +630,7 @@ function sim(sec) {
     updateWorkers(dt);
     updateDrills(dt);
     updateMachines(dt);
+    updateForks(dt);
     updateTruck(dt);
     updateResearch(dt);
     updateMonth();
@@ -595,7 +656,7 @@ function approach(v, target, d) { return Math.abs(target - v) <= d ? target : v 
 function updateItems(dt) {
   for (let i = S.items.length - 1; i >= 0; i--) {
     const it = S.items[i];
-    if (it.y < SKY) { toYard(it); S.items.splice(i, 1); continue; }   // 地上に出た
+    if (it.y < SKY) { toSurface(it); S.items.splice(i, 1); continue; }   // 地上に出た → その場に置く（フォークリフトが運ぶ）
     const c = Math.floor(it.x), r = Math.floor(it.y), k = key(c, r);
     const s = S.st.get(k);
     if (!isBelt(s)) {
@@ -766,6 +827,7 @@ function serialize() {
 function deserialize(json) {
   const d = JSON.parse(json).S;
   d.rows = new Map(d.rows); d.st = new Map(d.st); d.pops = [];
+  d.dock = d.dock || {}; d.forks = d.forks || [Object.assign(newFork(), { x: PARK_X })];
   for (const w of d.workers) w.target = w.target !== null && w.target !== undefined ? d.st.get(w.target) || null : null;
   return d;
 }
@@ -1444,6 +1506,7 @@ function renderMap() {
   }
   g.fillStyle = '#e9e2d0'; g.fillRect(OFFICE_C * s, YARD_R * s, 2 * s, s);           // 事務所
   g.fillStyle = '#3a6ea5'; g.fillRect(BED * s, YARD_R * s, 2 * s, s);                // トラック
+  g.fillStyle = '#f2c230'; for (const f of S.forks) g.fillRect(f.x * s - 1.5, (YARD_R + 0.6) * s, 3, 3);   // フォークリフト
   g.fillStyle = '#ffb03a';
   for (const w2 of S.workers) if (w2.state !== 'idle' && w2.state !== 'rest') g.fillRect(w2.x * s - 1, w2.y * s - 1, 2, 2);
   // 今見ている範囲
@@ -1538,6 +1601,7 @@ function draw() {
 
   drawOffice();
   drawYard();
+  drawDock();
   drawTruck();
 
   for (const it of S.items) {
@@ -1755,6 +1819,45 @@ function drawYard() {
     ctx.fillStyle = '#fff'; ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.lineWidth = 3;
     ctx.font = `bold ${Math.round(cell * 0.3)}px sans-serif`; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
     ctx.strokeText('×' + n, x0 + cell * 2 - 3, y + 2); ctx.fillText('×' + n, x0 + cell * 2 - 3, y + 2);
+  }
+}
+// 荷おろし場：地上に出た資源の小さな山（フォークリフト待ち）
+function drawDock() {
+  const cell = cp, y = YARD_R * cell;
+  for (const c of Object.keys(S.dock)) {
+    const pile = S.dock[c]; if (!pile.length) continue;
+    const x0 = +c * cell, h = Math.min(0.5, 0.08 + pile.length * 0.02);
+    for (let i = 0; i < Math.min(pile.length, 25); i++) {
+      const it = pile[i];
+      drawItemShape(it, x0 + cell * (0.25 + it.rx * 0.5), y + cell * (0.86 - it.ry * h), 0.7);
+    }
+    if (pile.length > 3) {
+      ctx.fillStyle = '#fff'; ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.lineWidth = 3;
+      ctx.font = `bold ${Math.round(cell * 0.24)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      const t = '×' + pile.length, ty = y + cell * (0.8 - h);
+      ctx.strokeText(t, x0 + cell / 2, ty); ctx.fillText(t, x0 + cell / 2, ty);
+    }
+  }
+  for (const f of S.forks) drawFork(f);
+}
+// フォークリフト：小さく、走るとちょこちょこ揺れる
+function drawFork(f) {
+  const cell = cp, s = cell * 0.42;
+  const bob = f.moving ? Math.abs(Math.sin(S.time * 22)) * cell * 0.025 : 0;
+  const x = f.x * cell, yb = (YARD_R + 1) * cell - cell * 0.06 - bob;   // 車輪の下
+  const dir = f.face || 1;
+  ctx.save(); ctx.translate(x, yb); ctx.scale(dir, 1);
+  ctx.fillStyle = '#f2c230'; ctx.fillRect(-s * 0.55, -s * 0.55, s * 0.8, s * 0.38);           // 車体
+  ctx.strokeStyle = '#3a3a3a'; ctx.lineWidth = Math.max(1, s * 0.06);
+  ctx.strokeRect(-s * 0.45, -s * 0.95, s * 0.45, s * 0.42);                                  // 運転席の枠
+  ctx.fillStyle = '#555'; ctx.fillRect(s * 0.3, -s * 1.05, s * 0.08, s * 0.95);              // マスト
+  ctx.fillRect(s * 0.3, -s * 0.16, s * 0.42, s * 0.06);                                      // フォーク
+  ctx.fillStyle = '#222';
+  for (const wx of [-s * 0.35, s * 0.12]) { ctx.beginPath(); ctx.arc(wx, -s * 0.1, s * 0.12, 0, Math.PI * 2); ctx.fill(); }
+  ctx.restore();
+  // 積んでいる物（フォークの上に小さく）
+  for (let i = 0; i < Math.min(f.load.length, 3); i++) {
+    drawItemShape(f.load[i], x + dir * s * 0.52, yb - s * 0.28 - i * s * 0.22, 0.45);
   }
 }
 const ease = t => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
