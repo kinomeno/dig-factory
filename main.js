@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.19（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.20（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.19';
+const VERSION = '0.20';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -2067,6 +2067,11 @@ function draw() {
     if (w.state === 'idle' || w.state === 'rest') continue;      // 事務所の中
     if (w.target && w.target.type === 'lab' && w.state === 'work') continue;   // 研究所の中
     if (w.state === 'drive') continue;                            // 乗り物の絵の中に描く
+    if (w.state === 'work' && w.target && isStation(w.target)) {   // ドリル・機械で作業中は、そのマスの右上に頭だけ
+      const k = stationKey(w.target);
+      if (k >= 0 && rOf(k) >= r0 && rOf(k) <= r1) drawWorkerHead(cOf(k) * cell, rOf(k) * cell);
+      continue;
+    }
     if (w.y < r0 || w.y > r1 + 1) continue;
     drawWorker(w.x * cell, w.y * cell, w);
   }
@@ -2247,6 +2252,14 @@ const WORKER_FR = WORKER_PIX.map(rows => {
 function drawWorkerSprite(cx, footY, size, frame, alpha) {
   ctx.save(); ctx.imageSmoothingEnabled = false; if (alpha < 1) ctx.globalAlpha = alpha;
   ctx.drawImage(WORKER_FR[frame], Math.round(cx - size / 2), Math.round(footY - size), size, size);
+  ctx.restore();
+}
+// 作業中の印：作業員の頭（ヘルメットと顔）だけを、マスの中の右上に小さく
+function drawWorkerHead(x, y) {
+  const s = cp * 0.24, hx = x + cp * 0.94 - s, hy = y + cp * 0.06;
+  ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(hx - 1, hy - 1, s + 2, s + 2);   // 見やすいよう薄い縁
+  ctx.save(); ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(WORKER_FR[1], 3, 0, 2, 2, hx, hy, s, s);   // 8×8の絵のうち、頭の2×2ドット
   ctx.restore();
 }
 function drawWorker(x, y, w) {   // x,y＝マスの中心（画面座標）。小さく表示
