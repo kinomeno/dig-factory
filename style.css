@@ -300,3 +300,9 @@ body.dash #infoBtn { display: none; }
 .igrp .data .pos { color: var(--good); }
 .igrp .data .neg { color: var(--bad); }
 .igrp .graph { margin: 2px 0 4px; height: 80px; }
+
+/* 遊び方：選択の印（黒い四角）が項目の間を滑って移る */
+#helpNav { position: relative; }
+#helpNav .hmark { position: absolute; left: 0; top: 0; background: var(--selbg); border-radius: var(--radius); transition: transform .22s ease, width .22s ease, height .22s ease; pointer-events: none; }
+#helpNav button { position: relative; z-index: 1; transition: color .22s; }
+#helpNav button.active { background: none; border-color: transparent; color: #fff; }

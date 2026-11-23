@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.26（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.27（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.26';
+const VERSION = '0.27';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -1790,15 +1790,32 @@ function renderPanel(id) {
     // 2ペイン：左に項目、右に説明
     const nav = $('helpNav'), body = $('helpBody');
     nav.innerHTML = '';
-    const show = i => {
-      [...nav.children].forEach((b, j) => b.classList.toggle('active', i === j));
+    const fill = i => {
       body.innerHTML = '';
       const h = document.createElement('h3'); h.textContent = topics[i][0]; body.append(h);
       for (const para of topics[i][1].split('\n')) { const pEl = document.createElement('p'); pEl.textContent = para; body.append(pEl); }
     };
+    // 選択の印（黒い四角）は1つだけ。押した項目へ滑らかに移る
+    const mark = document.createElement('span'); mark.className = 'hmark';
+    const moveMark = (b, anim) => {
+      mark.style.transition = anim ? '' : 'none';
+      mark.style.transform = `translate(${b.offsetLeft}px, ${b.offsetTop}px)`;
+      mark.style.width = b.offsetWidth + 'px'; mark.style.height = b.offsetHeight + 'px';
+    };
+    const show = (i, anim = true) => {
+      helpIdx = i;
+      [...nav.querySelectorAll('button')].forEach((b, j) => { b.classList.toggle('active', i === j); if (i === j) moveMark(b, anim); });
+      fill(i);
+    };
     const topics = T.helpTopics.filter((tp, i) => i !== 5 || S.office.lv >= 1);   // 事務所と研究所の話はレベル2から
+    nav.append(mark);
     topics.forEach(([t], i) => { const b = document.createElement('button'); b.textContent = t; b.addEventListener('click', () => show(i)); nav.append(b); });
-    show(helpIdx = Math.min(helpIdx, topics.length - 1));
+    // 高さは、いちばん長い説明に合わせて最初に確保する（項目を替えても窓の大きさが変わらない）
+    body.style.minHeight = '';
+    let tall = 0;
+    for (let i = 0; i < topics.length; i++) { fill(i); tall = Math.max(tall, body.offsetHeight); }
+    body.style.minHeight = tall + 'px';
+    show(Math.min(helpIdx, topics.length - 1), false);
   } else if (id === 'settings') {
     document.querySelectorAll('[data-lang]').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
     const box = $('setExtra'); box.innerHTML = '';
