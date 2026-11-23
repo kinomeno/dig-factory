@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.45（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.46（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.45';
+const VERSION = '0.46';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -603,6 +603,8 @@ const TXT_ADD = {
     aiFail: c => `失敗：銀行の融資を受けた（${c}）`, aiFailRun: n => `融資を${n}回受けました（失敗）。管理メニュー「AIの失敗記録」に原因があります`,
     aiCause: { noDrill: 'ドリルが無い', drillStop: 'ドリルが全部止まっている', noWorker: '作業員がいない', yard: 'ヤードが山（トラック不足）', dock: '荷おろし場が山（フォークリフト不足）', jam: '地下で資源が詰まっている', noSale: '売上が無い', spend: 'お金の使いすぎ' },
     live10: '10分進める', live60: '60分進める',
+    dur: (d, h, m) => (d ? `${d}日` : '') + (d || h ? `${h}時間` : '') + `${m}分`,
+    playTime: (mo, x1, others) => `ここまで：ゲーム内${mo}か月＝実際に遊ぶと ×1で${x1}（${others}）`,
     aditRule: 'その深さの資源が出続ける（岩盤と岩盤の間に1つ）', aiAdit: '横穴掘削口を置いた',
     lv0Open: '会社レベル2：岩盤Lv0（5m）を破れるようになりました',
     aditHelp: ['横穴掘削口', '研究所で研究すると置けます（段階2から）。置いた深さの資源（掘った時と同じ出方）が、前から出続けます。掘り進めない代わりに、ずっと出ます。\n岩盤と岩盤の間（5〜10m、10〜20m…）に1つずつ置けます。作業員がつくと速くなり、レベルも上げられます。掘削レベルが足りずにドリルが岩盤で止まっている間の稼ぎに。'],
@@ -610,7 +612,7 @@ const TXT_ADD = {
     mach: { drawer: '伸線機', atelier: '装飾工房', adit: '横穴掘削口' }, glyph: { drawer: '伸', atelier: '飾', adit: '横' },
     adm: { diary: '制作日誌', failLog: 'AIの失敗記録', failNone: 'AIの失敗記録はまだありません（自動プレイで銀行の融資を受けると、ここに原因が残ります）',
       failHead: (r, t) => `自動プレイが銀行の融資を受けた記録（新しい順）\n学んだこと：お金を残す倍率 ×${r}・トラック強化の早さ ×${t}`,
-      failRow: (t, st, d, c) => `・プレイ時間${t}・段階${st}・${d}m：${c}` }, facStaff: (n, m) => `作業員 ${n}/${m}人（多いほど速い）`,
+      failRow: (t, st, d, c) => `・プレイ時間${t}（×1で遊んだ時間）・段階${st}・${d}m：${c}` }, facStaff: (n, m) => `作業員 ${n}/${m}人（多いほど速い）`,
     giftMsg: v => `社長、資金が底をつきそうです。\n会長からプレゼントが届きました！\n資金 +${v}（返さなくてよいお金です）`, giftHist: '会長からプレゼント 1000',
     stageUp: (n, names) => `岩盤Lv${n}を突破しました！` + (names.length ? `\n新しく：${names.join('・')}` : ''), stagePop: n => `岩盤Lv${n}突破`, hStage: n => `岩盤Lv${n}を突破`,
     greetT: 'ごあいさつ',
@@ -675,6 +677,8 @@ const TXT_ADD = {
     aiFail: c => `Failed: took a bank loan (${c})`, aiFailRun: n => `Took ${n} bank loan(s) (failure). See Admin > AI failure log`,
     aiCause: { noDrill: 'no drill', drillStop: 'all drills stopped', noWorker: 'no workers', yard: 'yard piled up (truck too small)', dock: 'docks piled up (forklifts)', jam: 'items jammed underground', noSale: 'no sales', spend: 'overspending' },
     live10: '+10 min', live60: '+60 min',
+    dur: (d, h, m) => (d ? `${d}d ` : '') + (d || h ? `${h}h ` : '') + `${m}m`,
+    playTime: (mo, x1, others) => `So far: ${mo} months in game = ${x1} of real play at ×1 (${others})`,
     aditRule: 'Keeps giving the resources of its depth (one between each pair of bedrocks)', aiAdit: 'Placed an adit',
     lv0Open: 'Company level 2: you can now break bedrock Lv0 (5m)',
     aditHelp: ['Adit', 'Research it at the Lab (from stage 2). It keeps giving the resources of the depth it sits at, out of its front. It never moves on, but never runs out.\nOne per band between bedrocks (5-10m, 10-20m...). Workers make it faster, and you can level it up. Good income while drills wait at bedrock.'],
@@ -4371,6 +4375,15 @@ function autoStep(build = true) {
   }
 }
 let autoBusy = false, autoBuild = true, autoLive = false, liveT = 0;
+// 実際に遊ぶと何日何時間かかるか（ゲームの時間＝×1で遊んだ時間。研究の倍速なら、その分短い）
+function realDur(sec) {
+  const T = tx(), m = Math.round(sec / 60), d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60), mm = m % 60;
+  return T.dur(d, h, mm);
+}
+function playTimeText() {
+  const T = tx(), t = S.time;
+  return T.playTime(Math.floor(t / TUNE.month), realDur(t), [2, 4, 8].map(x => `×${x} ${realDur(t / x)}`).join('・'));
+}
 const autoRun = { fails: 0 };
 async function autoPlay(min) {
   const T = tx(), sec = min * 60;
@@ -4385,7 +4398,7 @@ async function autoPlay(min) {
     await new Promise(r => setTimeout(r, 0));
   }
   S.pops = [];
-  $('awayMsg').textContent = T.autoDone(min) + (autoRun.fails ? '\n' + T.aiFailRun(autoRun.fails) : '');
+  $('awayMsg').textContent = T.autoDone(min) + '\n' + playTimeText() + (autoRun.fails ? '\n' + T.aiFailRun(autoRun.fails) : '');
   $('awayOk').hidden = false;
   autoBusy = false;
 }
