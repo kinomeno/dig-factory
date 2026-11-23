@@ -18,7 +18,7 @@
 <meta property="og:locale" content="ja_JP">
 <meta property="og:site_name" content="ほりほり工場 / Dig Factory Tycoon">
 <meta name="twitter:card" content="summary">
-<link rel="stylesheet" href="style.css?v=0.22">
+<link rel="stylesheet" href="style.css?v=0.23">
 </head>
 <body>
 <canvas id="cv"></canvas>
@@ -82,29 +82,16 @@
 </div>
 <button id="menuBtn" class="float"><span data-t="menu">メニュー</span><span id="menuCur"></span></button>
 
-<!-- 試験：下部の計器盤（設定の「画面」で切り替え。ふつうの画面のヘッダーとメニューが、ここに1枚にまとまる） -->
+<!-- 試験：下のタブ（書類フォルダの見出しのように並ぶ。押すと、その上に引き出しが伸びる） -->
 <div id="dash" hidden>
-  <div class="dstat">
-    <div class="ddate" id="dDate"></div>
-    <div class="dmoney"><span data-t="money">資金</span><b id="dMoney">0</b></div>
-    <div class="dtime"><button data-px="playBtn"></button><button data-px="speedBtn"></button></div>
-  </div>
-  <div class="dgrid">
-    <button data-px="#catBar [data-cat=build]" data-t="build">設置</button>
-    <button data-px="facBtn" data-t="facility">施設</button>
-    <button data-px="skillBtn" data-t="skill">スキル</button>
-    <button data-px="powerBtn" data-t="power">強化</button>
-    <button data-px="#catBar [data-cat=works]" data-t="works">工事</button>
-    <button data-px="panBtn" data-t="move">移動</button>
-    <button data-px="topBtn" data-t="top">地上</button>
-    <button data-px="infoBtn" data-t="info">情報</button>
-    <button data-px="helpBtn" data-t="help">遊び方</button>
-    <button data-px="setBtn" data-t="settings">設定</button>
-    <button data-px="adminBtn" data-t="admin" class="test">管理</button>
-    <span class="dzoom"><button data-px="zoomOut">－</button><button data-px="zoomIn">＋</button></span>
-  </div>
-  <div class="dmap"><canvas id="dashMap" width="60" height="100"></canvas></div>
+  <button class="dtab" data-px="#catBar [data-cat=build]" data-open="build"><b data-t="build">設置</b><i>BUILD</i></button>
+  <button class="dtab" data-px="facBtn" data-open="facility"><b data-t="facility">施設</b><i>FACILITY</i></button>
+  <button class="dtab" data-px="skillBtn" data-open="skillPanel"><b data-t="skill">スキル</b><i>RESEARCH</i></button>
+  <button class="dtab" data-px="powerBtn" data-open="powerPanel"><b data-t="power">強化</b><i>UPGRADE</i></button>
+  <button class="dtab" data-px="#catBar [data-cat=works]" data-open="works"><b data-t="works">工事</b><i>WORKS</i></button>
 </div>
+<!-- 引き出しの取っ手（開いている引き出しの左上に付く） -->
+<div id="dHandle" hidden><b></b><i></i></div>
 
 <p id="msg" class="msg"></p>
 <!-- 選択中の道具（左下） -->
@@ -198,6 +185,6 @@
   </div>
 </div>
 
-<script src="main.js?v=0.22"></script>
+<script src="main.js?v=0.23"></script>
 </body>
 </html>

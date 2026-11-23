@@ -208,55 +208,60 @@ button.cat.open { border-color: var(--sel); }
 .modal .btns { display: flex; justify-content: flex-end; gap: 8px; }
 .modal .btns button { min-width: 84px; padding: 8px 12px; }
 
-/* ===== 試験：下部の計器盤（body.dash のときだけ）=====
-   昔のPCゲームの操作盤のように、状態・命令・地図を画面の下に1枚でまとめる。明るいグレーの立体ボタン */
-body.dash { --hdr: 0px; --dash: 124px; --dpanel: #d6d6d0; --dhi: #ffffff; --dlo: #8e8e88; --ddark: #4a4a48; }
-body.dash #hdr, body.dash #menuBtn, body.dash #catBar { display: none !important; }
+/* ===== 試験：下のタブと引き出し（body.dash のときだけ）=====
+   書類フォルダの見出しのように、タブを下に並べる。押すとその上に引き出しが伸び、左上に取っ手が付く。
+   影や立体の縁は付けない（平らな紙と細い線） */
+body.dash { --dash: 50px; --paper: #f3f2ee; --paper2: #ffffff; }
+body.dash #menuBtn, body.dash #catBar { display: none !important; }
 body.dash #cv { height: calc(100% - var(--dash)); }
 body.dash #mvDown { bottom: var(--dash); }
 body.dash #mvLeft, body.dash #mvRight { bottom: calc(var(--dash) + var(--edge)); }
 body.dash #curTool { bottom: calc(var(--dash) + var(--edge) + 4px); }
-body.dash .msg { top: 32px; }
 #dash {
   position: fixed; left: 0; right: 0; bottom: 0; height: var(--dash); z-index: 30;
-  display: flex; gap: 6px; padding: 6px; background: var(--dpanel);
-  border-top: 2px solid var(--dhi); box-shadow: 0 -1px 0 var(--ddark);
+  display: flex; align-items: flex-end; gap: 3px; padding: 0 6px;
+  background: var(--glass); border-top: 1px solid var(--line2);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
 }
 #dash[hidden] { display: none; }
-#dash button {
-  border-radius: 0; background: #ecece7; color: var(--text); font-size: 12px; padding: 0 2px;
-  border: 2px solid; border-color: var(--dhi) var(--dlo) var(--dlo) var(--dhi); box-shadow: 0 0 0 1px var(--ddark);
-  transition: none; white-space: nowrap; overflow: hidden;
+/* タブ1枚＝見出し付きの書類。左上の小さな出っ張りが取っ手 */
+#dash .dtab {
+  position: relative; flex: 1; min-width: 0; height: 40px; margin-top: 8px; padding: 2px 4px 0;
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px;
+  background: var(--paper); color: var(--text); text-align: left;
+  border: 1px solid var(--line2); border-bottom: none; border-radius: 0 3px 0 0;
+  transition: background .12s, transform .15s;
 }
-#dash button:hover { background: #f6f6f2; }
-#dash button:active, #dash button.active { border-color: var(--dlo) var(--dhi) var(--dhi) var(--dlo); background: #c4c4be; color: var(--text); }
-#dash button.open { background: #f3e2d3; }
-#dash button.test { border-style: solid; color: #9a6a3a; }
-/* 左：状態（くぼんだ黒い窓） */
-#dash .dstat {
-  flex: 0 0 104px; display: flex; flex-direction: column; gap: 3px; padding: 5px 6px;
-  background: #2f302e; color: #e8e8e2; border: 2px solid; border-color: var(--dlo) var(--dhi) var(--dhi) var(--dlo);
-  font-variant-numeric: tabular-nums;
+#dash .dtab::before {   /* 取っ手 */
+  content: ""; position: absolute; left: -1px; top: -8px; width: 46%; height: 8px;
+  background: inherit; border: 1px solid var(--line2); border-bottom: none; border-radius: 3px 3px 0 0;
 }
-#dash .ddate { font-size: 12px; letter-spacing: .05em; }
-#dash .dmoney { font-size: 10px; color: #a9a9a2; display: flex; flex-direction: column; line-height: 1.1; }
-#dash .dmoney b { font-size: 18px; color: #ffa45c; font-weight: 600; letter-spacing: .03em; }
-#dash .dmoney b.neg { color: #ff7a6a; }
-#dash .dtime { margin-top: auto; display: flex; gap: 4px; }
-#dash .dtime button { flex: 1; height: 24px; font-size: 11px; box-shadow: none; }
-/* 中：命令（4列のボタン） */
-#dash .dgrid { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 1fr; gap: 5px; padding: 1px; }
-#dash .dgrid > button[hidden] { display: none; }
-#dash .dzoom { display: flex; gap: 5px; }
-#dash .dzoom button { flex: 1; }
-/* 右：地図（常に表示。タップでその場所へ） */
-#dash .dmap {
-  flex: 0 0 64px; display: flex; align-items: center; justify-content: center; padding: 2px; overflow: hidden;
-  background: #2f302e; border: 2px solid; border-color: var(--dlo) var(--dhi) var(--dhi) var(--dlo);
+#dash .dtab[hidden] { display: none; }
+#dash .dtab b { font-weight: 600; font-size: 13px; letter-spacing: .06em; padding-left: 4px; }
+#dash .dtab i { font-style: normal; font-size: 7.5px; letter-spacing: .22em; color: var(--sub); padding-left: 4px; white-space: nowrap; overflow: hidden; }
+#dash .dtab:hover { background: #fbfaf7; }
+#dash .dtab.cur b { color: var(--accent); }                      /* その中の道具を選んでいる */
+#dash .dtab.open { background: var(--paper2); transform: translateY(-3px); z-index: 2; }   /* 引き出しを開いている */
+#dash .dtab.open::before { visibility: hidden; }                  /* 取っ手は引き出しの上へ移る */
+html[lang=en] #dash .dtab i { display: none; }
+/* 引き出し：タブの上から上へ伸びる（設置・施設・工事の種類／強化・スキルのパネル） */
+body.dash #subMenu, body.dash .panel.bottom {
+  left: 0; right: 0; width: auto; max-width: none; border-radius: 0;
+  background: var(--paper2); border: none; border-top: 1px solid var(--line2);
+  box-shadow: none; padding: 10px 12px; transform-origin: bottom;
+  animation: drawerUp .2s ease-out;
 }
-#dash .dmap canvas { display: block; touch-action: none; cursor: pointer; }
-@media (min-width: 700px) {
-  #dash .dstat { flex-basis: 150px; }
-  #dash .dgrid { grid-template-columns: repeat(6, 1fr); }
-  #dash .dmap { flex-basis: 96px; }
+body.dash #subMenu { align-items: flex-start; }
+body.dash .panel.bottom { max-height: calc(100% - var(--hdr) - var(--dash) - 40px); }
+@keyframes drawerUp { from { transform: scaleY(.15); opacity: .3; } to { transform: none; opacity: 1; } }
+#dHandle {
+  position: fixed; z-index: 21; height: 22px; padding: 0 12px 0 10px;
+  display: flex; align-items: baseline; gap: 8px; line-height: 22px;
+  background: var(--paper2); border: 1px solid var(--line2); border-bottom: none; border-radius: 4px 4px 0 0;
+  animation: drawerUp .2s ease-out; pointer-events: none;
 }
+#dHandle[hidden] { display: none; }
+#dHandle b { font-size: 12px; font-weight: 600; letter-spacing: .08em; }
+#dHandle i { font-style: normal; font-size: 8px; letter-spacing: .24em; color: var(--sub); }
+html[lang=en] #dHandle i { display: none; }
+body.dash .panel.bottom > .head { display: none; }   /* 名前は取っ手に出ている。閉じるのはタブをもう一度押す */
