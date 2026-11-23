@@ -271,7 +271,14 @@ body.dash .panel.bottom > .head { display: none; }   /* 名前は取っ手に出
 /* ヘッダー2段目を畳む（▴▾ボタン） */
 body.hfold { --hdr: 42px; }
 body.hfold #timeGroup { display: none; }
-#hdr .fold { font-size: 12px; padding: 3px 7px; color: var(--sub); }
+#hdr .fold { font-size: 11px; padding: 4px 8px; color: var(--sub); }
+#unfoldBtn {   /* 畳んだ2段目の右端に、ヘッダーから垂れたつまみ */
+  position: fixed; z-index: 31; top: calc(var(--hdr) - 1px); right: 10px;
+  font-size: 11px; padding: 1px 10px 3px; color: var(--sub);
+  background: var(--glass); border: 1px solid var(--line2); border-top: none; border-radius: 0 0 5px 5px;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+#unfoldBtn[hidden] { display: none; }
 /* 資金：ゲーム画面の左上。白いふちどりで、空でも土でも読める */
 #moneyHud {
   position: fixed; z-index: 12; top: calc(var(--hdr) + 6px); left: 10px; pointer-events: none;
@@ -279,7 +286,17 @@ body.hfold #timeGroup { display: none; }
   text-shadow: 0 0 2px #fff, 0 0 2px #fff, 1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 0 0 6px rgba(255,255,255,.9);
 }
 #moneyHud span { font-size: 11px; color: #55545a; letter-spacing: .08em; }
-#moneyHud b { font-size: 21px; font-weight: 700; color: var(--accent); letter-spacing: .03em; }
+#moneyHud b { font-size: 21px; font-weight: 700; color: var(--text); letter-spacing: .03em; }
 #moneyHud b.neg { color: var(--bad); }
 /* 下のタブのときは、情報も引き出しになる（ヘッダーの情報ボタンは隠す） */
 body.dash #infoBtn { display: none; }
+
+/* 情報：まとまり（お金・累計・現場）ごとに小さな見出しと線。幅に合わせて2〜3列 */
+.igrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 16px; margin-bottom: 10px; }
+.igraphs { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 4px 16px; }
+.igrp .ihead { font-size: 10px; letter-spacing: .2em; color: var(--sub); padding-bottom: 3px; margin-bottom: 4px; border-bottom: 1px solid var(--line2); }
+.igrp .data { margin: 0; gap: 3px 10px; }
+.igrp .data b { font-weight: 600; font-size: 14px; }
+.igrp .data .pos { color: var(--good); }
+.igrp .data .neg { color: var(--bad); }
+.igrp .graph { margin: 2px 0 4px; height: 80px; }

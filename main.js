@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.25（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.26（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.25';
+const VERSION = '0.26';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -178,6 +178,7 @@ const TXT = {
     infoRows: { money: '資金', mSale: '今月の売上', mCost: '今月の経費', mNet: '今月の収支', lNet: '先月の収支',
       tSale: '売上の合計', tCost: '経費の合計', ships: '出荷した回数', deepest: 'いちばん深い所', drills: 'ドリル',
       machines: '機械', belts: 'コンベア・仕分け', workers: '作業員（作業中）', yard: 'ヤードの資源', loan: '借入（売上から返す）' },
+    infoGrp: ['お金', '累計', '現場'],
     loanPop: '銀行から融資',
     unitN: '台', unitP: '人', unitK: '個', unitT: '回',
     gMoney: '資金の動き', gMonth: '月ごとの収支（緑＝プラス・赤＝マイナス）',
@@ -186,24 +187,24 @@ const TXT = {
     tuneInfo: 'バーを動かすとすぐ反映されます（最初の資金・鉱石の出やすさ・硬さは「最初から」の後に反映）。「結果をコピー」でチャットに貼れます。',
     tuneCopy: '結果をコピー', tuneCopied: 'コピーしました。チャットに貼ってください', tuneReset: '初期値に戻す', tuneT: '調整',
     helpTopics: [
-      ['操作', '画面は、右上の手のひらでつかんで動かすか、画面の端（▲▼◀▶の帯）を押すと動きます。2本指・Ctrl＋ホイール・＋－で拡大縮小、「地図」で全体を見られます。\n右下の「メニュー」から道具を選びます。選んだ道具は、もう一度押すか、1段目の項目を押すと解除できます。置いた物をタップすると、向きの変更やレベルアップができます。'],
+      ['操作', '画面は、右上の手のひらでつかんで動かすか、画面の端（▲▼◀▶の帯）を押すと動きます。2本指・Ctrl＋ホイール・＋－で拡大縮小、「地図」で全体を見られます。\n下のタブ（設置・工事など）を押すと引き出しが開き、道具を選べます。選んだ道具は、もう一度押すか、タブを押すと解除できます。置いた物をタップすると、向きの変更やレベルアップができます。'],
       ['掘る', 'ドリルは地下に置きます（地上とつながった穴の隣なら、土を上書きして置けます）。置くと下へ掘ります。掘った資源はドリルの後ろに出て、空中の資源は下に落ちます。\n10mごとに硬い岩盤があり、研究所で「掘削レベル」を研究しないと掘れません（上限なし・だんだん高くなる）。ドリルを横向きにすれば横へ掘れます。「掘削」で、地上とつながった穴の隣を掘って場所を広げられます。'],
       ['運ぶ', 'コンベアで資源を運びます。仕分けコンベアは、選んだ資源だけを左右に出します。\n地上に出た資源はその場に置かれ、フォークリフトがヤードまで運びます。トラックが積んで出発し、帰ってきたら売上になります。'],
       ['加工', '機械は、前以外の方向から材料を入れると、前に製品を出します。対応していない資源は、機械の中を2倍の時間をかけて通り抜けます。\n最初はレンガ焼成機とクラッシャーだけ。'],
       ['作業員', '事務所で「Lv0を増員」して雇います。作業員はドリル・機械へ自分で歩いて行って操作し、働くほどレベルが上がります。作業員がいない所は「z」の印が付き、とても遅くなります。\nLv2以上になると、地上・上級勤務（フォークリフト・トラック・研究所）にも就きます。疲れると事務所で休みます。給料は毎月。払えない月は1人やめます。'],
-      ['事務所と研究所', '事務所はタップでレベルアップできます。定員・フォークリフトの台数・休憩の速さが上がり、レベル2でメニューの「施設」から研究所（1マス・地上のどこでも）を建てられます。\n研究所では、機械・まとめて強化・スキルを研究できます。Lv2以上の研究員がいないと、研究はとても遅くなります。フォークリフトは「強化」で買い足せます。'],
+      ['事務所と研究所', '事務所はタップでレベルアップできます。定員・フォークリフトの台数・休憩の速さが上がり、レベル2で下のタブの「施設」から研究所（1マス・地上のどこでも）を建てられます。\n研究所では、機械・まとめて強化・スキルを研究できます。Lv2以上の研究員がいないと、研究はとても遅くなります。フォークリフトは「強化」で買い足せます。'],
       ['お金', '売上はトラックが帰ってきた時に入ります。お金が少なく売上も無い月は、銀行が融資してくれます（売上から少しずつ返します）。\n「情報」で経営の様子をグラフで見られます。セーブは設定から。タイトルを押すとリセットできます。'],
     ],
     helpList: [
       '手のひら（右上）でドラッグ、または画面の端の▲▼◀▶で画面が動きます。2本指・Ctrl＋ホイール・＋－で拡大縮小。「地図」で全体を見られます。',
-      '下の「メニュー」から道具を選びます。項目をタップすると、さらに上に種類が出ます。もう一度押すと解除。',
+      '下のタブから道具を選びます。タブを押すと引き出しが開きます。もう一度押すと解除。',
       'ドリルを空いたマスに置くと下へ掘ります。掘った資源はドリルの後ろに出ます。空中の資源は下に落ちます。',
       '地上に出た資源は、出た場所に置かれます。小さなフォークリフトがヤードまで運び、トラックが積んで出発し、帰ってきたら売上になります。',
       'コンベアと機械は地下に置きます。「掘削」で穴の隣を掘って場所を広げられます（お金がかかります）。',
       '地上中央の事務所で作業員を雇えます（最初は自分ひとり＝0人）。作業員は自分でドリルや機械へ歩いて行って操作します。作業員がいないととても遅くなります（「z」の印）。疲れると事務所で休みます。給料は毎月払います。',
       '置いた物をタップすると、向きの変更やレベルアップができます。レベルは黄色い点の数で分かります。',
       '「情報」で経営の様子をグラフで見られます。',
-      'メニューの「スキル」で研究すると便利な力が手に入ります。10mごとの硬い岩盤は「掘削レベル」を研究しないと掘れません。事務所はタップでレベルアップできます。セーブは設定から。',
+      '下のタブの「スキル」で研究すると便利な力が手に入ります。10mごとの硬い岩盤は「掘削レベル」を研究しないと掘れません。事務所はタップでレベルアップできます。セーブは設定から。',
     ],
     skill: 'スキル', researching: '研究中', researchDone: n => `研究完了：${n}`, busy: 'ほかの研究中です', months: 'か月',
     startRes: '研究', got: '取得済み', resInfo: 'お金を払って研究すると、何か月か後にスキルが手に入ります（研究は1つずつ）。',
@@ -232,7 +233,7 @@ const TXT = {
     build: '設置', works: '工事', grpName: { drill: 'ドリル', belt: 'コンベア', machine: '機械' },
     fdrill: '高速ドリル', adrill: '自動ドリル', tee: 'T字路', cross: '交差', resTool: '設置物', toolRes: 'この設置物を置けるようになります。',
     digDo: '掘削する', overwriteQ: '上書きしますか？（今ある物は撤去して半額戻ります）', advNote0: 'Lv2以上になると、地上の仕事（フォークリフト・トラック）にも就きます。',
-    facility: '施設', labUnlocked: '研究所を建てられるようになりました（メニューの「施設」から）', labWhere: '研究所は地上の空いているマスに置けます', labOne: '研究所はもう建っています',
+    facility: '施設', labUnlocked: '研究所を建てられるようになりました（下のタブの「施設」から）', labWhere: '研究所は地上の空いているマスに置けます', labOne: '研究所はもう建っています',
     labName: '研究所', needLab: '研究所が必要です（事務所レベル2で建てられます）', labBuilt: '研究所が建ちました',
     researcher: lv => `研究員：Lv${lv}`, noResearcher: '研究員なし（とても遅い）。Lv2以上の作業員が来ると速くなります',
     resMach: '機械', resBatch: 'まとめて強化', resSkill: 'スキル', machRes: 'この機械を置けるようになります。',
@@ -280,6 +281,7 @@ const TXT = {
     infoRows: { money: 'おかね', mSale: 'こんげつ うれた', mCost: 'こんげつ つかった', mNet: 'こんげつの もうけ', lNet: 'せんげつの もうけ',
       tSale: 'うれた ごうけい', tCost: 'つかった ごうけい', ships: 'しゅっか した かいすう', deepest: 'いちばん ふかい ところ', drills: 'ドリル',
       machines: 'きかい', belts: 'コンベア・しわけ', workers: 'さぎょういん（しごとちゅう）', yard: 'おきばの もの', loan: 'かりている おかね' },
+    infoGrp: ['おかね', 'ぜんぶで', 'げんば'],
     loanPop: 'ぎんこうから かりた',
     unitN: 'だい', unitP: 'にん', unitK: 'こ', unitT: 'かい',
     gMoney: 'おかねの うごき', gMonth: 'つきごとの もうけ（みどり＝プラス・あか＝マイナス）',
@@ -288,7 +290,7 @@ const TXT = {
     tuneInfo: 'バーを うごかすと すぐ かわります。「けっかを コピー」で チャットに はれます。',
     tuneCopy: 'けっかを コピー', tuneCopied: 'コピー しました', tuneReset: 'はじめの あたいに もどす', tuneT: 'ちょうせい',
     helpTopics: [
-      ['そうさ', 'がめんは、みぎうえの てのひらで つかんで うごかすか、がめんの はし（▲▼◀▶の おび）を おすと うごきます。\nみぎしたの「メニュー」から どうぐを えらびます。もう いちど おすか、1だんめを おすと やめます。おいた ものを タップすると むきや レベルを かえられます。'],
+      ['そうさ', 'がめんは、みぎうえの てのひらで つかんで うごかすか、がめんの はし（▲▼◀▶の おび）を おすと うごきます。\nしたの タブを おすと ひきだしが ひらいて、どうぐを えらべます。もう いちど おすか、タブを おすと やめます。おいた ものを タップすると むきや レベルを かえられます。'],
       ['ほる', 'ドリルを あいている マスに おくと したへ ほります。ほった ものは ドリルの うしろに でて、くうちゅうの ものは したに おちます。\n10mごとに かたい がんばんが あり、けんきゅうじょで「あなほり レベル」を けんきゅうしないと ほれません。'],
       ['はこぶ', 'コンベアで はこびます。ちじょうに でた ものは フォークリフトが おきばまで はこび、トラックが かえってきたら おかねに なります。'],
       ['つくる', 'きかいは、まえ いがいから いれると、まえに だします。あわない ものは 2ばいの じかんで とおりぬけます。ほかの きかいは けんきゅうじょで ふえます。'],
@@ -298,14 +300,14 @@ const TXT = {
     ],
     helpList: [
       'てのひら（みぎうえ）で ひっぱるか、がめんの はしの ▲▼◀▶で がめんが うごきます。「ちず」で ぜんたいを みられます。',
-      'したの「メニュー」から どうぐを えらびます。もう いちど おすと やめます。',
+      'したの タブから どうぐを えらびます。もう いちど おすと やめます。',
       'ドリルを あいている マスに おくと したへ ほります。ほった ものは ドリルの うしろに でます。',
       'ちじょうに でた ものは、フォークリフトが おきばまで はこびます。トラックが はこんで、かえってきたら おかねに なります。',
       'コンベアと きかいは ちかに おきます。「あなほり」で ばしょを ひろげられます。',
       'ちじょう まんなかの じむしょで さぎょういんを やとえます。さぎょういんが いないと とても おそく なります（「z」の しるし）。つかれると やすみます。きゅうりょうは まいつき はらいます。',
       'おいた ものを タップすると むきを かえたり レベルアップ できます。',
       '「じょうほう」で ようすを グラフで みられます。',
-      'メニューの「スキル」で けんきゅうすると べんりな ちからが てに はいります。10mごとの かたい がんばんは「あなほり レベル」が ないと ほれません。セーブは せっていから。',
+      'したの タブの「スキル」で けんきゅうすると べんりな ちからが てに はいります。10mごとの かたい がんばんは「あなほり レベル」が ないと ほれません。セーブは せっていから。',
     ],
     skill: 'スキル', researching: 'けんきゅうちゅう', researchDone: n => `けんきゅう おわり：${n}`, busy: 'ほかの けんきゅうちゅう です', months: 'かげつ',
     startRes: 'けんきゅう', got: 'てにいれた', resInfo: 'おかねを はらって けんきゅうすると、なんかげつか あとに スキルが てに はいります（けんきゅうは 1つずつ）。',
@@ -334,7 +336,7 @@ const TXT = {
     build: 'おく', works: 'こうじ', grpName: { drill: 'ドリル', belt: 'コンベア', machine: 'きかい' },
     fdrill: 'はやい ドリル', adrill: 'じどう ドリル', tee: 'Tじろ', cross: 'こうさ', resTool: 'おく もの', toolRes: 'これを おけるように なります。',
     digDo: 'ほる', overwriteQ: 'うわがき しますか？（いまの ものは とりのぞいて はんがく もどります）', advNote0: 'Lv2いじょうに なると、ちじょうの しごと（フォークリフト・トラック）も します。',
-    facility: 'しせつ', labUnlocked: 'けんきゅうじょを たてられるように なりました（メニューの「しせつ」から）', labWhere: 'けんきゅうじょは ちじょうの あいている マスに おけます', labOne: 'けんきゅうじょは もう たっています',
+    facility: 'しせつ', labUnlocked: 'けんきゅうじょを たてられるように なりました（したの タブの「しせつ」から）', labWhere: 'けんきゅうじょは ちじょうの あいている マスに おけます', labOne: 'けんきゅうじょは もう たっています',
     labName: 'けんきゅうじょ', needLab: 'けんきゅうじょが ひつよう です（じむしょ レベル2で たてられます）', labBuilt: 'けんきゅうじょが たちました',
     researcher: lv => `けんきゅういん：Lv${lv}`, noResearcher: 'けんきゅういん なし（とても おそい）。Lv2いじょうの ひとが くると はやく なります',
     resMach: 'きかい', resBatch: 'まとめて つよく', resSkill: 'スキル', machRes: 'この きかいを おけるように なります。',
@@ -382,6 +384,7 @@ const TXT = {
     infoRows: { money: 'Money', mSale: 'Sales this month', mCost: 'Costs this month', mNet: 'Net this month', lNet: 'Net last month',
       tSale: 'Total sales', tCost: 'Total costs', ships: 'Shipments', deepest: 'Deepest', drills: 'Drills',
       machines: 'Machines', belts: 'Conveyors & sorters', workers: 'Workers (working)', yard: 'Items in yard', loan: 'Loan (repaid from sales)' },
+    infoGrp: ['Money', 'Totals', 'Site'],
     loanPop: 'Bank loan',
     unitN: '', unitP: '', unitK: '', unitT: '',
     gMoney: 'Money over time', gMonth: 'Monthly net (green = profit, red = loss)',
@@ -390,17 +393,17 @@ const TXT = {
     tuneInfo: 'Changes apply right away (starting money, ore and hardness after Restart). Copy the result to paste in chat.',
     tuneCopy: 'Copy result', tuneCopied: 'Copied', tuneReset: 'Reset to defaults', tuneT: 'Tuning',
     helpTopics: [
-      ['Controls', 'Drag with the hand (top right) or press the screen edges to scroll. Pinch, Ctrl+wheel or +/- to zoom; "Map" shows everything.\nPick tools from "Menu" at the bottom right. Tap the tool again, or its first-level category, to cancel. Tap anything you placed to turn it or level it up.'],
+      ['Controls', 'Drag with the hand (top right) or press the screen edges to scroll. Pinch, Ctrl+wheel or +/- to zoom; "Map" shows everything.\nPick tools from the tabs at the bottom; a tab opens its drawer. Tap the tool again, or the tab, to cancel. Tap anything you placed to turn it or level it up.'],
       ['Digging', 'Place drills underground (they can replace soil next to holes connected to the surface). Drills dig down. Mined items come out behind the drill and fall through the air.\nEvery 10m there is hard bedrock that needs the Dig level research (no cap; the price keeps rising). Turn a drill sideways to keep digging. "Dig" clears cells next to holes connected to the surface.'],
       ['Moving', 'Conveyors carry items; a sorter sends the chosen item to its side.\nItems that reach the surface are dropped there; forklifts carry them to the yard, and you get paid when the truck returns.'],
       ['Processing', 'Machines take input from any side but the front and output to the front. Items they do not accept pass through at half speed.\nYou start with the Brick kiln and the Crusher; research more at the Lab.'],
       ['Workers', 'Add Lv0 workers at the office. They walk to drills and machines and level up as they work; places without one show "z" and are very slow.\nFrom Lv2 they also take surface jobs (forklifts, trucks, the Lab). Tired workers rest at the office. Wages are monthly; if you cannot pay, one quits.'],
-      ['Office & Lab', 'Tap the office to upgrade it: more staff, more forklifts, faster rest. At level 2 you can build the Lab (1 cell, anywhere on the surface) from Menu → Facilities.\nResearch machines, batch upgrades and skills at the Lab; without a Lv2+ researcher it is very slow. Buy forklifts from "Upgrade".'],
+      ['Office & Lab', 'Tap the office to upgrade it: more staff, more forklifts, faster rest. At level 2 you can build the Lab (1 cell, anywhere on the surface) from the Facilities tab.\nResearch machines, batch upgrades and skills at the Lab; without a Lv2+ researcher it is very slow. Buy forklifts from "Upgrade".'],
       ['Money', 'You get paid when the truck returns. If money is low and sales are zero, the bank lends you some (repaid from sales).\n"Info" shows graphs. Save from Settings. Tap the title to reset.'],
     ],
     helpList: [
       'Drag with the hand (top right) or use the edge arrows to scroll. Pinch, Ctrl+wheel or +/- to zoom. "Map" shows everything.',
-      'Pick tools from "Menu" at the bottom. Tap a category to see its items. Tap again to cancel.',
+      'Pick tools from the tabs at the bottom. A tab opens a drawer with its items. Tap again to cancel.',
       'Place a drill on an empty cell and it digs down. Mined items come out behind it. Items in the air fall.',
       'Items that reach the surface are dropped there; a little forklift carries them to the yard. The truck takes them away and you get paid when it returns.',
       'Conveyors and machines go underground. Use "Dig" to make room next to existing holes (costs money).',
@@ -436,7 +439,7 @@ const TXT = {
     build: 'Build', works: 'Works', grpName: { drill: 'Drills', belt: 'Conveyors', machine: 'Machines' },
     fdrill: 'Fast drill', adrill: 'Auto drill', tee: 'T-junction', cross: 'Crossing', resTool: 'Equipment', toolRes: 'Lets you place this equipment.',
     digDo: 'Dig', overwriteQ: 'Replace it? (the current one is removed for a half refund)', advNote0: 'From Lv2, workers also take surface jobs (forklifts, trucks).',
-    facility: 'Facilities', labUnlocked: 'You can now build the Lab (Menu → Facilities)', labWhere: 'Place the Lab on a free surface cell', labOne: 'The Lab is already built',
+    facility: 'Facilities', labUnlocked: 'You can now build the Lab (Facilities tab)', labWhere: 'Place the Lab on a free surface cell', labOne: 'The Lab is already built',
     labName: 'Lab', needLab: 'You need a Lab (available at office level 2)', labBuilt: 'The Lab has been built',
     researcher: lv => `Researcher: Lv${lv}`, noResearcher: 'No researcher (very slow). A worker of Lv2+ speeds it up',
     resMach: 'Machines', resBatch: 'Batch upgrade', resSkill: 'Skills', machRes: 'Lets you build this machine.',
@@ -1393,9 +1396,7 @@ const cv = $('cv');
 let ctx = cv.getContext('2d');
 const cam = { x: 0, y: 0, z: START_ZOOM };
 let cw = 0, ch = 0, cp = 30, offX = 0, hover = null, hdrH = 44;
-let dashOn = false;
-try { dashOn = localStorage.getItem('digfactory.ui') === 'dash'; } catch (e) { /* 保存できない環境 */ }
-if (new URLSearchParams(location.search).has('dash')) dashOn = true;
+const dashOn = true;   // 下のタブ方式に決定（2026-11-23）。旧メニュー（右下の「メニュー」）の部品は、タブが中で使っている
 const camTop = () => -0.3 - hdrH / cp;      // ゲーム画面はヘッダーの下にも広がっている
 
 function metrics() {
@@ -1813,18 +1814,6 @@ function renderPanel(id) {
       }
       row.append(lab, opts); box.append(row);
     }
-    {   // 画面の形（試験：計器盤）
-      const row = document.createElement('div'); row.className = 'prow labeled';
-      const lab = document.createElement('span'); lab.className = 'lab'; lab.textContent = T.uiOpt;
-      const opts = document.createElement('span'); opts.className = 'opts';
-      for (const v of [false, true]) {
-        const b = document.createElement('button'); b.textContent = v ? T.uiDash : T.uiStd;
-        b.classList.toggle('active', dashOn === v);
-        b.addEventListener('click', () => { setDash(v); renderPanel('settings'); });
-        opts.append(b);
-      }
-      row.append(lab, opts); box.append(row);
-    }
     const h = document.createElement('div'); h.className = 'secT'; h.textContent = T.saveT; box.append(h);
     for (let n = 1; n <= saveSlots(); n++) {
       const two = document.createElement('span'); two.className = 'btn2';
@@ -1876,18 +1865,41 @@ function renderInfo() {
   const T = tx(), R = T.infoRows, st = S.stats;
   const last = st.months[st.months.length - 1];
   const sts = [...S.st.values()];
-  const rows = [
-    [R.money, S.money], [R.mSale, st.cur.sale], [R.mCost, st.cur.cost], [R.mNet, st.cur.sale - st.cur.cost],
-    [R.lNet, last ? last.sale - last.cost : '-'], [R.tSale, st.saleTotal], [R.tCost, st.costTotal],
-    [R.ships, st.ships + T.unitT], [R.deepest, T.depthM(Math.max(0, S.deepest - SKY))],
-    [R.drills, sts.filter(s => s.type === 'drill').length + T.unitN], [R.machines, sts.filter(s => s.type === 'machine').length + T.unitN],
-    [R.belts, sts.filter(isBelt).length + T.unitN],
-    [R.workers, `${S.workers.length}${T.unitP}（${S.workers.filter(w => w.state === 'work').length}）`],
-    [R.loan, S.loan > 0 ? S.loan : '-'],
-    [R.yard, S.yard.length + T.unitK],
+  const num = v => typeof v === 'number' ? v.toLocaleString() : v;
+  const net = v => ({ v: typeof v === 'number' && v > 0 ? '+' + num(v) : num(v), cls: typeof v === 'number' ? (v > 0 ? 'pos' : v < 0 ? 'neg' : '') : '' });
+  const mn = net(st.cur.sale - st.cur.cost), ln = net(last ? last.sale - last.cost : '-');
+  // まとまりごと：[見出し, [[名前, 値, 強調?, 色], ...]]
+  const groups = [
+    [T.infoGrp[0], [
+      [R.money, num(S.money), true],
+      [R.mSale, num(st.cur.sale)], [R.mCost, num(st.cur.cost)],
+      [R.mNet, mn.v, false, mn.cls], [R.lNet, ln.v, false, ln.cls],
+      [R.loan, S.loan > 0 ? num(S.loan) : '-'],
+    ]],
+    [T.infoGrp[1], [
+      [R.tSale, num(st.saleTotal)], [R.tCost, num(st.costTotal)], [R.ships, st.ships + T.unitT],
+    ]],
+    [T.infoGrp[2], [
+      [R.deepest, T.depthM(Math.max(0, S.deepest - SKY))],
+      [R.drills, sts.filter(s => s.type === 'drill').length + T.unitN],
+      [R.machines, sts.filter(s => s.type === 'machine').length + T.unitN],
+      [R.belts, sts.filter(isBelt).length + T.unitN],
+      [R.workers, `${S.workers.length}${T.unitP}（${S.workers.filter(w => w.state === 'work').length}）`],
+      [R.yard, S.yard.length + T.unitK],
+    ]],
   ];
   const box = $('infoData'); box.innerHTML = '';
-  for (const [a, b] of rows) { const x = document.createElement('span'); x.textContent = a; const y = document.createElement('span'); y.textContent = b; box.append(x, y); }
+  for (const [title, rows] of groups) {
+    const g = document.createElement('div'); g.className = 'igrp';
+    const hd = document.createElement('div'); hd.className = 'ihead'; hd.textContent = title;
+    const d = document.createElement('div'); d.className = 'data';
+    for (const [a, b, big, cls] of rows) {
+      const x = document.createElement('span'); x.textContent = a;
+      const y = document.createElement(big ? 'b' : 'span'); y.textContent = b; if (cls) y.className = cls;
+      d.append(x, y);
+    }
+    g.append(hd, d); box.append(g);
+  }
   drawLine($('gMoney'), st.hist.concat([S.money]));
   drawBars($('gMonth'), st.months.concat([st.cur]).slice(-12).map(m => m.sale - m.cost));
 }
@@ -1983,7 +1995,8 @@ $('confirmYes').addEventListener('click', () => { $('confirm').hidden = true; co
 // 画面の色（デザイン）。ここを変えるだけで見た目が変わる。ゲームの仕組みとは分けてある
 const THEME = {
   // 明るいグレーが基本。色を付けるのは「資源（中身）・ドリル・お金・選択」だけに絞る
-  bg: '#e6e6e3', skyTop: '#6fa9d6', skyLow: '#b9d7ec',   // 空は青（原色より少しだけ彩度を落とす） dug: '#46474b', grass: '#9a9d94', paved: '#8d8f93',
+  bg: '#e6e6e3', skyTop: '#6fa9d6', skyLow: '#b9d7ec',   // 空は青（原色より少しだけ彩度を落とす）
+  dug: '#8fa8ba', grass: '#9a9d94', paved: '#8d8f93',     // 穴＝空より少し暗い水色
   soil: [[196, 190, 180], [140, 134, 125]], stone: [[168, 169, 170], [112, 113, 115]], rock: '#5b5a60', rockLine: 'rgba(255,255,255,.3)',
   gauge: '#2b2b2e', gaugeBg: 'rgba(255,255,255,.55)', depth: 'rgba(0,0,0,.45)',
   conv: { dark: '#000000', slat: '#6b6b6b' },   // コンベアのドット絵（参考画像の色）
@@ -2568,12 +2581,6 @@ document.querySelectorAll('#dash [data-px]').forEach(b => b.addEventListener('cl
   const o = pxOf(b); if (o) o.click();
   updateUI();
 }));
-function setDash(on) {
-  dashOn = on;
-  try { localStorage.setItem('digfactory.ui', on ? 'dash' : 'std'); } catch (e) { /* 保存できない環境 */ }
-  menuOpen = on; openCat = null; renderSub();
-  applyDash(); fitHeader(); resize(); updateUI();
-}
 function applyDash() {
   document.body.classList.toggle('dash', dashOn);
   const inf = $('info');
@@ -2849,11 +2856,13 @@ function fitHeader() {
   for (const c of ['c1', 'c2', 'c3']) { if (!over()) break; h.classList.add(c); }
 }
 window.addEventListener('resize', fitHeader);
-$('foldBtn').addEventListener('click', () => {
-  const f = document.body.classList.toggle('hfold');
-  $('foldBtn').textContent = (f ? '▾' : '▴') + '\uFE0E';
+function setFold(f) {
+  document.body.classList.toggle('hfold', f);
+  $('unfoldBtn').hidden = !f;
   fitHeader(); resize(); updateUI();
-});
+}
+$('foldBtn').addEventListener('click', () => setFold(true));
+$('unfoldBtn').addEventListener('click', () => setFold(false));
 setInterval(fitHeader, 1000);   // 資金の桁が増えたときも
 requestAnimationFrame(fitHeader);
 

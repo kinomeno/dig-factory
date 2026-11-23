@@ -18,7 +18,7 @@
 <meta property="og:locale" content="ja_JP">
 <meta property="og:site_name" content="ほりほり工場 / Dig Factory Tycoon">
 <meta name="twitter:card" content="summary">
-<link rel="stylesheet" href="style.css?v=0.25">
+<link rel="stylesheet" href="style.css?v=0.26">
 </head>
 <body>
 <canvas id="cv"></canvas>
@@ -33,7 +33,6 @@
     <button id="helpBtn"><span class="lg" data-t="help">遊び方</span><span class="sm">?</span></button>
     <button id="adminBtn" class="test"><span class="lg" data-t="admin">管理</span><span class="sm">管</span></button>
     <button id="setBtn" class="icon" aria-label="settings">⚙&#xFE0E;</button>
-    <button id="foldBtn" class="icon fold" aria-label="fold">▴&#xFE0E;</button>
   </div>
   <!-- 2段目：時間・空間の操作（手のひら・停止・速さ・拡大縮小・地上・地図） -->
   <div class="hrow" id="timeGroup">
@@ -46,8 +45,13 @@
   <button id="zoomIn" class="sq">＋</button>
   <button id="topBtn" data-t="top">地上</button>
   <button id="mapBtn" data-t="map">地図</button>
+  <span class="grow"></span>
+  <button id="foldBtn" class="fold" aria-label="fold">▴&#xFE0E;</button>
   </div>
 </header>
+
+<!-- ヘッダー2段目を畳んだときの、引き出すつまみ（ヘッダーの下に垂れる） -->
+<button id="unfoldBtn" class="fold" aria-label="unfold" hidden>▾&#xFE0E;</button>
 
 <!-- 移動：画面の端の帯を押している間、画面が動く（ボタンの絵は小さいまま） -->
 <div class="mv" id="mvUp" data-mv="up"><span class="mvb">▲&#xFE0E;</span></div>
@@ -122,11 +126,11 @@
 <!-- 情報（経営状況。見出しをドラッグで移動できる） -->
 <div id="info" class="float panel drag" hidden>
   <div class="head handle"><b data-t="info">情報</b><button class="x" data-close="info">✕</button></div>
-  <div id="infoData" class="data"></div>
-  <div class="sub" data-t="gMoney">資金の動き</div>
-  <canvas id="gMoney" class="graph" width="340" height="90"></canvas>
-  <div class="sub" data-t="gMonth">月ごとの収支</div>
-  <canvas id="gMonth" class="graph" width="340" height="90"></canvas>
+  <div id="infoData" class="igrid"></div>
+  <div class="igraphs">
+    <div class="igrp"><div class="ihead" data-t="gMoney">資金の動き</div><canvas id="gMoney" class="graph" width="340" height="90"></canvas></div>
+    <div class="igrp"><div class="ihead" data-t="gMonth">月ごとの収支</div><canvas id="gMonth" class="graph" width="340" height="90"></canvas></div>
+  </div>
 </div>
 
 <!-- 遊び方 -->
@@ -189,6 +193,6 @@
   </div>
 </div>
 
-<script src="main.js?v=0.25"></script>
+<script src="main.js?v=0.26"></script>
 </body>
 </html>
