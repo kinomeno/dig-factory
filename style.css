@@ -26,7 +26,19 @@ button.dir { width: 34px; padding: 6px 0; }
 button.play { min-width: 76px; }
 #dirGroup.off { opacity: .35; }
 
-#wrap { flex: 1; min-height: 240px; display: flex; justify-content: center; align-items: flex-start; }
+#wrap { flex: 1; min-height: 240px; display: flex; justify-content: center; align-items: flex-start; position: relative; }
+
+#pop {
+  position: absolute; z-index: 5; background: #2a2d34; border: 1px solid #5a5f6a;
+  border-radius: 8px; padding: 6px; box-shadow: 0 4px 14px rgba(0,0,0,.5);
+  display: flex; flex-direction: column; gap: 6px;
+}
+#pop[hidden] { display: none; }
+.pop-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; color: #bbb; }
+.pop-head .x { padding: 2px 7px; font-size: 12px; }
+.pop-dirs { display: flex; gap: 4px; }
+.pop-dirs button { width: 40px; height: 36px; padding: 0; font-size: 18px; }
+.pop-remove { font-size: 13px; }
 canvas { display: block; touch-action: none; cursor: crosshair; border-radius: 4px; }
 
 .msg { min-height: 1.3em; margin: 4px 0 0; color: #ff9b7a; font-size: 14px; text-align: center; }

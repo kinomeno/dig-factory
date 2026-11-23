@@ -35,7 +35,19 @@
   </div>
 </div>
 
-<div id="wrap"><canvas id="cv"></canvas></div>
+<div id="wrap">
+  <canvas id="cv"></canvas>
+  <div id="pop" hidden>
+    <div class="pop-head"><span id="popTitle"></span><button id="popClose" class="x">✕</button></div>
+    <div class="pop-dirs">
+      <button data-pdir="left">←</button>
+      <button data-pdir="up">↑</button>
+      <button data-pdir="down">↓</button>
+      <button data-pdir="right">→</button>
+    </div>
+    <button id="popRemove" class="pop-remove"></button>
+  </div>
+</div>
 <p id="msg" class="msg"></p>
 <p class="hint"><span data-t="hint"></span><br><small data-t="keys"></small></p>
 
