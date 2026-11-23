@@ -1,18 +1,19 @@
 /* ほりほり工場：見た目（デザイン）はこのファイルの変数で決める。ゲームの機能（main.js）とは分けてある */
 :root {
   --hdr: 80px; --edge: 26px;
-  --bg: #121316;
-  --glass: rgba(17, 18, 21, .74);       /* ヘッダー・メニューの背景（半透明） */
-  --glass2: rgba(26, 27, 31, .9);       /* パネルの背景 */
-  --line: rgba(255, 255, 255, .09);     /* 細い線 */
-  --line2: rgba(255, 255, 255, .16);
-  --text: #e7e3da;                      /* 文字（少し温かい白） */
-  --sub: #a29e95;                       /* 補足の文字 */
-  --accent: #cda65e;                    /* 資金・値段（落ち着いた金） */
-  --sel: #7d9bb3;                       /* 選択中（くすんだ青） */
-  --selbg: rgba(125, 155, 179, .22);
-  --bad: #d68d7c;                       /* マイナス・注意 */
-  --good: #8fb38a;                      /* ゲージ */
+  /* 明るい配色：白とグレーが基本。色は「お金（アクセント）」と「選択」だけ */
+  --bg: #e6e6e3;
+  --glass: rgba(250, 250, 248, .84);     /* ヘッダー・メニューの背景（半透明） */
+  --glass2: rgba(252, 252, 250, .97);    /* パネルの背景 */
+  --line: rgba(0, 0, 0, .09);            /* 細い線 */
+  --line2: rgba(0, 0, 0, .18);
+  --text: #2b2b2e;                       /* 文字（濃いグレー） */
+  --sub: #77767a;                        /* 補足の文字 */
+  --accent: #d0661f;                     /* お金・値段（オレンジ） */
+  --sel: #2b2b2e;                        /* 選択中（黒っぽいグレー） */
+  --selbg: #2b2b2e;
+  --bad: #c0392b;
+  --good: #4f8a5b;
   --radius: 4px;
   --font: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
 }
@@ -64,7 +65,7 @@ body {
 .float {
   position: fixed; z-index: 10;
   background: var(--glass); border: 1px solid var(--line);
-  border-radius: var(--radius); padding: 6px 8px; box-shadow: 0 6px 20px rgba(0,0,0,.35);
+  border-radius: var(--radius); padding: 6px 8px; box-shadow: 0 4px 16px rgba(0,0,0,.12);
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
 }
 [hidden] { display: none !important; }
@@ -74,31 +75,32 @@ body {
 
 /* ボタン：細い線・平ら */
 button {
-  background: rgba(255,255,255,.035); color: var(--text); border: 1px solid var(--line2); border-radius: var(--radius);
+  background: #ffffff; color: var(--text); border: 1px solid var(--line2); border-radius: var(--radius);
   padding: 6px 10px; font-size: 13px; cursor: pointer; font-family: inherit; letter-spacing: .03em; touch-action: manipulation;
   transition: background .12s, border-color .12s;
 }
-button:hover { background: rgba(255,255,255,.08); }
+button:hover { background: #f1f1ef; }
 button:disabled { opacity: .35; cursor: default; }
 button small { color: var(--accent); font-variant-numeric: tabular-nums; margin-left: 2px; }
 button.active { background: var(--selbg); border-color: var(--sel); color: #fff; }
+button.active small { color: #f3b27e; }
 button.x { padding: 2px 8px; font-size: 12px; border-color: var(--line); }
 button.sq { width: 30px; padding: 6px 0; }
 button.dir { width: 34px; padding: 6px 0; }
-button.test { border-style: dashed; color: #d9b98a; }
+button.test { border-style: dashed; color: #9a6a3a; }
 button.hand { display: inline-flex; align-items: center; justify-content: center; padding: 4px 8px; }
 .play { min-width: 62px; }
 
 /* 移動：画面の端の帯（押している間動く）。中の小さなボタンは目印 */
 .mv { position: fixed; z-index: 9; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: pointer; }
-.mv:active { background: rgba(255,255,255,.05); }
+.mv:active { background: rgba(0,0,0,.05); }
 #mvUp { top: var(--hdr); left: 0; right: 0; height: var(--edge); }
 #mvDown { bottom: 0; left: 0; right: 0; height: var(--edge); }
 #mvLeft { top: calc(var(--hdr) + var(--edge)); bottom: var(--edge); left: 0; width: var(--edge); }
 #mvRight { top: calc(var(--hdr) + var(--edge)); bottom: var(--edge); right: 0; width: var(--edge); }
 .mvb {
   display: flex; align-items: center; justify-content: center; width: 34px; height: 20px; font-size: 9px; line-height: 1;
-  background: rgba(17,18,21,.45); border: 1px solid var(--line); border-radius: var(--radius); color: rgba(255,255,255,.7);
+  background: rgba(255,255,255,.7); border: 1px solid var(--line2); border-radius: var(--radius); color: #555;
   pointer-events: none;
 }
 #mvLeft .mvb, #mvRight .mvb { width: 20px; height: 34px; }
@@ -138,7 +140,7 @@ button.cat.open { border-color: var(--sel); }
 .credit a { color: var(--sel); text-decoration: none; }
 .wide { width: 100%; margin-top: 6px; }
 .secT { margin: 12px 0 2px; font-size: 11px; font-weight: 600; color: var(--sub); letter-spacing: .14em; }
-.bar { height: 3px; background: rgba(255,255,255,.1); border-radius: 2px; overflow: hidden; margin-top: 3px; }
+.bar { height: 3px; background: rgba(0,0,0,.08); border-radius: 2px; overflow: hidden; margin-top: 3px; }
 .bar i { display: block; height: 100%; background: var(--good); }
 
 /* 遊び方：2ペイン（左に項目・右に説明） */
@@ -146,7 +148,7 @@ button.cat.open { border-color: var(--sel); }
 .help2 { display: grid; grid-template-columns: 9em 1fr; gap: 12px; min-height: 240px; }
 #helpNav { display: flex; flex-direction: column; gap: 2px; border-right: 1px solid var(--line); padding-right: 8px; }
 #helpNav button { text-align: left; border-color: transparent; background: none; padding: 6px 8px; font-size: 12px; }
-#helpNav button.active { background: var(--selbg); border-color: var(--sel); }
+#helpNav button.active { background: var(--selbg); border-color: var(--sel); color: #fff; }
 #helpBody h3 { margin: 2px 0 8px; font-size: 14px; letter-spacing: .08em; font-weight: 600; }
 #helpBody p { margin: 0 0 8px; font-size: 13px; line-height: 1.75; color: var(--text); }
 @media (max-width: 560px) {
@@ -158,7 +160,7 @@ button.cat.open { border-color: var(--sel); }
 .data { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 12px; margin-bottom: 8px; }
 .data span:nth-child(odd) { color: var(--sub); }
 .data span:nth-child(even) { text-align: right; font-variant-numeric: tabular-nums; }
-.graph { width: 100%; height: 90px; display: block; background: rgba(0,0,0,.22); border-radius: var(--radius); margin: 3px 0 8px; }
+.graph { width: 100%; height: 90px; display: block; background: rgba(0,0,0,.04); border-radius: var(--radius); margin: 3px 0 8px; }
 
 /* 縮小地図 */
 #mapPanel { top: calc(var(--hdr) + var(--edge) + 4px); left: calc(var(--edge) + 4px); z-index: 15; padding: 5px 7px 7px; }
@@ -172,7 +174,7 @@ button.cat.open { border-color: var(--sel); }
 .tuneRow input { grid-column: 1 / span 2; width: 100%; accent-color: var(--sel); }
 .tuneRow b { font-variant-numeric: tabular-nums; font-weight: 500; }
 .tuneRow b.chg { color: var(--accent); }
-.tuneOut { width: 100%; height: 120px; margin-top: 6px; font-size: 11px; background: rgba(0,0,0,.35); color: var(--text); border: 1px solid var(--line2); border-radius: var(--radius); -webkit-user-select: text; user-select: text; }
+.tuneOut { width: 100%; height: 120px; margin-top: 6px; font-size: 11px; background: #fff; color: var(--text); border: 1px solid var(--line2); border-radius: var(--radius); -webkit-user-select: text; user-select: text; }
 .adminGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .adminGrid button { width: 100%; }
 
@@ -189,7 +191,7 @@ button.cat.open { border-color: var(--sel); }
 #pop .wide { margin-top: 0; }
 .lvline { color: var(--accent); }
 
-.modal { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; }
+.modal { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.3); display: flex; align-items: center; justify-content: center; }
 .modal .box { background: var(--glass2); border: 1px solid var(--line2); border-radius: var(--radius); padding: 18px 20px; width: min(320px, calc(100vw - 32px)); }
 .modal p { margin: 0 0 16px; font-size: 14px; line-height: 1.6; }
 .modal .btns { display: flex; justify-content: flex-end; gap: 8px; }
