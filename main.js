@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.42（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.43（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.42';
+const VERSION = '0.43';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -594,9 +594,15 @@ const TXT_ADD = {
     aiTruck: n => `トラックをレベル${n}に`, aiForkBuy: 'フォークリフトを買った', aiFork: 'フォークリフトを強化', aiDrill: 'ドリルを増やした',
     aiDrillUp: 'ドリルを強化', aiTurn: '止まったドリルを横に向けた', aiMach: n => `${n}を振り分けで設置`, aiMachUp: '機械を強化',
     aiPrice: n => `${n}の売値アップ`, aiPipe: '湧き口をパイプでつないだ', aiFac: n => `${n}を建てた`,
+    aiRemove: '掘れないドリルを撤去した', aiUnsort: 'もっと良い使い道があるので、仕分けを外した', forkSpd: '走る速さ',
+    aiFail: c => `失敗：銀行の融資を受けた（${c}）`, aiFailRun: n => `融資を${n}回受けました（失敗）。管理メニュー「AIの失敗記録」に原因があります`,
+    aiCause: { noDrill: 'ドリルが無い', drillStop: 'ドリルが全部止まっている', noWorker: '作業員がいない', yard: 'ヤードが山（トラック不足）', dock: '荷おろし場が山（フォークリフト不足）', jam: '地下で資源が詰まっている', noSale: '売上が無い', spend: 'お金の使いすぎ' },
+    live10: '10分進める', live60: '60分進める',
     items: { tile: 'タイル', glossTile: 'つやタイル', wire: 'ワイヤー', goldleaf: '金箔', decoIron: '高級装飾品（鉄）', decoGold: '高級装飾品（金）' },
     mach: { drawer: '伸線機', atelier: '装飾工房' }, glyph: { drawer: '伸', atelier: '飾' },
-    adm: { diary: '制作日誌' }, facStaff: (n, m) => `作業員 ${n}/${m}人（多いほど速い）`,
+    adm: { diary: '制作日誌', failLog: 'AIの失敗記録', failNone: 'AIの失敗記録はまだありません（自動プレイで銀行の融資を受けると、ここに原因が残ります）',
+      failHead: (r, t) => `自動プレイが銀行の融資を受けた記録（新しい順）\n学んだこと：お金を残す倍率 ×${r}・トラック強化の早さ ×${t}`,
+      failRow: (t, st, d, c) => `・プレイ時間${t}・段階${st}・${d}m：${c}` }, facStaff: (n, m) => `作業員 ${n}/${m}人（多いほど速い）`,
     giftMsg: v => `社長、資金が底をつきそうです。\n会長からプレゼントが届きました！\n資金 +${v}（返さなくてよいお金です）`, giftHist: '会長からプレゼント 1000',
     stageUp: (n, names) => `岩盤Lv${n}を突破しました！` + (names.length ? `\n新しく：${names.join('・')}` : ''), stagePop: n => `岩盤Lv${n}突破`, hStage: n => `岩盤Lv${n}を突破`,
     greetT: 'ごあいさつ',
@@ -654,9 +660,15 @@ const TXT_ADD = {
     aiTruck: n => `Truck to level ${n}`, aiForkBuy: 'Bought a forklift', aiFork: 'Upgraded a forklift', aiDrill: 'Added a drill',
     aiDrillUp: 'Upgraded drills', aiTurn: 'Turned a stuck drill', aiMach: n => `Placed ${n} with a sorter`, aiMachUp: 'Upgraded machines',
     aiPrice: n => `${n} price up`, aiPipe: 'Piped a source', aiFac: n => `Built ${n}`,
+    aiRemove: 'Removed a drill that could not dig', aiUnsort: 'Removed a sorter (found a better use)', forkSpd: 'Speed',
+    aiFail: c => `Failed: took a bank loan (${c})`, aiFailRun: n => `Took ${n} bank loan(s) (failure). See Admin > AI failure log`,
+    aiCause: { noDrill: 'no drill', drillStop: 'all drills stopped', noWorker: 'no workers', yard: 'yard piled up (truck too small)', dock: 'docks piled up (forklifts)', jam: 'items jammed underground', noSale: 'no sales', spend: 'overspending' },
+    live10: '+10 min', live60: '+60 min',
     items: { tile: 'Tile', glossTile: 'Glossy tile', wire: 'Wire', goldleaf: 'Gold leaf', decoIron: 'Luxury ornament (iron)', decoGold: 'Luxury ornament (gold)' },
     mach: { drawer: 'Wire drawer', atelier: 'Ornament workshop' }, glyph: { drawer: 'W', atelier: 'O' }, facStaff: (n, m) => `Workers ${n}/${m} (more = faster)`,
-    adm: { diary: 'Dev diary', liveOn: 'Auto play (watch)', liveOff: 'Stop auto play (watch)', liveOnMsg: 'Auto play: the AI decides every 3 seconds', liveTag: 'Auto play' },
+    adm: { failLog: 'AI failure log', failNone: 'No AI failures yet (they are recorded when auto play takes a bank loan)',
+      failHead: (r, t) => `Times auto play took a bank loan (newest first)\nLearned: money reserve ×${r}, truck priority ×${t}`,
+      failRow: (t, st, d, c) => `- at ${t}, stage ${st}, ${d}m: ${c}`, diary: 'Dev diary', liveOn: 'Auto play (watch)', liveOff: 'Stop auto play (watch)', liveOnMsg: 'Auto play: the AI decides every 3 seconds', liveTag: 'Auto play' },
     giftMsg: v => `Boss, we are almost out of money.\nA present from the chairman has arrived!\nMoney +${v} (no need to pay it back)`, giftHist: 'Present from the chairman: 1000',
     stageUp: (n, names) => `Broke through bedrock Lv${n}!` + (names.length ? `\nNew: ${names.join(', ')}` : ''), stagePop: n => `Bedrock Lv${n} cleared`, hStage: n => `Broke through bedrock Lv${n}`,
     greetT: 'Welcome',
@@ -733,7 +745,7 @@ const valOf = s => lvVal(grpOf(s), lvOf(s));
 const sk = id => (S.skills[id] || 0);
 const lvCap = g => (g === 'belt' ? 5 + sk('beltMax') : LV[g].cap);   // レベルの上限
 // 時間の速さ：最初は×1だけ。スキルで増える（管理メニューの×16はテスト用）
-function speeds() { const a = [1, 2, 4, 8].slice(0, 1 + sk('speed')); if (S.adminFast) a.push(16); return a; }
+function speeds() { const a = autoLive ? [1, 2, 4, 8] : [1, 2, 4, 8].slice(0, 1 + sk('speed')); if (S.adminFast || autoLive) a.push(16); return a; }   // 自動プレイ（見る）の間は16倍まで
 const drainMul = () => [1, 0.75, 0.5][sk('welfare')];                         // 福利厚生：疲れにくい
 const restMul = () => [1, 1.5, 2][sk('welfare')] * OFFICE_LV.rest[S.office.lv]; // 休憩の速さ
 const newTruck = phase => ({ type: 'truck', op: null, load: 0, value: 0, phase, t: 0, acc: 0 });
@@ -1200,6 +1212,7 @@ function updateMonth() {
   // 銀行の融資：お金が100未満で、先月の売上が0なら300貸してくれる（売上の2割ずつ返す。合計1500まで）
   if (S.money < 100 && S.stats.cur.sale === 0 && (S.loan || 0) + LOAN <= LOAN_MAX && S.month > 1) {   // 返している途中でも、上限までは借りられる
     S.money += LOAN; S.loan = (S.loan || 0) + LOAN;
+    if (autoBusy || autoLive) autoFail();   // 自動プレイが救済の融資を受けた＝失敗。原因を残す
     pop(tx().loanPop + ' +' + LOAN, OFFICE_C + 1, YARD_R - 0.4, 'sale'); say(tx().loanPop + ' +' + LOAN); addHist(tx().loanPop + ' ' + LOAN);
   }
   // 資金の節目（1000・1万・10万…を初めて超えた月）
@@ -1263,7 +1276,10 @@ function updateItems(dt) {
         const along = dx ? (it.x - (c + 0.5)) * dx : (it.y - (r + 0.5)) * dy;
         if (along >= 0) it.tk = k;
       }
-      if (it.tk === k) md = s.side === 'left' ? CCW[s.dir] : CW[s.dir];
+      if (it.tk === k) {
+        const sd = s.side === 'left' ? CCW[s.dir] : CW[s.dir], [sx, sy] = DIRS[sd], m2 = machineAt(c + sx, r + sy);
+        if (m2 ? accepts(m2, it) : canPut(c + sx, r + sy)) md = sd;   // 横がいっぱいなら、まっすぐ通す（詰まらない）
+      }
     }
     const [dx, dy] = DIRS[md];
     if (dx !== 0) it.y = approach(it.y, r + 0.5 + it.lane, v * 0.6);
@@ -1701,7 +1717,7 @@ function updateWorkers(dt) {
           if (S.lab.built) adv.push(S.lab);
           for (const f of S.forks) adv.push(f);
           for (const t of S.fleet) if (t.phase === 'here') adv.push(t);
-          for (const p of adv) { if (taken.has(p)) continue; const d = dist.get(postKey(p)); if (d !== undefined && d < bd) { bd = d; best = p; } }
+          for (const p of adv) { if (taken.has(p) || p.type === 'fork' && p.state === 'idle' && !p.load.length && pickDock(p) === null) continue; const d = dist.get(postKey(p)); if (d !== undefined && d < bd) { bd = d; best = p; } }
         }
         const advBest = best;
         if (!best) for (const [k, st] of S.st) {
@@ -1751,7 +1767,14 @@ function updateWorkers(dt) {
       case 'drive': {  // フォークリフト・トラックを運転（乗り物と一緒に動く）
         const v = w.target;
         v.op = w.id;
-        if (v.type === 'fork') { w.x = v.x; w.y = YARD_R + 0.5; }
+        if (v.type === 'fork') {
+          w.x = v.x; w.y = YARD_R + 0.5;
+          v.idleT = v.state === 'idle' && !v.load.length ? (v.idleT || 0) + dt : 0;
+          if (v.idleT > 8) {   // 8秒仕事が無ければ降りて、ほかの持ち場を探す
+            v.idleT = 0; v.op = null; w.target = null;
+            w.path = pathBetween(wKey(w), OFFICE_K) || []; w.state = 'toIdle'; break;
+          }
+        }
         else { w.x = BED + 0.5; w.y = YARD_R + 0.5; }
         w.stamina = Math.max(0, w.stamina - dt * drainMul());
         gainExp(w, dt);
@@ -1760,6 +1783,9 @@ function updateWorkers(dt) {
       }
       case 'toRest':
         if (walk(w, dt)) w.state = 'rest';
+        break;
+      case 'toIdle':   // 休まずに次の持ち場へ（事務所に戻ってから探す）
+        if (walk(w, dt)) { w.state = 'idle'; w.lastLook = -9; }
         break;
       case 'rest':
         w.stamina = Math.min(maxS, w.stamina + dt * maxS / REST_SEC * restMul());
@@ -1794,7 +1820,7 @@ function hire() {
 }
 // その レベルの人を1人やめさせる（休んでいる人から）
 function fireLevel(lv) {
-  const order = ['rest', 'idle', 'toRest', 'toWork', 'work', 'drive'];
+  const order = ['rest', 'idle', 'toIdle', 'toRest', 'toWork', 'work', 'drive'];
   const ws = S.workers.filter(w => w.lv === lv).sort((a, b) => order.indexOf(a.state) - order.indexOf(b.state));
   if (ws.length) fireWorker(ws[0].id);
 }
@@ -2128,7 +2154,8 @@ function updatePop() {
   $('popInfo').hidden = !info;
   $('popInfo').innerText = info;
   const g = grpOf(t), lv = lvOf(t), cost = nextCost(t), unit = T.pwUnit[g];
-  $('popLevel').textContent = `${T.lv(lv + 1)}　${T.pw[g]} ${unit(lvVal(g, lv))}` + (cost !== null ? ` → ${unit(lvVal(g, lv + 1))}` : '');
+  $('popLevel').textContent = `${T.lv(lv + 1)}　${T.pw[g]} ${unit(lvVal(g, lv))}` + (cost !== null ? ` → ${unit(lvVal(g, lv + 1))}` : '')
+    + (g === 'fork' ? `\n${T.forkSpd} ×${(forkSpeed(lv) / forkSpeed(0)).toFixed(2)}` + (cost !== null ? ` → ×${(forkSpeed(lv + 1) / forkSpeed(0)).toFixed(2)}` : '') : '');
   const btn = $('popLvUp'); btn.innerHTML = '';
   if (cost === null) { btn.textContent = T.maxed; btn.disabled = true; }
   else {
@@ -2367,7 +2394,7 @@ function renderPanel(id) {
     for (const lv of lvs) {
       const ws = S.workers.filter(w => w.lv === lv);
       const cnt = st => ws.filter(w => st.includes(w.state)).length;
-      const el = rowEl(T.wCount(lv, ws.length), T.wBreak(cnt(['work', 'drive']), cnt(['toWork', 'toRest', 'idle']), cnt(['rest'])),
+      const el = rowEl(T.wCount(lv, ws.length), T.wBreak(cnt(['work', 'drive']), cnt(['toWork', 'toRest', 'toIdle', 'idle']), cnt(['rest'])),
         costBtn(T.fireOne, undefined, () => { fireLevel(lv); renderPanel('office'); }));
       const bar = document.createElement('div'); bar.className = 'bar';
       const avg = ws.reduce((a, w) => a + w.stamina / maxStamina(w), 0) / ws.length;
@@ -2462,6 +2489,7 @@ function renderPanel(id) {
     add(A.auto10, () => { closePanels(); autoPlay(10); });
     add(A.auto60, () => { closePanels(); autoPlay(60); });
     add(autoLive ? A.liveOff : A.liveOn, () => { autoLive = !autoLive; liveT = 0; aiLog = []; showAiLog(); say(autoLive ? tx().adm.liveOnMsg : tx().adm.liveOff, 2500); renderPanel('admin'); });
+    add(A.failLog, () => { closePanels(); showNotice(aiFailText(), 'normal'); });
     add(A.pixel, () => { window.open('tools/pixel.html', '_blank'); });
     add(A.diary, () => { window.open('diary/', '_blank'); });
   } else if (id === 'help') {
@@ -3969,35 +3997,163 @@ function autoPipePath(wk) {
   }
   return null;
 }
-// 振り分けの組み方（最適と考える形）：縦のコンベア（↑）の途中を仕分けにして、材料だけを横の機械へ。
-// 機械は上向きに置き、出てきた製品は1マス上のコンベアで列に戻す。上の段ほど後の工程（下で作った物が上で使われる）
+// ---- 機械の使い方を、AIが自分で考える（MACHINES のレシピから。新しい機械が増えても、そのまま使える） ----
+// 振り分けの組み方：縦のコンベア（↑）の途中を仕分けにして、材料だけを横の機械へ。機械は上向き、製品は1マス上のコンベアで列に戻す。
 //   ↑ ← 戻し        （r-1）
-//   仕 → 機械↑      （r）
-const AUTO_LINES = [['kiln', 'soil'], ['crusher', 'stone'], ['factory', 'goldbar'], ['factory', 'ironbar'], ['smelter', 'gold'], ['smelter', 'iron'],
-  ['polisher', 'diaCut'], ['cutter', 'diaClean'], ['washer', 'dia']];
+//   仕 → 機械↑      （r）      材料が2つの機械は、もう1段下に「仕 → ↑」を足して、下からも入れる（r+1）
+// 上の段ほど後の工程（下で作った物が、上の機械に流れて行く）
+const AUTO_RAW = ['soil', 'stone', 'iron', 'gold', 'dia'];
+const recInsOf = rec => (rec.ins ? Object.keys(rec.ins) : [rec.in]);
+const recNOf = (rec, x) => (rec.ins ? rec.ins[x] : rec.n);
+const AUTO_LINES = (() => {
+  const depth = {}; for (const r of AUTO_RAW) depth[r] = 0;
+  const all = [];
+  for (const m of MACHINE_ORDER) for (const rec of MACHINES[m].recipes || []) all.push({ m, rec, ins: recInsOf(rec), id: m + ':' + rec.out });
+  for (let pass = 0; pass < 12; pass++) for (const l of all) {
+    if (l.ins.some(x => depth[x] === undefined)) continue;
+    const d = Math.max(...l.ins.map(x => depth[x])) + 1;
+    if (depth[l.rec.out] === undefined || depth[l.rec.out] < d) depth[l.rec.out] = d;
+  }
+  const lines = all.filter(l => depth[l.rec.out] !== undefined).map(l => ({ ...l, depth: depth[l.rec.out] }));
+  lines.sort((a, b) => a.depth - b.depth);   // 前の工程から
+  return lines;
+})();
+// 今使う工程を選ぶ：掘っている資源から作れる物だけ。材料ごとに、いちばん得になる使い道を1つ
+function autoPlan() {
+  const lines = AUTO_LINES.filter(l => S.unlock[l.m]);
+  const raw = AUTO_RAW.filter(r => S.sold['@' + r]);
+  const prod = new Set(raw);
+  for (let p = 0; p < 8; p++) for (const l of lines) if (l.ins.every(x => prod.has(x))) prod.add(l.rec.out);
+  const usable = lines.filter(l => l.ins.every(x => prod.has(x)));
+  // 1個あたりの値打ち：売る・加工する のうち高い方。材料が2つの物は、もうけを材料で山分けして考える
+  const value = cand => {
+    const w = {}; for (const k of ITEM_ORDER) w[k] = ITEMS[k].v;
+    const single = cand.filter(l => l.ins.length === 1), multi = cand.filter(l => l.ins.length > 1);
+    const up = () => { for (let p = 0; p < 8; p++) for (const l of single) w[l.ins[0]] = Math.max(w[l.ins[0]], w[l.rec.out] / l.rec.n); };
+    up();
+    const w1 = { ...w }, per = new Map();
+    for (const l of multi) {
+      const n = l.ins.reduce((a, y) => a + recNOf(l.rec, y), 0), gain = w[l.rec.out] - l.ins.reduce((a, y) => a + w1[y] * recNOf(l.rec, y), 0);
+      per.set(l, x => w1[x] + gain / n);
+    }
+    for (const l of multi) for (const x of l.ins) w[x] = Math.max(w[x], per.get(l)(x));
+    up();
+    return { w, per: (l, x) => (l.ins.length > 1 ? per.get(l)(x) : w[l.rec.out] / l.rec.n) };
+  };
+  // 選ぶ：材料ごとに、いちばん値打ちの出る使い道。選べなかった使い道は外して、もう一度考える
+  const out = new Set();
+  let cand = usable;
+  for (let loop = 0; loop < 10; loop++) {
+    const { w, per } = value(cand);
+    const chosen = new Set(), have = new Set(raw), failed = [];
+    for (const l of cand) {   // 浅い工程から
+      if (!l.ins.every(x => have.has(x))) { failed.push(l); continue; }
+      if (!l.ins.every(x => per(l, x) > ITEMS[x].v + 1e-9 && per(l, x) >= w[x] - 1e-9)) { failed.push(l); continue; }
+      chosen.add(l.id); have.add(l.rec.out);
+    }
+    // 材料なのに使い道が1つも選ばれていない物があれば、それを当てにして選べなかった工程を外す
+    const drop = failed.filter(l => l.ins.some(x => have.has(x) && !cand.some(o => chosen.has(o.id) && o.ins.includes(x))) && per0(l, w, per));
+    out.clear(); for (const id of chosen) out.add(id);
+    if (!drop.length) break;
+    cand = cand.filter(l => !drop.includes(l));
+  }
+  return out;
+  function per0(l, w, per) { return l.ins.some(x => per(l, x) >= w[x] - 1e-9); }   // その材料のいちばんの使い道だった
+}
+// 縦穴（列c）に今ある工程を読み取る：仕分けの段と、横の機械から
+function shaftLines(c) {
+  const out = [];
+  for (let rr = SKY + 1; rr <= S.deepest + 1; rr++) {
+    const s = S.st.get(key(c, rr));
+    if (!s || s.type !== 'sort') continue;
+    const dx = s.side === 'right' ? 1 : -1;
+    const m = machineAt(c + dx, rr), below = S.st.get(key(c + dx, rr));
+    if (m && m.dir === 'up') {
+      const rec = (MACHINES[m.m].recipes || []).find(x => recInsOf(x).includes(s.filter));
+      if (rec) out.push({ id: m.m + ':' + rec.out, top: rr - 1, bot: rr, ins: [s.filter], out: rec.out, rows: [rr] });
+    } else if (below && below.type === 'conv' && below.dir === 'up' && out.length && out[out.length - 1].bot === rr - 1) {   // 2つ目の材料（下から入れる段）
+      const l = out[out.length - 1]; l.bot = rr; l.ins.push(s.filter); l.rows.push(rr);
+    }
+  }
+  return out;
+}
 function autoSortLines(drills) {
+  const chosen = autoPlan();
   const drillCols = new Set(drills.map(([k]) => cOf(k)));
   const free = (c, r) => inB(c, r) && !S.st.has(key(c, r)) && !drillCols.has(c) && (blk(c, r) === null || blk(c, r).mat !== 'rock');
+  const upConv = s => s && s.type === 'conv' && s.dir === 'up';
   for (const [dk] of drills) {
     const c = cOf(dk);
-    for (let i = 0; i < AUTO_LINES.length; i++) {
-      const [m, inp] = AUTO_LINES[i], r = SKY + 1 + 2 * i;
-      if (!S.unlock[m] || rOf(dk) <= r + 1) continue;
-      const s0 = S.st.get(key(c, r)), s1 = S.st.get(key(c, r - 1));
-      if (!s0 || s0.type !== 'conv' || s0.dir !== 'up' || !isBelt(s1)) continue;
-      const dx = [1, -1].find(d => free(c + d, r) && free(c + d, r - 1));
-      if (dx === undefined) continue;
-      const digs = [r, r - 1].map(rr => blk(c + dx, rr)).filter(Boolean).reduce((a, b) => a + digCost(b), 0);
-      const cost = buildCost('m:' + m) + COST.sort + COST.conv + digs;
-      if (S.money < cost * 2) return;
-      for (const rr of [r, r - 1]) if (blk(c + dx, rr)) { spend(digCost(blk(c + dx, rr)), c + dx + 0.5, rr + 0.3); row(rr)[c + dx] = null; S.digVer++; }
-      autoPut(key(c + dx, r), { type: 'machine', m, dir: 'up', lv: 0, buf: {}, bags: {}, cur: null, prog: 0, op: null }, buildCost('m:' + m));
-      autoPut(key(c + dx, r - 1), { type: 'conv', dir: dx > 0 ? 'left' : 'right', lv: 0 }, COST.conv);
-      autoPut(key(c, r), { type: 'sort', dir: 'up', lv: 0, filter: inp, side: dx > 0 ? 'right' : 'left' }, COST.sort);
-      return;   // 1回に1つずつ
+    let have = shaftLines(c);
+    // もっと良い使い道ができた工程は、仕分けをただのコンベアに戻す
+    for (const l of have) if (!chosen.has(l.id)) for (const rr of l.rows) { const s = S.st.get(key(c, rr)); s.type = 'conv'; delete s.filter; delete s.side; S.stVer++; }
+    have = have.filter(l => chosen.has(l.id));
+    for (const l of AUTO_LINES) {   // 前の工程から順に
+      if (!chosen.has(l.id) || have.some(h => h.id === l.id)) continue;
+      // 置ける段：材料を作る工程より上、製品を使う工程より下。その中でいちばん深い所（上は後の工程のために空けておく）
+      const raw = l.ins.every(x => AUTO_RAW.includes(x));
+      const prods = have.filter(h => l.ins.includes(h.out)), cons = have.filter(h => h.ins.includes(l.rec.out));
+      if (!raw && !l.ins.every(x => AUTO_RAW.includes(x) || prods.some(h => h.out === x))) continue;   // 材料をこの縦穴で作っていない
+      const hi = prods.length ? Math.min(...prods.map(h => h.top)) - 1 : rOf(dk) - 2;   // ここより上（ブロックの一番下の段）
+      const lo = cons.length ? Math.max(...cons.map(h => h.bot)) + 1 : SKY;             // ここより下（ブロックの一番上の段）
+      const n = l.ins.length;
+      for (let bot = hi; bot - n >= lo; bot--) {
+        const r = bot - n + 1, rows = l.ins.map((_, i) => r + i), side = [r - 1, ...rows];
+        if (have.some(h => h.bot >= r - 1 && h.top <= bot)) continue;   // ほかの工程と重なる
+        if (!rows.every(rr => upConv(S.st.get(key(c, rr)))) || !isBelt(S.st.get(key(c, r - 1)))) continue;
+        const dx = [1, -1].find(d => side.every(rr => free(c + d, rr)));
+        if (dx === undefined) continue;
+        const digs = side.map(rr => blk(c + dx, rr)).filter(Boolean).reduce((a, b) => a + digCost(b), 0);
+        const cost = buildCost('m:' + l.m) + (COST.sort + COST.conv) * n + digs;
+        if (S.money < cost * 2 * aiR()) return;
+        for (const rr of side) if (blk(c + dx, rr)) { spend(digCost(blk(c + dx, rr)), c + dx + 0.5, rr + 0.3); row(rr)[c + dx] = null; S.digVer++; }
+        autoPut(key(c + dx, r), { type: 'machine', m: l.m, dir: 'up', lv: 0, buf: {}, bags: {}, cur: null, prog: 0, op: null }, buildCost('m:' + l.m));
+        autoPut(key(c + dx, r - 1), { type: 'conv', dir: dx > 0 ? 'left' : 'right', lv: 0 }, COST.conv);
+        if (n > 1) autoPut(key(c + dx, rows[1]), { type: 'conv', dir: 'up', lv: 0 }, COST.conv);   // 2つ目の材料は下から
+        rows.forEach((rr, i) => autoPut(key(c, rr), { type: 'sort', dir: 'up', lv: 0, filter: l.ins[i], side: dx > 0 ? 'right' : 'left' }, COST.sort));
+        return;   // 1回に1つずつ
+      }
     }
   }
 }
+// 地上の施設：使う液体（新しい施設はここに足すだけで、AIも使う）
+const FAC_USE = { spa: ['hot'], power: ['hot', 'oil'], refinery: ['oil'] };
+
+// ---- 自動プレイの「失敗」：銀行の融資（300）はプレイヤーの救済なので、AIが借りたら失敗として原因を残す ----
+// 学んだこと（お金の残し方など）は、この端末に覚えておき、次の自動プレイで使う
+const AI_KEY = 'digfactory.aiLearn';
+const aiLearn = (() => { let d = null; try { d = JSON.parse(localStorage.getItem(AI_KEY)); } catch (e) { /* 読めない時は初期値 */ } return Object.assign({ reserve: 1, truck: 1, fails: [] }, d || {}); })();
+const aiR = () => aiLearn.reserve;   // お金を残す倍率（失敗すると上がる）
+function aiSave() { try { localStorage.setItem(AI_KEY, JSON.stringify(aiLearn)); } catch (e) { /* 保存できなくても続ける */ } }
+function autoDiagnose() {
+  const c = [], sts = [...S.st.values()], drills = sts.filter(s => s.type === 'drill');
+  const ms = S.stats.months.slice(-3), sale = ms.reduce((a, m) => a + m.sale, 0), cost = ms.reduce((a, m) => a + m.cost, 0);
+  if (!drills.length) c.push('noDrill');
+  else if (drills.every(d => d.off || d.stuck)) c.push('drillStop');
+  if (!S.workers.length) c.push('noWorker');
+  if (S.yard.length > valOf('truck') * 4) c.push('yard');
+  if (Object.values(S.dock).reduce((a, p) => a + p.length, 0) > 20) c.push('dock');
+  if (S.items.length > 300) c.push('jam');
+  if (sale === 0) c.push('noSale');
+  if (!c.length || cost > sale * 1.2) c.push('spend');
+  return c;
+}
+function autoFail() {
+  const causes = autoDiagnose();
+  aiLearn.fails.unshift({ at: Date.now(), t: Math.round(S.time), stage: S.stage, depth: S.deepest - SKY, causes });
+  aiLearn.fails = aiLearn.fails.slice(0, 20);
+  if (causes.includes('spend') || causes.includes('noSale')) aiLearn.reserve = Math.min(3, Math.round((aiLearn.reserve + 0.25) * 100) / 100);   // 使いすぎ → 次はお金を多めに残す
+  if (causes.includes('yard')) aiLearn.truck = Math.max(0.5, Math.round((aiLearn.truck - 0.1) * 100) / 100);    // ヤードが山 → 次はトラックを早めに強化
+  aiSave(); autoRun.fails++;
+  const T = tx(); aiLog = [T.aiFail(causes.map(x => T.aiCause[x]).join('・')), ...aiLog].slice(0, 4); showAiLog();
+}
+function aiFailText() {
+  const T = tx(), A = T.adm;
+  if (!aiLearn.fails.length) return A.failNone;
+  return A.failHead(aiLearn.reserve, aiLearn.truck) + '\n' + aiLearn.fails.slice(0, 8).map(f =>
+    A.failRow(fmtDur(f.t), f.stage, f.depth, f.causes.map(x => T.aiCause[x]).join('・'))).join('\n');
+}
+
 // 自動プレイ（見る）：AIが何をしたかを、前後の様子を比べて短い文にする（資金の下に小さく出す）
 function autoSnap() {
   const sts = [...S.st.values()];
@@ -4005,10 +4161,12 @@ function autoSnap() {
     fl: S.forks.reduce((a, f2) => a + f2.lv, 0), dl: sts.filter(s => s.type === 'drill').reduce((a, s) => a + s.lv, 0),
     ml: sts.filter(s => s.type === 'machine').reduce((a, s) => a + s.lv, 0), pr: { ...(S.priceLv || {}) },
     dn: sts.filter(s => s.type === 'drill').length, ms: sts.filter(s => s.type === 'machine').map(s => s.m),
-    pn: sts.filter(s => s.type === 'pipe').length, fac: S.fac.map(x => x.f), dirs: sts.filter(s => s.type === 'drill').map(s => s.dir).join() };
+    pn: sts.filter(s => s.type === 'pipe').length, fac: S.fac.map(x => x.f), dirs: sts.filter(s => s.type === 'drill').map(s => s.dir).join(),
+    sorts: sts.filter(s => s.type === 'sort').length };
 }
+let aiNote = [];   // その場で起きたこと（ドリルの撤去など）
 function autoDiff(a, b) {
-  const T = tx(), o = [];
+  const T = tx(), o = [...aiNote]; aiNote = [];
   if (b.w > a.w) o.push(T.aiHire(b.w - a.w));
   if (b.ol > a.ol) o.push(T.aiCompany(b.ol + 1));
   if (b.lab && !a.lab) o.push(T.aiLab);
@@ -4018,6 +4176,7 @@ function autoDiff(a, b) {
   if (b.dn > a.dn) o.push(T.aiDrill); else if (b.dl > a.dl) o.push(T.aiDrillUp);
   if (b.dirs !== a.dirs && b.dn === a.dn) o.push(T.aiTurn);
   for (const m of b.ms) { const i = a.ms.indexOf(m); if (i < 0) o.push(T.aiMach(T.mach[m])); else a.ms.splice(i, 1); }
+  if (b.sorts < a.sorts) o.push(T.aiUnsort);
   if (b.ml > a.ml) o.push(T.aiMachUp);
   for (const r of Object.keys(b.pr)) if (b.pr[r] > (a.pr[r] || 0)) o.push(T.aiPrice(T.items[r]));
   if (b.pn > a.pn) o.push(T.aiPipe);
@@ -4030,21 +4189,65 @@ function autoLiveStep() {
   const lines = autoDiff(a, autoSnap());
   if (lines.length) { aiLog = [...lines.reverse(), ...aiLog].slice(0, 4); showAiLog(); }
 }
-function showAiLog() { const el = $('aiHud'); el.textContent = autoLive ? aiLog.map(x => '・' + x).join('\n') : ''; }
+function showAiLog() {
+  const el = $('aiHud'); el.textContent = autoLive ? aiLog.map(x => '・' + x).join('\n') : '';
+  $('liveBar').hidden = !autoLive;
+}
+// (c,r)から上へ、上向きのコンベア（仕分け）が地上まで続いているか（掘った物が地上まで上がるか）
+function upToTop(c, r) {
+  for (let rr = r; rr >= SKY; rr--) { const s = S.st.get(key(c, rr)); if (blk(c, rr) !== null || !s || !(s.type === 'conv' || s.type === 'sort') || s.dir !== 'up') return false; }
+  return true;
+}
+// 新しいドリルを置く場所：地表か、上向きのコンベアの真下（撤去したドリルの縦穴など）。深いほど良い
+function autoNewDrill(drills) {
+  const used = new Set(drills.map(([k]) => cOf(k)));
+  let best = null, side = null;
+  for (const k of diggable()) {
+    const c = cOf(k), r = rOf(k);
+    if (r < SKY || c === YARD_C || used.has(c)) continue;
+    const g = blk(c, r); if (!g || g.mat === 'rock' && sk('digLv') < g.layer) continue;
+    const upAt = upToTop;
+    // 横向き（下向きが置けない時だけ）：縦穴の横から外へ掘る。掘った物は縦穴に戻って上がる
+    for (const dx of [1, -1]) if (inB(c - dx, r) && upAt(c - dx, r) && (!side || r > side.r)) side = { c, r, ur: r, dir: dx > 0 ? 'right' : 'left' };
+    if (used.has(c - 1) || used.has(c + 1)) continue;
+    let ur = r - 1;   // 上の空いたマスをたどって、上向きのコンベアか地上に着けば、掘った物が上がる
+    while (ur >= SKY && blk(c, ur) === null && !S.st.has(key(c, ur))) ur--;
+    if (ur >= SKY && !upAt(c, ur)) continue;
+    if (!best || r > best.sc) best = { c, r, ur, dir: 'down', sc: r };
+  }
+  if (!best) best = side;
+  if (!best) return false;
+  const keep = tool; tool = 'drill';
+  const ok = canPlaceAt(best.c, best.r) && placePend({ c: best.c, r: best.r, dir: best.dir, tid: 'drill' });
+  tool = keep;
+  if (ok) for (let rr = Math.max(SKY, best.ur + 1); rr < best.r; rr++) autoPut(key(best.c, rr), { type: 'conv', dir: 'up', lv: 0 }, COST.conv);   // すき間にも上向きのコンベア
+  return ok;
+}
 function autoStep(build = true) {
+  const R = aiR();
   const all = [...S.st.entries()];
   const drills = all.filter(([, x]) => x.type === 'drill'), machines = all.filter(([, x]) => x.type === 'machine');
   const posts = drills.length + machines.length + S.fac.length + (S.lab.built ? 1 : 0);
-  if (S.workers.length < Math.min(OFFICE_LV.cap[S.office.lv], posts + 1) && S.money > HIRE_FEE(hireLv()) + 100) hire();
-  if (S.office.lv < OFFICE_LV.cost.length && S.money > OFFICE_LV.cost[S.office.lv] * (S.office.lv ? 1.6 : 1.2)) officeUp();
-  if (S.office.lv >= 1 && !S.lab.built && S.money > COST.lab + 50) { const c = autoFreeCol(); if (c !== undefined) { spend(COST.lab, c + 0.5, YARD_R); S.lab.built = true; S.lab.c = c; addHist(tx().labBuilt); } }
+  if (S.workers.length < Math.min(OFFICE_LV.cap[S.office.lv], posts + 1) && S.money > HIRE_FEE(hireLv()) + 100 * R) hire();
+  if (S.office.lv < OFFICE_LV.cost.length && S.money > OFFICE_LV.cost[S.office.lv] * (S.office.lv ? 1.6 : 1.2) * R) officeUp();
+  if (S.office.lv >= 1 && !S.lab.built && S.money > COST.lab + 50 * R) { const c = autoFreeCol(); if (c !== undefined) { spend(COST.lab, c + 0.5, YARD_R); S.lab.built = true; S.lab.c = c; addHist(tx().labBuilt); } }
   if (S.lab.built && !S.research) {
     const ids = allResIds().filter(id => resAvail(id) && !resDef(id).done).sort((a, b) => (a === 'sk:digLv' ? -1 : b === 'sk:digLv' ? 1 : resDef(a).cost - resDef(b).cost));
-    for (const id of ids) if (S.money >= resDef(id).cost + (id === 'sk:digLv' ? 0 : 300)) { startResearch(id); break; }
+    for (const id of ids) if (S.money >= resDef(id).cost + (id === 'sk:digLv' ? 0 : 300 * R)) { startResearch(id); break; }
+  }
+  // 止まったドリル：掘れる向きがあれば向きを変える（横を先に、次に下）。どこも掘れなければ撤去して、別の所に置き直す
+  for (const [dk, d] of drills) {
+    if (!build || d.off || !d.stuck || (d.stuckT || 0) < 10) continue;
+    // 向きを変えてよいのは、掘った物の出口（後ろ）が上へつながっている時だけ（つながらないと地下で詰まる）
+    const c0 = cOf(dk), r0 = rOf(dk), exitOk = x => { const [bx, by] = DIRS[OPP[x]], bc = c0 + bx, br = r0 + by; return br < SKY || upToTop(bc, br) || (S.st.get(key(bc, br)) || {}).type === 'conv' && by === 0; };
+    const nd = ['left', 'right', 'down'].find(x => x !== d.dir && !blockedFor(c0, r0, x) && exitOk(x));
+    if (nd) { d.dir = nd; d.stuck = false; d.stuckT = 0; }
+    else { removeAt(dk); aiNote.push(tx().aiRemove); }
+    break;   // 1回に1台ずつ
   }
   // 運ぶ所が詰まっていたら、トラック・フォークリフトを先に強化
   const dockN = Object.values(S.dock).reduce((a, p) => a + p.length, 0);
-  if (S.yard.length > valOf('truck') * 2) { const c = nextCost('truck'); if (c !== null && S.money > c * 1.3) levelUp('truck'); }
+  if (S.yard.length > valOf('truck') * 2 * aiLearn.truck) { const c = nextCost('truck'); if (c !== null && S.money > c * 1.3) levelUp('truck'); }
   if (dockN > 6) {
     const f0 = S.forks.reduce((a, b) => (a.lv <= b.lv ? a : b));
     const c = nextCost(f0);
@@ -4052,26 +4255,13 @@ function autoStep(build = true) {
     else if (c !== null && S.money > c * 1.3) levelUp(f0);
   }
   if (S.yard.length > valOf('truck') * 4 && nextCost('truck') !== null && S.money < nextCost('truck') * 3) return;   // ヤードが山になっている → トラックのためにお金を残す
-  for (const [, d] of drills) { const c = nextCost(d); if (c !== null && S.money > c * 2) levelUp(d); }
-  for (const [, m] of machines) { const c = nextCost(m); if (c !== null && S.money > c * 3) levelUp(m); }
-  for (const r of ROOT_ORDER) if (S.sold['@' + r] && S.money > priceCost(r) * 3) priceUp(r);
+  for (const [, d] of drills) { const c = nextCost(d); if (c !== null && S.money > c * 2 * R) levelUp(d); }
+  for (const [, m] of machines) { const c = nextCost(m); if (c !== null && S.money > c * 3 * R) levelUp(m); }
+  for (const r of ROOT_ORDER) if (S.sold['@' + r] && S.money > priceCost(r) * 3 * R) priceUp(r);
   if (!build) return;
-  // 止まったドリル（真下に湧き口・掘れない岩盤など）は、横に向ける
-  for (const [dk, d] of drills) {
-    if (d.off || !d.stuck || (d.stuckT || 0) < 10) continue;
-    const nd = ['left', 'right'].find(x => !blockedFor(cOf(dk), rOf(dk), x));
-    if (nd) { d.dir = nd; d.stuck = false; d.stuckT = 0; }
-  }
-  // ドリルを増やす：地表の段で、まだ掘っていない列に（段階＋1台まで）
-  if (drills.length < S.stage + 1 && S.money > buildCost('drill') * 2.5) {
-    const used = new Set(drills.map(([k]) => cOf(k)));
-    for (let c = S.landL; c <= S.landR; c++) {
-      if (used.has(c) || used.has(c - 1) || used.has(c + 1) || c === YARD_C || blk(c, SKY) === null) continue;
-      const pd = { c, r: SKY, dir: 'down', tid: 'drill' }, keep = tool; tool = 'drill';
-      const ok = placePend(pd); tool = keep;
-      if (ok) break;
-    }
-  }
+  // ドリルを増やす・置き直す：段階＋1台まで（撤去された時も、ここで補う）
+  const live = [...S.st.entries()].filter(([, x]) => x.type === 'drill');
+  if (live.length < S.stage + 1 && S.money > buildCost('drill') * 2.5 * R) autoNewDrill(live);
   if (build === 'inline') {   // 比べる用：縦のコンベアの途中に機械をそのまま入れる（受け付けない物は機械の中をゆっくり通る）
     for (const [dk] of drills) {
       const c = cOf(dk);
@@ -4084,7 +4274,7 @@ function autoStep(build = true) {
         if (autoPut(k, { type: 'machine', m, dir: 'up', lv: 0, buf: {}, bags: {}, cur: null, prog: 0, op: null }, cost)) break;
       }
     }
-  } else autoSortLines(drills);
+  } else autoSortLines(live);
   // 湧き口：パイプで地下1段目までつなぐ
   if (S.unlock.pipe) {
     const net = pipeNet();
@@ -4097,31 +4287,32 @@ function autoStep(build = true) {
       break;
     }
   }
-  // 地上の施設：つながった液体があれば建てる（1種類1つ）
-  const liq = { hot: S.tank.hot > 20, oil: S.tank.oil > 20 };
-  const want = [['spa', liq.hot], ['refinery', liq.oil], ['power', liq.hot || liq.oil]];
-  for (const [fid, ok] of want) {
-    if (!ok || !S.unlock[fid] || S.fac.some(x => x.f === fid)) continue;
+  // 地上の施設：使う液体がたまっていれば建てる（1種類1つ）
+  for (const fid of FAC_IDS) {
+    const use = FAC_USE[fid] || [];
+    if (!use.some(l => S.tank[l] > 20) || !S.unlock[fid] || S.fac.some(x => x.f === fid)) continue;
     const c = autoFreeCol(), cost = buildCost(fid);
-    if (c === undefined || S.money < cost * 1.5) continue;
+    if (c === undefined || S.money < cost * 1.5 * R) continue;
     spend(cost, c + 0.5, YARD_R); S.fac.push({ type: 'fac', f: fid, c, op: null, t: 0, lv: 0 }); addHist(tx().facBuilt(tx().fac[fid]));
   }
 }
 let autoBusy = false, autoBuild = true, autoLive = false, liveT = 0;
+const autoRun = { fails: 0 };
 async function autoPlay(min) {
   const T = tx(), sec = min * 60;
-  autoBusy = true;
+  autoBusy = true; autoRun.fails = 0;
   $('away').hidden = false; $('awayOk').hidden = true;
   let done = 0;
   while (done < sec) {
     const t0 = performance.now();
-    while (done < sec && performance.now() - t0 < 30) { sim(5); autoStep(autoBuild); done += 5; }
+    while (done < sec && performance.now() - t0 < 30) { sim(3); if (autoLive) autoLiveStep(); else autoStep(autoBuild); done += 3; }
     $('awayMsg').textContent = T.autoMsg(Math.round(done / 60), min);
     $('awayBar').style.width = (100 * done / sec) + '%';
     await new Promise(r => setTimeout(r, 0));
   }
   S.pops = [];
-  $('awayMsg').textContent = T.autoDone(min); $('awayOk').hidden = false;
+  $('awayMsg').textContent = T.autoDone(min) + (autoRun.fails ? '\n' + T.aiFailRun(autoRun.fails) : '');
+  $('awayOk').hidden = false;
   autoBusy = false;
 }
 
@@ -4194,6 +4385,13 @@ window.addEventListener('pagehide', autoSave);
 document.addEventListener('visibilitychange', () => { if (document.hidden) autoSave(); });
 setInterval(autoSave, 30000);
 
+function showNotice(text, mood) {
+  const nm = $('noticeMsg'); nm.innerHTML = ''; nm.append(secIcon(mood, 'secBig'));
+  const sp = document.createElement('span'); sp.textContent = text; nm.append(sp);
+  $('notice').hidden = false;
+}
+$('live10').addEventListener('click', () => { if (!autoBusy) autoPlay(10); });
+$('live60').addEventListener('click', () => { if (!autoBusy) autoPlay(60); });
 // ---- ループ ----
 let last = performance.now(), panelTick = 0;
 function frame(now) {
@@ -4206,11 +4404,7 @@ function frame(now) {
   }
   applyMove(dt);
   updateUI();
-  if (S.notice && !autoBusy) {
-    const nm = $('noticeMsg'); nm.innerHTML = ''; nm.append(secIcon('good', 'secBig'));
-    const sp = document.createElement('span'); sp.textContent = S.notice; nm.append(sp);
-    S.notice = null; $('notice').hidden = false;
-  }
+  if (S.notice && !autoBusy) { showNotice(S.notice, 'good'); S.notice = null; }
   if ((panelTick = (panelTick + 1) % 15) === 0) {
     for (const id of ['powerPanel', 'office', 'skillPanel', 'tradePanel']) if (!$(id).hidden && !panelBusy($(id))) renderPanel(id);
     $('boostHud').textContent = (autoLive ? tx().adm.liveTag + (boostText() ? '・' : '') : '') + boostText();
@@ -4235,7 +4429,7 @@ window.__game = { // 動作確認用
   get S() { return S; }, TUNE, row, canPlaceAt, officeUp, buyFork, finishResearch, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
   setTool: t => setTool(t), setDir: d => { dir = d; }, pause: () => { running = false; },
   checkStage, resAvail, buildCost, allResIds, resDef, autoSave, catchUp, showTitle, leaveTitle, autoPlay, autoStep, workNeed,
-  deserialize, serialize, newGame: () => newGame(), setAutoBuild: v => { autoBuild = v; }, fmt, itemVal, placePend, priceUp, lvVal, lvCost, catalogIds,
+  deserialize, serialize, newGame: () => newGame(), aiLearn, autoPlan, AUTO_LINES, autoDiagnose, setLive: v => { autoLive = v; showAiLog(); }, setAutoBuild: v => { autoBuild = v; }, fmt, itemVal, placePend, priceUp, lvVal, lvCost, catalogIds,
 };
 requestAnimationFrame(frame);
 })();
