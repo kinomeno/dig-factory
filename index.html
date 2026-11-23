@@ -2,57 +2,86 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>採掘ゲーム</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<!-- ヘッダー -->
+<header id="hdr">
+  <b class="title" data-t="title">採掘ゲーム</b><small id="ver"></small>
+  <span class="stat"><span data-t="money">資金</span> <b id="money">0</b></span>
+  <span class="stat" id="date"></span>
+  <span class="grow"></span>
+  <button id="helpBtn" data-t="help">遊び方</button>
+  <button id="setBtn" class="icon" aria-label="settings">⚙&#xFE0E;</button>
+</header>
+
 <canvas id="cv"></canvas>
 
-<!-- 左上：状態と操作 -->
-<div id="topPanel" class="float">
-  <div class="row">
-    <b class="title" data-t="title">採掘ゲーム</b> <small id="ver"></small>
-    <span class="money"><span data-t="money">資金</span>：<b id="money">0</b></span>
-  </div>
-  <div class="row">
-    <button id="playBtn" class="play"></button>
-    <button id="speedBtn">×1</button>
-    <button id="shopBtn" data-t="shop">ショップ</button>
-    <button id="helpBtn" data-t="help">遊び方</button>
-    <button id="resetBtn" data-t="reset">最初から</button>
-  </div>
+<!-- 時間・表示の操作 -->
+<div id="timeGroup" class="float group">
+  <button id="playBtn" class="play"></button>
+  <button id="speedBtn">×1</button>
+  <span class="sep"></span>
+  <button id="zoomOut" class="sq">－</button>
+  <button id="zoomIn" class="sq">＋</button>
+  <button id="topBtn" data-t="top">地上</button>
 </div>
 
-<!-- 下：道具 -->
-<div id="palette" class="float">
+<!-- 向き（コンベア・仕分け・機械を置くとき） -->
+<div id="dirBar" class="float group">
+  <span class="lab" data-t="dir">向き</span>
+  <button class="dir" data-dir="left">←</button>
+  <button class="dir" data-dir="up">↑</button>
+  <button class="dir" data-dir="down">↓</button>
+  <button class="dir" data-dir="right">→</button>
+</div>
+
+<!-- 道具 -->
+<div id="toolBar" class="float group">
+  <button class="tool" data-tool="pan" data-t="pan">移動</button>
+  <span class="sep"></span>
   <button class="tool" data-tool="drill"><span data-t="drill">ドリル</span> <small>50</small></button>
   <button class="tool" data-tool="conv"><span data-t="conv">コンベア</span> <small>5</small></button>
   <button class="tool" data-tool="sort"><span data-t="sort">仕分け</span> <small>20</small></button>
-  <button class="tool" data-tool="remove"><span data-t="remove">撤去</span></button>
+  <button class="tool" data-tool="machine" id="machBtn"><span id="machBtnLabel" data-t="machine">機械</span> ▾</button>
+  <button class="tool" data-tool="remove" data-t="remove">撤去</button>
   <span class="sep"></span>
-  <span id="dirGroup" class="dirs">
-    <button class="dir" data-dir="left">←</button>
-    <button class="dir" data-dir="up">↑</button>
-    <button class="dir" data-dir="down">↓</button>
-    <button class="dir" data-dir="right">→</button>
-  </span>
+  <button id="powerBtn" data-t="power">強化</button>
 </div>
 
 <p id="msg" class="msg"></p>
+
+<!-- 機械の一覧 -->
+<div id="machList" class="float panel bottom" hidden>
+  <div class="head"><b data-t="machine">機械</b><button class="x" data-close="machList">✕</button></div>
+  <div id="machItems"></div>
+</div>
+
+<!-- 強化 -->
+<div id="powerPanel" class="float panel bottom" hidden>
+  <div class="head"><b data-t="power">強化</b><button class="x" data-close="powerPanel">✕</button></div>
+  <div id="powerItems"></div>
+</div>
 
 <!-- 遊び方 -->
 <div id="help" class="float panel" hidden>
   <div class="head"><b data-t="help">遊び方</b><button class="x" data-close="help">✕</button></div>
   <ul id="helpList"></ul>
-  <small data-t="keys"></small>
+  <div class="credit"></div>
 </div>
 
-<!-- ショップ -->
-<div id="shop" class="float panel" hidden>
-  <div class="head"><b data-t="shopTitle">トラックを買う</b><button class="x" data-close="shop">✕</button></div>
-  <div id="shopFree" class="sub"></div>
-  <div id="shopList"></div>
+<!-- 設定 -->
+<div id="settings" class="float panel" hidden>
+  <div class="head"><b data-t="settings">設定</b><button class="x" data-close="settings">✕</button></div>
+  <div class="prow labeled"><span class="lab" data-t="lang">表示</span>
+    <span class="opts">
+      <button data-lang="hira">ひらがな</button><button data-lang="kanji">漢字</button><button data-lang="en">English</button>
+    </span>
+  </div>
+  <button id="resetBtn" class="wide" data-t="reset">最初から</button>
+  <div class="credit"></div>
 </div>
 
 <!-- 置いた物をタップしたときのメニュー -->
@@ -64,25 +93,23 @@
     <button data-pdir="down">↓</button>
     <button data-pdir="right">→</button>
   </div>
-  <div id="popFilterRow" class="prow labeled"><span class="lab" data-t="filter">選ぶ資源</span>
-    <span class="opts">
-      <button data-pf="soil"></button><button data-pf="iron"></button><button data-pf="gold"></button>
-    </span>
-  </div>
+  <div id="popFilterRow" class="prow labeled"><span class="lab" data-t="filter">選ぶ資源</span><span class="opts" id="popFilters"></span></div>
   <div id="popSideRow" class="prow labeled"><span class="lab" data-t="side">出す側</span>
-    <span class="opts">
-      <button data-ps="left" data-t="left">左</button><button data-ps="right" data-t="right">右</button>
-    </span>
+    <span class="opts"><button data-ps="left" data-t="left">左</button><button data-ps="right" data-t="right">右</button></span>
   </div>
   <div id="popInfo" class="sub"></div>
-  <button id="popRemove" class="wide"></button>
+  <button id="popAction" class="wide"></button>
+  <button id="popRemove" class="wide" data-t="remove">撤去</button>
 </div>
 
-<footer class="float">
-  <span><span data-t="author">キノメノ</span>：<a id="noteUrl" target="_blank" rel="noopener"></a></span>
-  <a href="https://ko-fi.com/kinomeno" target="_blank" rel="noopener" data-t="kofi">☞ko-fiで支援</a>
-  <a id="noteTip" target="_blank" rel="noopener" data-t="tip">☞noteでチップ</a>
-</footer>
+<!-- 確認（ブラウザ標準の確認窓は使わない） -->
+<div id="confirm" class="modal" hidden>
+  <div class="box">
+    <p id="confirmMsg"></p>
+    <div class="btns"><button id="confirmNo" data-t="no">いいえ</button><button id="confirmYes" class="active" data-t="yes">はい</button></div>
+  </div>
+</div>
+
 <script src="main.js"></script>
 </body>
 </html>
