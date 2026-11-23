@@ -1,6 +1,6 @@
 /* ほりほり工場：見た目（デザイン）はこのファイルの変数で決める。ゲームの機能（main.js）とは分けてある */
 :root {
-  --hdr: 80px; --edge: 26px;
+  --hdr: 80px; --edge: 26px; --dash: 0px;
   /* 明るい配色：白とグレーが基本。色は「お金（アクセント）」と「選択」だけ */
   --bg: #e6e6e3;
   --glass: rgba(250, 250, 248, .84);     /* ヘッダー・メニューの背景（半透明） */
@@ -54,15 +54,15 @@ body {
 #hdr button { padding: 5px 9px; }
 #hdr .icon { font-size: 15px; padding: 3px 8px; }
 .sm { display: none; }
-@media (max-width: 480px) {
-  .lg { display: none; } .sm { display: inline; }
-  #hdr { padding: 2px 6px; }
-  #hdr small, #hdr .wm { display: none; }
-  #hdr .title { font-size: 13px; letter-spacing: .04em; }
-  #hdr .stat { font-size: 11px; } #hdr .stat b { font-size: 13px; }
-  .hrow { gap: 5px; } #timeGroup { gap: 3px; }
-  #hdr button { padding: 5px 6px; font-size: 12px; } #hdr button.sq { width: 26px; }
-}
+/* はみ出したら段階的に詰める（main.js の fitHeader が実際の幅を測って c1→c2→c3 を付ける） */
+#hdr.c1 small, #hdr.c1 .wm { display: none; }
+#hdr.c1 .hrow { gap: 6px; }
+#hdr.c2 .lg { display: none; } #hdr.c2 .sm { display: inline; }
+#hdr.c3 { padding: 2px 6px; }
+#hdr.c3 .title { font-size: 13px; letter-spacing: .04em; }
+#hdr.c3 .stat { font-size: 11px; } #hdr.c3 .stat b { font-size: 13px; }
+#hdr.c3 .hrow { gap: 5px; } #hdr.c3 #timeGroup { gap: 3px; }
+#hdr.c3 button { padding: 5px 6px; font-size: 12px; } #hdr.c3 button.sq { width: 26px; }
 
 .float {
   position: fixed; z-index: 10;
@@ -207,3 +207,56 @@ button.cat.open { border-color: var(--sel); }
 .modal p { margin: 0 0 16px; font-size: 14px; line-height: 1.6; }
 .modal .btns { display: flex; justify-content: flex-end; gap: 8px; }
 .modal .btns button { min-width: 84px; padding: 8px 12px; }
+
+/* ===== 試験：下部の計器盤（body.dash のときだけ）=====
+   昔のPCゲームの操作盤のように、状態・命令・地図を画面の下に1枚でまとめる。明るいグレーの立体ボタン */
+body.dash { --hdr: 0px; --dash: 124px; --dpanel: #d6d6d0; --dhi: #ffffff; --dlo: #8e8e88; --ddark: #4a4a48; }
+body.dash #hdr, body.dash #menuBtn, body.dash #catBar { display: none !important; }
+body.dash #cv { height: calc(100% - var(--dash)); }
+body.dash #mvDown { bottom: var(--dash); }
+body.dash #mvLeft, body.dash #mvRight { bottom: calc(var(--dash) + var(--edge)); }
+body.dash #curTool { bottom: calc(var(--dash) + var(--edge) + 4px); }
+body.dash .msg { top: 32px; }
+#dash {
+  position: fixed; left: 0; right: 0; bottom: 0; height: var(--dash); z-index: 30;
+  display: flex; gap: 6px; padding: 6px; background: var(--dpanel);
+  border-top: 2px solid var(--dhi); box-shadow: 0 -1px 0 var(--ddark);
+}
+#dash[hidden] { display: none; }
+#dash button {
+  border-radius: 0; background: #ecece7; color: var(--text); font-size: 12px; padding: 0 2px;
+  border: 2px solid; border-color: var(--dhi) var(--dlo) var(--dlo) var(--dhi); box-shadow: 0 0 0 1px var(--ddark);
+  transition: none; white-space: nowrap; overflow: hidden;
+}
+#dash button:hover { background: #f6f6f2; }
+#dash button:active, #dash button.active { border-color: var(--dlo) var(--dhi) var(--dhi) var(--dlo); background: #c4c4be; color: var(--text); }
+#dash button.open { background: #f3e2d3; }
+#dash button.test { border-style: solid; color: #9a6a3a; }
+/* 左：状態（くぼんだ黒い窓） */
+#dash .dstat {
+  flex: 0 0 104px; display: flex; flex-direction: column; gap: 3px; padding: 5px 6px;
+  background: #2f302e; color: #e8e8e2; border: 2px solid; border-color: var(--dlo) var(--dhi) var(--dhi) var(--dlo);
+  font-variant-numeric: tabular-nums;
+}
+#dash .ddate { font-size: 12px; letter-spacing: .05em; }
+#dash .dmoney { font-size: 10px; color: #a9a9a2; display: flex; flex-direction: column; line-height: 1.1; }
+#dash .dmoney b { font-size: 18px; color: #ffa45c; font-weight: 600; letter-spacing: .03em; }
+#dash .dmoney b.neg { color: #ff7a6a; }
+#dash .dtime { margin-top: auto; display: flex; gap: 4px; }
+#dash .dtime button { flex: 1; height: 24px; font-size: 11px; box-shadow: none; }
+/* 中：命令（4列のボタン） */
+#dash .dgrid { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 1fr; gap: 5px; padding: 1px; }
+#dash .dgrid > button[hidden] { display: none; }
+#dash .dzoom { display: flex; gap: 5px; }
+#dash .dzoom button { flex: 1; }
+/* 右：地図（常に表示。タップでその場所へ） */
+#dash .dmap {
+  flex: 0 0 64px; display: flex; align-items: center; justify-content: center; padding: 2px; overflow: hidden;
+  background: #2f302e; border: 2px solid; border-color: var(--dlo) var(--dhi) var(--dhi) var(--dlo);
+}
+#dash .dmap canvas { display: block; touch-action: none; cursor: pointer; }
+@media (min-width: 700px) {
+  #dash .dstat { flex-basis: 150px; }
+  #dash .dgrid { grid-template-columns: repeat(6, 1fr); }
+  #dash .dmap { flex-basis: 96px; }
+}

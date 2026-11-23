@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.21（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.22（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.21';
+const VERSION = '0.22';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -147,7 +147,7 @@ const TXT = {
     title: 'ほりほり工場', money: '資金', date: (y, m) => `${y}年${m}月`, depthM: n => `${n}m`,
     pan: '移動', drill: 'ドリル', dig: '掘削', conv: 'コンベア', sort: '仕分け', machine: '機械', remove: '撤去', power: '強化',
     menu: 'メニュー', info: '情報', admin: '管理', map: '地図',
-    play: '▶︎ 再生', pause: '❚❚ 停止', top: '地上', dir: '向き',
+    play: '▶︎ 再生', pause: '❚❚ 停止', top: '地上', dir: '向き', move: '移動', uiOpt: '画面', uiStd: 'ふつう', uiDash: '計器盤（試験）',
     help: '遊び方', settings: '設定', lang: '表示', reset: '最初から',
     confirmReset: '最初からやり直しますか？', confirmReload: 'リセットしますか？（ページを読み込み直します）', yes: 'はい', no: 'いいえ',
     noMoney: '資金が足りません', cantPlace: 'ここには置けません', underOnly: 'ドリル・コンベア・機械は地下に置きます',
@@ -249,7 +249,7 @@ const TXT = {
     title: 'ほりほりこうじょう', money: 'おかね', date: (y, m) => `${y}ねん${m}がつ`, depthM: n => `${n}m`,
     pan: 'うごかす', drill: 'ドリル', dig: 'あなほり', conv: 'コンベア', sort: 'しわけ', machine: 'きかい', remove: 'とりのぞく', power: 'パワーアップ',
     menu: 'メニュー', info: 'じょうほう', admin: 'かんり', map: 'ちず',
-    play: '▶︎ うごかす', pause: '❚❚ とめる', top: 'ちじょう', dir: 'むき',
+    play: '▶︎ うごかす', pause: '❚❚ とめる', top: 'ちじょう', dir: 'むき', move: 'いどう', uiOpt: 'がめん', uiStd: 'ふつう', uiDash: 'けいきばん（ためし）',
     help: 'あそびかた', settings: 'せってい', lang: 'もじ', reset: 'さいしょから',
     confirmReset: 'さいしょから やりなおしますか？', confirmReload: 'リセット しますか？（さいしょから よみこみ なおします）', yes: 'はい', no: 'いいえ',
     noMoney: 'おかねが たりません', cantPlace: 'ここには おけません', underOnly: 'ドリル・コンベア・きかいは ちかに おきます',
@@ -351,7 +351,7 @@ const TXT = {
     title: 'Dig Factory', money: 'Money', date: (y, m) => `Y${y} M${m}`, depthM: n => `${n}m`,
     pan: 'Move', drill: 'Drill', dig: 'Dig', conv: 'Conveyor', sort: 'Sorter', machine: 'Machines', remove: 'Remove', power: 'Upgrade',
     menu: 'Menu', info: 'Info', admin: 'Admin', map: 'Map',
-    play: '▶︎ Play', pause: '❚❚ Pause', top: 'Top', dir: 'Dir',
+    play: '▶︎ Play', pause: '❚❚ Pause', top: 'Top', dir: 'Dir', move: 'Move', uiOpt: 'Screen', uiStd: 'Standard', uiDash: 'Panel (test)',
     help: 'How to play', settings: 'Settings', lang: 'Text', reset: 'Restart',
     confirmReset: 'Start over from the beginning?', confirmReload: 'Reset? (reloads the page)', yes: 'Yes', no: 'No',
     noMoney: 'Not enough money', cantPlace: 'Cannot place here', underOnly: 'Drills, conveyors and machines go underground',
@@ -1393,11 +1393,14 @@ const cv = $('cv');
 let ctx = cv.getContext('2d');
 const cam = { x: 0, y: 0, z: START_ZOOM };
 let cw = 0, ch = 0, cp = 30, offX = 0, hover = null, hdrH = 44;
+let dashOn = false;
+try { dashOn = localStorage.getItem('digfactory.ui') === 'dash'; } catch (e) { /* 保存できない環境 */ }
+if (new URLSearchParams(location.search).has('dash')) dashOn = true;
 const camTop = () => -0.3 - hdrH / cp;      // ゲーム画面はヘッダーの下にも広がっている
 
 function metrics() {
   cw = cv.clientWidth; ch = cv.clientHeight;
-  hdrH = $('hdr').offsetHeight || 44;
+  hdrH = dashOn ? 0 : ($('hdr').offsetHeight || 44);
   const base = Math.min(cw / COLS, 46);
   cam.z = clamp(cam.z, 0.5, 3);
   cp = base * cam.z;
@@ -1621,7 +1624,7 @@ function renderSub() {
   box.hidden = false;
 }
 $('menuBtn').addEventListener('click', () => { menuOpen = true; closePanels(); updateUI(); });
-$('menuClose').addEventListener('click', () => { menuOpen = false; openCat = null; renderSub(); updateUI(); });
+$('menuClose').addEventListener('click', () => { menuOpen = dashOn; openCat = null; renderSub(); updateUI(); });
 document.querySelectorAll('#catBar .cat').forEach(b => b.addEventListener('click', () => {
   closePop(); closePanels();
   const cat = b.dataset.cat;
@@ -1809,6 +1812,18 @@ function renderPanel(id) {
       }
       row.append(lab, opts); box.append(row);
     }
+    {   // 画面の形（試験：計器盤）
+      const row = document.createElement('div'); row.className = 'prow labeled';
+      const lab = document.createElement('span'); lab.className = 'lab'; lab.textContent = T.uiOpt;
+      const opts = document.createElement('span'); opts.className = 'opts';
+      for (const v of [false, true]) {
+        const b = document.createElement('button'); b.textContent = v ? T.uiDash : T.uiStd;
+        b.classList.toggle('active', dashOn === v);
+        b.addEventListener('click', () => { setDash(v); renderPanel('settings'); });
+        opts.append(b);
+      }
+      row.append(lab, opts); box.append(row);
+    }
     const h = document.createElement('div'); h.className = 'secT'; h.textContent = T.saveT; box.append(h);
     for (let n = 1; n <= saveSlots(); n++) {
       const two = document.createElement('span'); two.className = 'btn2';
@@ -1910,9 +1925,12 @@ makeDraggable($('info'));
 // ---- 全体の縮小地図（タップした所へ画面が移る） ----
 const MAP_W = 112;
 function mapRows() { return Math.max(S.deepest + 4, SKY + 12); }
-function mapScale() { return Math.min(MAP_W / COLS, 300 / mapRows()); }
-function renderMap() {
-  const c = $('mapCv'), rows = mapRows(), s = mapScale();
+function mapScale(c) {
+  if (c && c.id === 'dashMap') { const box = c.parentElement; return Math.min(Math.max(30, box.clientWidth - 8) / COLS, (box.clientHeight - 8) / mapRows()); }
+  return Math.min(MAP_W / COLS, 300 / mapRows());
+}
+function renderMap(c = $('mapCv')) {
+  const rows = mapRows(), s = mapScale(c);
   const w = Math.round(COLS * s), h = Math.round(rows * s), dpr = window.devicePixelRatio || 1;
   if (c.width !== w * dpr || c.height !== h * dpr) { c.width = w * dpr; c.height = h * dpr; c.style.width = w + 'px'; c.style.height = h + 'px'; }
   const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -1940,20 +1958,20 @@ function renderMap() {
   g.strokeStyle = THEME.mapView; g.lineWidth = 1.5;
   g.strokeRect(vx * s + 0.5, cam.y * s + 0.5, vw * s - 1, (ch / cp) * s - 1);
 }
-function mapJump(e) {
-  const r = $('mapCv').getBoundingClientRect(), s = mapScale();
+function mapJump(e, c = $('mapCv')) {
+  const r = c.getBoundingClientRect(), s = mapScale(c);
   const wc = (e.clientX - r.left) / s, wr = (e.clientY - r.top) / s;
   metrics();
   cam.x = wc - cw / cp / 2; cam.y = wr - ch / cp / 2;
   metrics();
 }
-(() => {
-  const c = $('mapCv'); let on = false;
-  c.addEventListener('pointerdown', e => { on = true; try { c.setPointerCapture(e.pointerId); } catch (err) { /* 無視 */ } mapJump(e); });
-  c.addEventListener('pointermove', e => { if (on) mapJump(e); });
+for (const c of [$('mapCv'), $('dashMap')]) {
+  let on = false;
+  c.addEventListener('pointerdown', e => { on = true; try { c.setPointerCapture(e.pointerId); } catch (err) { /* 無視 */ } mapJump(e, c); });
+  c.addEventListener('pointermove', e => { if (on) mapJump(e, c); });
   c.addEventListener('pointerup', () => { on = false; });
   c.addEventListener('pointercancel', () => { on = false; });
-})();
+}
 $('mapBtn').addEventListener('click', () => { const el = $('mapPanel'); el.hidden = !el.hidden; if (!el.hidden) renderMap(); updateUI(); });
 makeDraggable($('mapPanel'));
 
@@ -2542,6 +2560,31 @@ function drawTruck() {
 }
 
 // ---- 画面の数字・ボタン ----
+const pxOf = b => { const q = b.dataset.px; return q.startsWith('#') ? document.querySelector(q) : $(q); };
+document.querySelectorAll('#dash [data-px]').forEach(b => b.addEventListener('click', () => { const o = pxOf(b); if (o) o.click(); }));
+function setDash(on) {
+  dashOn = on;
+  try { localStorage.setItem('digfactory.ui', on ? 'dash' : 'std'); } catch (e) { /* 保存できない環境 */ }
+  menuOpen = on; openCat = null; renderSub();
+  applyDash(); fitHeader(); resize(); updateUI();
+}
+function applyDash() {
+  document.body.classList.toggle('dash', dashOn);
+  $('dash').hidden = !dashOn;
+  if (dashOn) menuOpen = true;   // 計器盤では命令がいつも見えている
+}
+function syncDash() {
+  if (!dashOn) return;
+  $('dDate').textContent = $('date').textContent;
+  const dm = $('dMoney'); dm.textContent = S.money; dm.classList.toggle('neg', S.money < 0);
+  document.querySelectorAll('#dash [data-px]').forEach(b => {
+    const o = pxOf(b); if (!o) return;
+    b.hidden = o.hidden;
+    b.classList.toggle('active', o.classList.contains('active'));
+    b.classList.toggle('open', o.classList.contains('open'));
+    if (b.dataset.px === 'playBtn' || b.dataset.px === 'speedBtn') b.textContent = o.textContent;
+  });
+}
 function updateUI() {
   const T = tx(), m = $('money');
   m.textContent = S.money; m.classList.toggle('neg', S.money < 0);
@@ -2578,13 +2621,14 @@ function updateUI() {
   cv.classList.toggle('grab', tool === 'pan' && !(gesture && gesture.type === 'pan'));
   cv.classList.toggle('grabbing', !!(gesture && gesture.type === 'pan'));
   cv.classList.toggle('place', tool !== 'pan' && tool !== 'none');
+  syncDash();
   layoutFloats();
 }
 // 浮いているボタン類の位置（実際の大きさを見て、重ならないように）
 // 右下：メニュー（またはメニューを開いた列）→ その上に種類 → その上に向き
 function layoutFloats() {
   const H = window.innerHeight;
-  const base = !$('catBar').hidden ? $('catBar') : $('menuBtn');
+  const base = dashOn ? $('dash') : !$('catBar').hidden ? $('catBar') : $('menuBtn');
   const bt = base.getBoundingClientRect().top;
   let bottom = H - bt + 4;
   if (!$('subMenu').hidden) { $('subMenu').style.bottom = bottom + 'px'; bottom += $('subMenu').offsetHeight + 4; }
@@ -2769,6 +2813,16 @@ window.addEventListener('keydown', e => {
   updateUI();
 });
 window.addEventListener('resize', resize);
+// ヘッダーがはみ出していたら、段階的に詰める（画面幅の決め打ちではなく、実際に測る）
+function fitHeader() {
+  const h = $('hdr'), rows = [...h.querySelectorAll('.hrow')];
+  const over = () => rows.some(r => r.scrollWidth > r.clientWidth + 1);
+  h.classList.remove('c1', 'c2', 'c3');
+  for (const c of ['c1', 'c2', 'c3']) { if (!over()) break; h.classList.add(c); }
+}
+window.addEventListener('resize', fitHeader);
+setInterval(fitHeader, 1000);   // 資金の桁が増えたときも
+requestAnimationFrame(fitHeader);
 
 // ---- ループ ----
 let last = performance.now(), panelTick = 0;
@@ -2784,6 +2838,7 @@ function frame(now) {
     if (popTarget) updatePop();
   }
   if (!$('mapPanel').hidden && panelTick % 5 === 0) renderMap();
+  if (dashOn && panelTick % 5 === 1) renderMap($('dashMap'));
   metrics();
   placePop();
   draw();
@@ -2791,6 +2846,7 @@ function frame(now) {
 }
 
 newGame();
+applyDash();
 setupText();
 resize();
 resetCam();
