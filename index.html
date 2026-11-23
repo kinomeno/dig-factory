@@ -4,37 +4,47 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>採掘ゲーム</title>
-<link rel="stylesheet" href="style.css?v=0.07">
+<link rel="stylesheet" href="style.css?v=0.08">
 </head>
 <body>
-<!-- ヘッダー -->
+<canvas id="cv"></canvas>
+
+<!-- ヘッダー（半透明。下にゲーム画面が透ける） -->
 <header id="hdr">
   <b class="title" data-t="title">採掘ゲーム</b><small id="ver"></small>
   <span class="stat"><span data-t="money">資金</span> <b id="money">0</b></span>
   <span class="stat" id="date"></span>
   <span class="grow"></span>
+  <button id="infoBtn" data-t="info">情報</button>
   <button id="helpBtn" data-t="help">遊び方</button>
+  <button id="adminBtn" class="test" data-t="admin">管理</button>
   <button id="setBtn" class="icon" aria-label="settings">⚙&#xFE0E;</button>
 </header>
 
-<canvas id="cv"></canvas>
+<!-- 移動ボタン（小さめ・画面の端。位置は main.js の layoutFloats で調整） -->
+<button class="mv" id="mvUp" data-mv="up">▲&#xFE0E;</button>
+<button class="mv" id="mvLeft" data-mv="left">◀&#xFE0E;</button>
+<button class="mv" id="mvRight" data-mv="right">▶&#xFE0E;</button>
+<button class="mv" id="mvDown" data-mv="down">▼&#xFE0E;</button>
 
-<!-- 時間・表示の操作 -->
+<!-- 時間・空間の操作（手のひら・停止・速さ・拡大縮小・地上へ） -->
 <div id="timeGroup" class="float group">
+  <button class="tool hand" data-tool="pan" id="panBtn" aria-label="move"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12"/><path d="M11 11.5V4a1.5 1.5 0 0 1 3 0v7.5"/><path d="M14 11.5V5.5a1.5 1.5 0 0 1 3 0V13"/><path d="M17 9.5a1.5 1.5 0 0 1 3 0V15a7 7 0 0 1-7 7h-1.5a6 6 0 0 1-4.6-2.2L3.6 15.6a1.6 1.6 0 0 1 2.4-2.1L8 15.5"/></svg></button>
+  <span class="sep"></span>
   <button id="playBtn" class="play"></button>
   <button id="speedBtn">×1</button>
   <span class="sep"></span>
   <button id="zoomOut" class="sq">－</button>
   <button id="zoomIn" class="sq">＋</button>
   <button id="topBtn" data-t="top">地上</button>
+  <button id="mapBtn" data-t="map">地図</button>
 </div>
 
-<!-- 画面を動かすボタン（押し続けると動き続ける） -->
-<!-- それぞれ画面の端に置く（位置は main.js の layoutFloats で他のメニューと重ならないよう調整） -->
-<button class="mv" id="mvUp" data-mv="up">▲&#xFE0E;</button>
-<button class="mv" id="mvLeft" data-mv="left">◀&#xFE0E;</button>
-<button class="mv" id="mvRight" data-mv="right">▶&#xFE0E;</button>
-<button class="mv" id="mvDown" data-mv="down">▼&#xFE0E;</button>
+<!-- 全体の縮小地図（見出しをドラッグで移動。地図をタップでその場所へ） -->
+<div id="mapPanel" class="float drag" hidden>
+  <div class="head handle"><b data-t="map">地図</b><button class="x" data-close="mapPanel">✕</button></div>
+  <canvas id="mapCv" width="120" height="240"></canvas>
+</div>
 
 <!-- 向き（コンベア・仕分け・機械を置くとき） -->
 <div id="dirBar" class="float group">
@@ -45,32 +55,41 @@
   <button class="dir" data-dir="right">→</button>
 </div>
 
-<!-- 道具 -->
-<div id="toolBar" class="float group">
-  <button class="tool hand" data-tool="pan" id="panBtn" aria-label="move"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12"/><path d="M11 11.5V4a1.5 1.5 0 0 1 3 0v7.5"/><path d="M14 11.5V5.5a1.5 1.5 0 0 1 3 0V13"/><path d="M17 9.5a1.5 1.5 0 0 1 3 0V15a7 7 0 0 1-7 7h-1.5a6 6 0 0 1-4.6-2.2L3.6 15.6a1.6 1.6 0 0 1 2.4-2.1L8 15.5"/></svg></button>
-  <span class="sep"></span>
-  <button class="tool" data-tool="drill"><span data-t="drill">ドリル</span> <small>50</small></button>
-  <button class="tool" data-tool="dig" data-t="dig">掘削</button>
-  <button class="tool" data-tool="conv"><span data-t="conv">コンベア</span> <small>5</small></button>
-  <button class="tool" data-tool="sort"><span data-t="sort">仕分け</span> <small>20</small></button>
-  <button class="tool" data-tool="machine" id="machBtn"><span id="machBtnLabel" data-t="machine">機械</span> ▾</button>
-  <button class="tool" data-tool="remove" data-t="remove">撤去</button>
-  <span class="sep"></span>
+<!-- 下のメニュー：「メニュー」で開く → 項目をタップするとさらに上に展開 -->
+<div id="subMenu" class="float group" hidden></div>
+<div id="catBar" class="float group" hidden>
+  <button class="cat" data-cat="drill" data-t="drill">ドリル</button>
+  <button class="cat tool" data-tool="dig" data-t="dig">掘削</button>
+  <button class="cat" data-cat="belt" data-t="conv">コンベア</button>
+  <button class="cat" data-cat="machine" data-t="machine">機械</button>
+  <button class="cat tool" data-tool="remove" data-t="remove">撤去</button>
   <button id="powerBtn" data-t="power">強化</button>
+  <button id="menuClose" class="x">✕</button>
 </div>
+<button id="menuBtn" class="float"><span data-t="menu">メニュー</span><span id="menuCur"></span></button>
 
 <p id="msg" class="msg"></p>
-
-<!-- 機械の一覧 -->
-<div id="machList" class="float panel bottom" hidden>
-  <div class="head"><b data-t="machine">機械</b><button class="x" data-close="machList">✕</button></div>
-  <div id="machItems"></div>
-</div>
 
 <!-- 強化 -->
 <div id="powerPanel" class="float panel bottom" hidden>
   <div class="head"><b data-t="power">強化</b><button class="x" data-close="powerPanel">✕</button></div>
   <div id="powerItems"></div>
+</div>
+
+<!-- 事務所 -->
+<div id="office" class="float panel" hidden>
+  <div class="head"><b data-t="office">事務所</b><button class="x" data-close="office">✕</button></div>
+  <div id="officeBody"></div>
+</div>
+
+<!-- 情報（経営状況。見出しをドラッグで移動できる） -->
+<div id="info" class="float panel drag" hidden>
+  <div class="head handle"><b data-t="info">情報</b><button class="x" data-close="info">✕</button></div>
+  <div id="infoData" class="data"></div>
+  <div class="sub" data-t="gMoney">資金の動き</div>
+  <canvas id="gMoney" class="graph" width="340" height="90"></canvas>
+  <div class="sub" data-t="gMonth">月ごとの収支</div>
+  <canvas id="gMonth" class="graph" width="340" height="90"></canvas>
 </div>
 
 <!-- 遊び方 -->
@@ -89,9 +108,13 @@
     </span>
   </div>
   <button id="resetBtn" class="wide" data-t="reset">最初から</button>
-  <!-- テスト用（公開前に外す） -->
-  <button id="loanBtn" class="wide test" data-t="loan">テスト用：借り入れ ＋1000</button>
   <div class="credit"></div>
+</div>
+
+<!-- テスト用 管理メニュー（開発中のみ。公開前に main.js の DEV=false） -->
+<div id="admin" class="float panel" hidden>
+  <div class="head"><b data-t="admin">管理</b><button class="x" data-close="admin">✕</button></div>
+  <div id="adminBody" class="adminGrid"></div>
 </div>
 
 <!-- 置いた物をタップしたときのメニュー -->
@@ -122,6 +145,6 @@
   </div>
 </div>
 
-<script src="main.js?v=0.07"></script>
+<script src="main.js?v=0.08"></script>
 </body>
 </html>
