@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>採掘ゲーム</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1><span data-t="title">採掘ゲーム</span> <small id="ver"></small></h1>
+  <div class="stats">
+    <span><span data-t="money">資金</span>：<b id="money">0</b></span>
+    <span><span data-t="truck">荷台</span>：<b id="load">0/10</b></span>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="group">
+    <button class="tool" data-tool="drill"><span data-t="drill">ドリル</span> <small>50</small></button>
+    <button class="tool" data-tool="conv"><span data-t="conv">コンベア</span> <small>5</small></button>
+    <button class="tool" data-tool="remove"><span data-t="remove">撤去</span></button>
+  </div>
+  <div class="group" id="dirGroup">
+    <span class="label" data-t="dir">向き</span>
+    <button class="dir" data-dir="left">←</button>
+    <button class="dir" data-dir="up">↑</button>
+    <button class="dir" data-dir="down">↓</button>
+    <button class="dir" data-dir="right">→</button>
+  </div>
+  <div class="group">
+    <button id="playBtn" class="play"></button>
+    <button id="speedBtn">×1</button>
+    <button id="resetBtn" data-t="reset">最初から</button>
+  </div>
+</div>
+
+<div id="wrap"><canvas id="cv"></canvas></div>
+<p id="msg" class="msg"></p>
+<p class="hint"><span data-t="hint"></span><br><small data-t="keys"></small></p>
+
+<footer>
+  <span><span data-t="author">キノメノ</span>：<a id="noteUrl" target="_blank" rel="noopener"></a></span>
+  <span class="support">
+    <a href="https://ko-fi.com/kinomeno" target="_blank" rel="noopener" data-t="kofi">☞ko-fiで支援</a>
+    <a id="noteTip" target="_blank" rel="noopener" data-t="tip">☞noteでチップ</a>
+  </span>
+</footer>
+<script src="main.js"></script>
+</body>
+</html>
