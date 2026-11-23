@@ -390,3 +390,5 @@ body.dash #info .itabs { display: none; }
 
 /* v0.46 自動プレイの結果：改行して出す */
 #awayMsg { white-space: pre-line; }
+#aiTime { display: block; width: 100%; font-size: 10px; line-height: 1.45; color: #4a4a50; letter-spacing: .02em; margin-top: 2px; }
+#aiTime:empty { display: none; }

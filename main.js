@@ -4393,12 +4393,12 @@ async function autoPlay(min) {
   while (done < sec) {
     const t0 = performance.now();
     while (done < sec && performance.now() - t0 < 30) { sim(3); if (autoLive) autoLiveStep(); else autoStep(autoBuild); done += 3; }
-    $('awayMsg').textContent = T.autoMsg(Math.round(done / 60), min);
+    $('awayMsg').textContent = T.autoMsg(Math.round(done / 60), min) + '\n' + playTimeText();
     $('awayBar').style.width = (100 * done / sec) + '%';
     await new Promise(r => setTimeout(r, 0));
   }
   S.pops = [];
-  $('awayMsg').textContent = T.autoDone(min) + '\n' + playTimeText() + (autoRun.fails ? '\n' + T.aiFailRun(autoRun.fails) : '');
+  $('awayMsg').textContent = T.autoDone(min) + (autoRun.fails ? '\n' + T.aiFailRun(autoRun.fails) : '');
   $('awayOk').hidden = false;
   autoBusy = false;
 }
@@ -4494,6 +4494,7 @@ function frame(now) {
   if (S.notice && !autoBusy) { showNotice(S.notice, 'good'); S.notice = null; }
   if ((panelTick = (panelTick + 1) % 15) === 0) {
     for (const id of ['powerPanel', 'office', 'skillPanel', 'tradePanel']) if (!$(id).hidden && !panelBusy($(id))) renderPanel(id);
+    $('aiTime').textContent = autoLive ? playTimeText() : '';   // 自動プレイ（見る）：実際に遊ぶと何日何時間か
     $('boostHud').textContent = (autoLive ? tx().adm.liveTag + (boostText() ? '・' : '') : '') + boostText();
     if (!$('info').hidden) renderInfo();
     if (popTarget) updatePop();
