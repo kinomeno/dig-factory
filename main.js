@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.20（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.21（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.20';
+const VERSION = '0.21';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -1409,7 +1409,7 @@ function metrics() {
 }
 function resetCam() {
   cam.z = START_ZOOM;
-  if (cv.clientWidth) { metrics(); cam.y = camTop(); cam.x = COLS; metrics(); }
+  if (cv.clientWidth) { metrics(); cam.y = camTop(); cam.x = (3 + OFFICE_C + 2) / 2 - cw / cp / 2; metrics(); }   // 最初のドリル(3列目)〜事務所(2マス)の真ん中
 }
 function zoomAt(sx, sy, f) {
   metrics();
@@ -1634,6 +1634,11 @@ $('panBtn').addEventListener('click', () => { tool = tool === 'pan' ? 'none' : '
 
 // ---- パネル（強化・事務所・遊び方・設定・管理） ----
 let helpIdx = 0;
+// パネルの中身は時々作り直して数字を新しくする。ただし、マウスが乗っている間・押した直後は作り直さない
+// （作り直した瞬間に押すとボタンが反応しない・ホバーがちらつくため）
+let panelTouchAt = -1e9;
+document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('.panel')) panelTouchAt = performance.now(); }, true);
+const panelBusy = el => el.matches(':hover') || performance.now() - panelTouchAt < 1200;
 const PANELS = ['powerPanel', 'skillPanel', 'office', 'help', 'settings', 'admin', 'tune'];   // 情報・地図は別（開いたまま遊べる）
 function closePanels() { PANELS.forEach(x => { $(x).hidden = true; }); }
 function togglePanel(id) {
@@ -2069,7 +2074,7 @@ function draw() {
     if (w.state === 'drive') continue;                            // 乗り物の絵の中に描く
     if (w.state === 'work' && w.target && isStation(w.target)) {   // ドリル・機械で作業中は、そのマスの右上に頭だけ
       const k = stationKey(w.target);
-      if (k >= 0 && rOf(k) >= r0 && rOf(k) <= r1) drawWorkerHead(cOf(k) * cell, rOf(k) * cell);
+      if (k >= 0 && rOf(k) >= r0 && rOf(k) <= r1) drawWorkerHead(cOf(k) * cell, rOf(k) * cell, S.st.get(k));
       continue;
     }
     if (w.y < r0 || w.y > r1 + 1) continue;
@@ -2255,9 +2260,15 @@ function drawWorkerSprite(cx, footY, size, frame, alpha) {
   ctx.restore();
 }
 // 作業中の印：作業員の頭（ヘルメットと顔）だけを、マスの中の右上に小さく
-function drawWorkerHead(x, y) {
-  const s = cp * 0.24, hx = x + cp * 0.94 - s, hy = y + cp * 0.06;
-  ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(hx - 1, hy - 1, s + 2, s + 2);   // 見やすいよう薄い縁
+function drawWorkerHead(x, y, st) {
+  const s = Math.max(4, Math.round(cp * 0.14));
+  // 基本はマスの右上。ドリルは刃の反対側（本体側）に来るよう、向きに合わせて回す（下向き＝右上）
+  let lx = 0.42 - s / cp / 2, ly = -0.42 + s / cp / 2;          // マス中心からの位置（マス幅=1）
+  if (st && st.type === 'drill') {
+    const a = ANGLE[st.dir] || 0, c = Math.cos(a), n = Math.sin(a);
+    [lx, ly] = [lx * c - ly * n, lx * n + ly * c];
+  }
+  const hx = Math.round(x + cp * (0.5 + lx) - s / 2), hy = Math.round(y + cp * (0.5 + ly) - s / 2);
   ctx.save(); ctx.imageSmoothingEnabled = false;
   ctx.drawImage(WORKER_FR[1], 3, 0, 2, 2, hx, hy, s, s);   // 8×8の絵のうち、頭の2×2ドット
   ctx.restore();
@@ -2300,9 +2311,9 @@ function itemSprite(k, of) {
   for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
     if (!at(x, y)) continue;
     const edge = !at(x - 1, y) || !at(x + 1, y) || !at(x, y - 1) || !at(x, y + 1);
-    let col = edge ? line : base;
-    if (!edge && (at(x - 2, y) === false || at(x, y - 2) === false)) col = shade(base, 0.45);            // 左上の光
-    if (!edge && !at(x + 2, y) && at(x - 1, y)) col = shade(base, -0.18);                                  // 右の影
+    let col = base;   // 枠線は付けない（拡大縮小しても線の太さがばらつかないように）
+    if (!at(x - 1, y - 1) || (!edge && (at(x - 2, y) === false || at(x, y - 2) === false))) col = shade(base, 0.4);   // 左上の光
+    if (!at(x + 1, y + 1) && at(x - 1, y)) col = shade(base, -0.22);                                        // 右下の影
     if (sh === 'rect' && !edge && y === 8) col = shade(base, -0.3);                                        // レンガの目地
     if (sh === 'gem' && !edge && (x === 8 || y === 6)) col = shade(base, 0.6);                             // 宝石の面
     g.fillStyle = col; g.fillRect(x, y, 1, 1);
@@ -2768,9 +2779,7 @@ function frame(now) {
   applyMove(dt);
   updateUI();
   if ((panelTick = (panelTick + 1) % 15) === 0) {
-    if (!$('powerPanel').hidden) renderPanel('powerPanel');
-    if (!$('office').hidden) renderPanel('office');
-    if (!$('skillPanel').hidden) renderPanel('skillPanel');
+    for (const id of ['powerPanel', 'office', 'skillPanel']) if (!$(id).hidden && !panelBusy($(id))) renderPanel(id);
     if (!$('info').hidden) renderInfo();
     if (popTarget) updatePop();
   }
