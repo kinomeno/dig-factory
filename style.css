@@ -334,3 +334,5 @@ body.title .panel { z-index: 45; }
 #title .tlang button.active { background: var(--selbg); color: #fff; }
 #title .tfoot { margin-top: 16px; font-size: 10px; letter-spacing: .1em; color: rgba(255,255,255,.9); }
 .awaybar { height: 6px; margin: 0 0 14px; }
+
+.mv[hidden] { display: none; }

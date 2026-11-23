@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.32（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.33（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.32';
+const VERSION = '0.33';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -1506,6 +1506,7 @@ const cv = $('cv');
 let ctx = cv.getContext('2d');
 const cam = { x: 0, y: 0, z: START_ZOOM };
 let cw = 0, ch = 0, cp = 30, offX = 0, hover = null, hdrH = 44;
+const camLim = { x0: 0, x1: 0, y0: 0, y1: 0 };   // 画面が動ける範囲
 const dashOn = true;   // 下のタブ方式に決定（2026-11-23）。旧メニュー（右下の「メニュー」）の部品は、タブが中で使っている
 const camTop = () => -0.3 - hdrH / cp;      // ゲーム画面はヘッダーの下にも広がっている
 
@@ -1516,10 +1517,10 @@ function metrics() {
   cam.z = clamp(cam.z, Math.min(3, cw / (COLS * base)), 3);   // 縮小は、左右に空きが出ないところまで
   cp = base * cam.z;
   const worldW = COLS * cp;
-  if (worldW <= cw) { offX = (cw - worldW) / 2; cam.x = 0; }
-  else { offX = 0; cam.x = clamp(cam.x, 0, COLS - cw / cp); }
-  const viewRows = ch / cp;
-  if (!inTitle) cam.y = clamp(cam.y, camTop() - 0.7, Math.max(0, S.deepest + 4 - viewRows * 0.5));
+  if (worldW <= cw) { offX = (cw - worldW) / 2; cam.x = 0; camLim.x0 = camLim.x1 = 0; }
+  else { offX = 0; camLim.x0 = 0; camLim.x1 = COLS - cw / cp; cam.x = clamp(cam.x, 0, camLim.x1); }
+  camLim.y0 = camTop() - 0.7; camLim.y1 = Math.max(camLim.y0, S.deepest - hdrH / cp);   // いちばん深い所が、画面のいちばん上に見える所まで
+  if (!inTitle) cam.y = clamp(cam.y, camLim.y0, camLim.y1);
 }
 function resetCam() {
   cam.z = START_ZOOM;
@@ -2156,6 +2157,24 @@ const THEME = {
   okFill: 'rgba(70, 145, 235, .26)',   // 置ける所の薄い青
   accent: '#e0782f', graphText: '#77767a', good: '#4f8a5b', bad: '#c0392b', mapView: '#2b2b2e',
 };
+// 穴（洞窟）の色：浅い所は明るめの茶、深いほど暗く
+function caveColor(r) {
+  const t = clamp((r - SKY) / 60, 0, 1), a = [122, 94, 72], z = [58, 45, 38];
+  return `rgb(${a.map((v, i) => Math.round(v + (z[i] - v) * t)).join(',')})`;
+}
+// 地面のマスのすき間の色：その深さの土より少し暗い
+function seamColor(r) {
+  const t = clamp((r - SKY) / 40, 0, 1), [a, z] = THEME.soil;
+  return `rgb(${a.map((v, i) => Math.round((v + (z[i] - v) * t) * 0.9)).join(',')})`;
+}
+// そのマスを掘った割合（0〜1）
+const digProg = g => clamp((g.yieldN - g.left + g.p / g.h) / g.yieldN, 0, 1);
+// ドリルの絵のずれ：掘っているマスへ、掘った割合だけめり込む（データ上の位置は同じ）
+function drillShift(k, s) {
+  const [dx, dy] = DIRS[s.dir], tc = cOf(k) + dx, tr = rOf(k) + dy, g = inB(tc, tr) && tr >= SKY ? blk(tc, tr) : null;
+  const p = g ? digProg(g) * 0.6 : 0;
+  return [dx * p, dy * p];
+}
 function groundColor(b, r) {
   if (b.mat === 'rock') return THEME.rock;
   const t = clamp((r - SKY) / 40, 0, 1);
@@ -2176,21 +2195,36 @@ function draw() {
   sky.addColorStop(0, THEME.skyTop); sky.addColorStop(1, THEME.skyLow);
   ctx.fillStyle = sky; ctx.fillRect(0, (r0 - 2) * cell, W, (SKY - r0 + 2) * cell);
   const g0 = Math.max(SKY, r0);
-  ctx.fillStyle = THEME.dug; ctx.fillRect(0, g0 * cell, W, (r1 - g0 + 1) * cell);
+  for (let r = g0; r <= r1; r++) { ctx.fillStyle = seamColor(r); ctx.fillRect(0, r * cell, W, cell + 1); }   // 地面の下地：マスのすき間は土より少し暗い色（目立たない線）
+  // ドリルが掘っているマス：key → [向き, 掘った割合]
+  const digging = new Map();
+  for (const [k, s2] of S.st) {
+    if (s2.type !== 'drill') continue;
+    const [dx, dy] = DIRS[s2.dir], tc = cOf(k) + dx, tr = rOf(k) + dy, g = inB(tc, tr) && tr >= SKY ? blk(tc, tr) : null;
+    if (g) digging.set(key(tc, tr), [s2.dir, digProg(g)]);
+  }
 
   const digSet = tool === 'dig' ? diggable() : null;
   for (let r = g0; r <= r1; r++) {
     const a = row(r);
     for (let c = 0; c < COLS; c++) {
-      const b = a[c]; if (!b) continue;
+      const b = a[c];
       const x = c * cell, y = r * cell;
       const v = (c * 7 + r * 13) % 4;   // 模様の種類（隣と同じにならないよう散らす）
       ctx.imageSmoothingEnabled = false;
+      if (!b) { ctx.fillStyle = caveColor(r); ctx.fillRect(x, y, cell, cell); ctx.drawImage(caveTex(v), x, y, cell, cell); continue; }   // 掘った穴：洞窟の壁
+      const dg = digging.get(key(c, r));
+      if (dg) {   // 掘られている途中：掘った側から削れて、奥の洞窟が見える
+        ctx.fillStyle = caveColor(r); ctx.fillRect(x, y, cell, cell); ctx.drawImage(caveTex(v), x, y, cell, cell);
+        const p = dg[1], cut = { down: [0, p, 1, 1 - p], up: [0, 0, 1, 1 - p], right: [p, 0, 1 - p, 1], left: [0, 0, 1 - p, 1] }[dg[0]];
+        ctx.save(); ctx.beginPath(); ctx.rect(x + cut[0] * cell, y + cut[1] * cell, cut[2] * cell, cut[3] * cell); ctx.clip();
+      }
       if (b.mat === 'rock') ctx.drawImage(rockTex(v), x + 1, y + 1, cell - 2, cell - 2);
       else {
         ctx.fillStyle = groundColor(b, r); ctx.fillRect(x + 1, y + 1, cell - 2, cell - 2);
         ctx.drawImage(groundTex(b.mat, v), x + 1, y + 1, cell - 2, cell - 2);
       }
+      if (dg) ctx.restore();
       if (r === SKY && c < YARD_C) ctx.drawImage(grassTex(v), x, y, cell, cell);   // 地表の1段目は草
       if (S.reveal && b.ore) { ctx.fillStyle = ITEMS[b.ore].c[0]; ctx.fillRect(x + cell * 0.4, y + cell * 0.4, cell * 0.2, cell * 0.2); } // 管理：中身を見る
       if (b.left < b.yieldN || b.p > 0) {
@@ -2251,7 +2285,7 @@ function draw() {
     if (w.state === 'drive') continue;                            // 乗り物の絵の中に描く
     if (w.state === 'work' && w.target && isStation(w.target)) {   // ドリル・機械で作業中は、そのマスの右上に頭だけ
       const k = stationKey(w.target);
-      if (k >= 0 && rOf(k) >= r0 && rOf(k) <= r1) drawWorkerHead(cOf(k) * cell, rOf(k) * cell, S.st.get(k));
+      if (k >= 0 && rOf(k) >= r0 && rOf(k) <= r1) { const st2 = S.st.get(k), [ox, oy] = st2 && st2.type === 'drill' ? drillShift(k, st2) : [0, 0]; drawWorkerHead((cOf(k) + ox) * cell, (rOf(k) + oy) * cell, st2); }
       continue;
     }
     if (w.y < r0 || w.y > r1 + 1) continue;
@@ -2325,6 +2359,21 @@ function groundTex(mat, v) {
       const x = Math.floor(rnd() * 16), y = Math.floor(rnd() * 16), dark = rnd() < 0.62;
       g.fillStyle = dark ? 'rgba(70,45,20,.16)' : 'rgba(255,255,255,.18)';
       g.fillRect(x, y, rnd() < 0.4 ? 2 : 1, 1);
+    }
+  });
+}
+// 洞窟の壁：下地（caveColor）の上に重ねる、暗い穴と明るい岩肌の模様
+function caveTex(v) {
+  return texOf('cave' + v, g => {
+    const rnd = seeded(300 + v * 13);
+    for (let i = 0; i < 4; i++) {   // 岩肌のでこぼこ（上に光・下に影）
+      const x = Math.floor(rnd() * 12) + 1, y = Math.floor(rnd() * 12) + 1, w = 2 + Math.floor(rnd() * 3);
+      g.fillStyle = 'rgba(255,230,200,.08)'; g.fillRect(x, y, w, 1);
+      g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(x, y + 1, w, 1);
+    }
+    for (let i = 0; i < 14; i++) {
+      g.fillStyle = rnd() < 0.7 ? 'rgba(0,0,0,.16)' : 'rgba(255,230,200,.07)';
+      g.fillRect(Math.floor(rnd() * 16), Math.floor(rnd() * 16), 1, 1);
     }
   });
 }
@@ -2625,6 +2674,8 @@ function makeDrillFrames(body, light) {
 const DRILL_FR = { run: makeDrillFrames(THEME.drill, '#f1a46a'), stuck: makeDrillFrames('#9a9a9a', '#c4c4c4') };
 function drawDrill(x, y, s) {
   const cell = cp, fr = s.stuck ? DRILL_FR.stuck : DRILL_FR.run;
+  const k = findKey(s);
+  if (k >= 0) { const [ox, oy] = drillShift(k, s); x += ox * cell; y += oy * cell; }
   const f = !s.stuck && S.time - (s.hit || -99) < 0.7 ? Math.floor(S.time * 10) % 2 : 0;
   ctx.save(); ctx.imageSmoothingEnabled = false;
   ctx.translate(x + cell / 2, y + cell / 2); ctx.rotate(ANGLE[s.dir]);
@@ -2830,6 +2881,9 @@ function updateUI() {
   $('playBtn').textContent = running ? T.pause : T.play;
   $('speedBtn').textContent = '×' + speeds()[speedIdx];
   $('speedBtn').hidden = speeds().length < 2;   // 速くできるようになるまで「×1」は出さない
+  // 端まで来た向きの▲▼◀▶は消す
+  $('mvUp').hidden = cam.y <= camLim.y0 + 0.02; $('mvDown').hidden = cam.y >= camLim.y1 - 0.02;
+  $('mvLeft').hidden = cam.x <= camLim.x0 + 0.02; $('mvRight').hidden = cam.x >= camLim.x1 - 0.02;
   $('panBtn').classList.toggle('active', tool === 'pan');
   $('mapBtn').classList.toggle('active', !$('mapPanel').hidden);
   $('menuBtn').hidden = menuOpen;
