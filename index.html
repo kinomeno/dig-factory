@@ -18,7 +18,7 @@
 <meta property="og:locale" content="ja_JP">
 <meta property="og:site_name" content="ほりほり工場 / Dig Factory Tycoon">
 <meta name="twitter:card" content="summary">
-<link rel="stylesheet" href="style.css?v=0.24">
+<link rel="stylesheet" href="style.css?v=0.25">
 </head>
 <body>
 <canvas id="cv"></canvas>
@@ -27,13 +27,13 @@
 <header id="hdr">
   <div class="hrow">
     <span class="brand"><b class="title" data-t="title">ほりほり工場</b><span class="wm">DIG FACTORY</span><small id="ver"></small></span>
-    <span class="stat"><span data-t="money">資金</span> <b id="money">0</b></span>
     <span class="stat" id="date"></span>
     <span class="grow"></span>
     <button id="infoBtn"><span class="lg" data-t="info">情報</span><span class="sm">i</span></button>
     <button id="helpBtn"><span class="lg" data-t="help">遊び方</span><span class="sm">?</span></button>
     <button id="adminBtn" class="test"><span class="lg" data-t="admin">管理</span><span class="sm">管</span></button>
     <button id="setBtn" class="icon" aria-label="settings">⚙&#xFE0E;</button>
+    <button id="foldBtn" class="icon fold" aria-label="fold">▴&#xFE0E;</button>
   </div>
   <!-- 2段目：時間・空間の操作（手のひら・停止・速さ・拡大縮小・地上・地図） -->
   <div class="hrow" id="timeGroup">
@@ -89,9 +89,13 @@
   <button class="dtab" data-px="skillBtn" data-open="skillPanel"><b data-t="skill">スキル</b><i>RESEARCH</i></button>
   <button class="dtab" data-px="powerBtn" data-open="powerPanel"><b data-t="power">強化</b><i>UPGRADE</i></button>
   <button class="dtab" data-px="#catBar [data-cat=works]" data-open="works"><b data-t="works">工事</b><i>WORKS</i></button>
+  <button class="dtab" data-px="infoBtn" data-open="info"><b data-t="info">情報</b><i>REPORT</i></button>
 </div>
 <!-- 引き出しの取っ手（開いている引き出しの左上に付く） -->
 <div id="dHandle" hidden><b></b><i></i></div>
+
+<!-- 資金：ゲーム画面の左上に直接（白いふちで、どんな背景でも読める） -->
+<div id="moneyHud"><span data-t="money">資金</span><b id="money">0</b></div>
 
 <p id="msg" class="msg"></p>
 <!-- 選択中の道具（左下） -->
@@ -185,6 +189,6 @@
   </div>
 </div>
 
-<script src="main.js?v=0.24"></script>
+<script src="main.js?v=0.25"></script>
 </body>
 </html>

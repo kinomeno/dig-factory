@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.24（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.25（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.24';
+const VERSION = '0.25';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -2561,7 +2561,10 @@ function drawTruck() {
 const pxOf = b => { const q = b.dataset.px; return q.startsWith('#') ? document.querySelector(q) : $(q); };
 document.querySelectorAll('#dash [data-px]').forEach(b => b.addEventListener('click', () => {
   // 引き出しは1つだけ：パネルのタブを押したら、設置などの引き出しは閉じる（逆は元のボタンが閉じる）
-  if (b.dataset.open && b.dataset.open.endsWith('Panel') && openCat) { openCat = null; renderSub(); }
+  const k = b.dataset.open;
+  if (isPanelKey(k) && openCat) { openCat = null; renderSub(); }
+  if (k !== 'info') $('info').hidden = true;
+  else if ($('info').hidden) { closePanels(); closePop(); }
   const o = pxOf(b); if (o) o.click();
   updateUI();
 }));
@@ -2573,10 +2576,14 @@ function setDash(on) {
 }
 function applyDash() {
   document.body.classList.toggle('dash', dashOn);
+  const inf = $('info');
+  inf.classList.toggle('bottom', dashOn);
+  inf.style.left = inf.style.top = inf.style.bottom = '';
   $('dash').hidden = !dashOn;
   if (dashOn) menuOpen = true;   // 計器盤では命令がいつも見えている
 }
-const isOpenTab = k => k.endsWith('Panel') ? !$(k).hidden : openCat === k;   // パネル名（〜Panel） or 設置などの項目名
+const isPanelKey = k => !!document.getElementById(k);   // パネル（強化・スキル・情報） or 設置などの項目名
+const isOpenTab = k => isPanelKey(k) ? !$(k).hidden : openCat === k;
 function syncDash() {
   const hd = $('dHandle');
   if (!dashOn) { hd.hidden = true; return; }
@@ -2590,13 +2597,13 @@ function syncDash() {
     if (on) open = b;
   });
   // 取っ手：開いている引き出しの左上に、タブの名前を付ける
-  const drawer = open && (open.dataset.open.endsWith('Panel') ? $(open.dataset.open) : $('subMenu'));
+  const drawer = open && (isPanelKey(open.dataset.open) ? $(open.dataset.open) : $('subMenu'));
   const was = !hd.hidden && hd.dataset.k;
   hd.hidden = !drawer || drawer.hidden;
   if (!hd.hidden && was !== open.dataset.open) {   // 開いたとき・別のタブに替えたとき：引き出しと一緒にせり上がる
     hd.dataset.k = open.dataset.open;
     hd.style.setProperty('--dh', drawer.offsetHeight + 'px');
-    hd.classList.remove('go'); void hd.offsetWidth; hd.classList.add('go');
+    hd.classList.remove('go'); drawer.style.animation = 'none'; void hd.offsetWidth; drawer.style.animation = ''; hd.classList.add('go');
   }
   if (hd.hidden) hd.dataset.k = '';
   if (!hd.hidden) {
@@ -2842,6 +2849,11 @@ function fitHeader() {
   for (const c of ['c1', 'c2', 'c3']) { if (!over()) break; h.classList.add(c); }
 }
 window.addEventListener('resize', fitHeader);
+$('foldBtn').addEventListener('click', () => {
+  const f = document.body.classList.toggle('hfold');
+  $('foldBtn').textContent = (f ? '▾' : '▴') + '\uFE0E';
+  fitHeader(); resize(); updateUI();
+});
 setInterval(fitHeader, 1000);   // 資金の桁が増えたときも
 requestAnimationFrame(fitHeader);
 
