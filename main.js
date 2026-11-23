@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.28（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.29（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.28';
+const VERSION = '0.29';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -2017,7 +2017,7 @@ const THEME = {
   grassMid: '#7aa35a', grassDark: '#5f8a44', grassLight: '#a3c47e',   // 地表の草（ドット絵）
   soil: [[196, 190, 180], [140, 134, 125]], stone: [[168, 169, 170], [112, 113, 115]], rock: '#5b5a60', rockLine: 'rgba(255,255,255,.3)',
   gauge: '#2b2b2e', gaugeBg: 'rgba(255,255,255,.55)', depth: 'rgba(0,0,0,.45)',
-  conv: { dark: '#000000', slat: '#6b6b6b' },   // コンベアのドット絵（参考画像の色）
+  conv: { rail: '#3d3e43', railHi: '#a2a4aa', belt: '#5c5e63', slat: '#8a8c92' },   // コンベアのドット絵：外の枠・枠の光・ベルト・流れる板
   sortLine: '#e0782f', arrow: 'rgba(255,255,255,.7)',
   machBg: '#d6d6d3', machLine: '#6d6d70', machText: '#2b2b2e', machOut: '#2b2b2e', machProg: '#e0782f',
   drill: '#e0782f', drillStuck: '#9a9a9a', bit: '#4a4a4d',
@@ -2247,18 +2247,17 @@ function drawRockLabel(r, a) {
   ctx.fillStyle = sk('digLv') >= b.layer ? '#ffffff' : '#ffb09f';   // 掘れない間は赤っぽく
   ctx.fillText('Lv' + b.layer, x, y);
 }
-// コンベアのドット絵：16×16ドット、4コマ。基本は2×2ドット（＝8×8に見える）、中割りで1ドットずつ板が流れる
-// 0=透明 1=黒 2=灰色。上向き（↑）に流れる絵を、向きに合わせて回して使う
+// コンベアのドット絵：16×16ドット（1ドットずつ）、4コマ。すっきり版：
+// 左右の端1列は透明 → 細い枠（暗い線＋内側に光の線）→ ベルト。板は1ドットの細い線で、1コマに1ドットずつ流れる。
+// 上下の端は付けない（縦につながると1本のベルトに見える）。上向き（↑）の絵を、向きに合わせて回して使う
+// 横の位置（左右の端からの距離）→ 色。カーブでも同じ並びを使う
+const convCol = (w, slat) => w < 1 ? null : w < 2 ? THEME.conv.rail : w < 3 ? THEME.conv.railHi : slat ? THEME.conv.slat : THEME.conv.belt;
 const CONV_FRAMES = [0, 1, 2, 3].map(f => {
   const cv2 = document.createElement('canvas'); cv2.width = 16; cv2.height = 16;
   const g = cv2.getContext('2d');
   for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
-    const corner = (x < 2 || x > 13) && (y < 2 || y > 13);
-    if (corner) continue;
-    const end = y < 2 || y > 13;                        // 上下の端（ローラー部分）は板が細い
-    const slat = (y + f) % 4 >= 2 && (end ? x >= 4 && x <= 11 : x >= 2 && x <= 13);
-    g.fillStyle = slat ? THEME.conv.slat : THEME.conv.dark;
-    g.fillRect(x, y, 1, 1);
+    const col = convCol(Math.min(x, 15 - x), (y + f) % 4 === 0);
+    if (col) { g.fillStyle = col; g.fillRect(x, y, 1, 1); }
   }
   return cv2;
 });
@@ -2269,13 +2268,9 @@ const CURVE_FRAMES = [0, 1, 2, 3].map(f => {
   const g = cv2.getContext('2d');
   for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
     const dx = x + 0.5 - 16, dy = y + 0.5, rr = Math.hypot(dx, dy);
-    if (rr > 16) continue;
-    let col = THEME.conv.dark;
-    if (rr >= 2 && rr < 14) {
-      const sArc = (Math.atan2(dy, dx) - Math.PI / 2) * 8;   // 流れる向きの長さ
-      if ((((f - Math.floor(sArc)) % 4) + 4) % 4 >= 2) col = THEME.conv.slat;
-    }
-    g.fillStyle = col; g.fillRect(x, y, 1, 1);
+    const sArc = (Math.atan2(dy, dx) - Math.PI / 2) * 8;   // 流れる向きの長さ
+    const col = convCol(Math.min(rr, 16 - rr), (((f - Math.floor(sArc)) % 4) + 4) % 4 === 0);   // 角からの距離＝まっすぐの時の横の位置
+    if (col) { g.fillStyle = col; g.fillRect(x, y, 1, 1); }
   }
   return cv2;
 });
