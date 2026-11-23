@@ -18,7 +18,7 @@
 <meta property="og:locale" content="ja_JP">
 <meta property="og:site_name" content="ほりほり工場 / Dig Factory Tycoon">
 <meta name="twitter:card" content="summary">
-<link rel="stylesheet" href="style.css?v=0.15">
+<link rel="stylesheet" href="style.css?v=0.16">
 </head>
 <body>
 <canvas id="cv"></canvas>
@@ -142,6 +142,12 @@
   <div id="adminBody" class="adminGrid"></div>
 </div>
 
+<!-- テスト用 調整（バーで数値を変える。結果をコピーしてチャットへ） -->
+<div id="tune" class="float panel" hidden>
+  <div class="head"><b data-t="tuneT">調整</b><button class="x" data-close="tune">✕</button></div>
+  <div id="tuneBody"></div>
+</div>
+
 <!-- 置いた物をタップしたときのメニュー -->
 <div id="pop" class="float" hidden>
   <div class="head"><span id="popTitle"></span><button id="popClose" class="x">✕</button></div>
@@ -170,6 +176,6 @@
   </div>
 </div>
 
-<script src="main.js?v=0.15"></script>
+<script src="main.js?v=0.16"></script>
 </body>
 </html>

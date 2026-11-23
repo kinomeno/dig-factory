@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.15（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.16（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.15';
+const VERSION = '0.16';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -19,18 +19,36 @@ const OFFICE_C = Math.floor(COLS / 2) - 1;   // 事務所（地上の中央の2�
 const YARD_C = COLS - 4;       // ヤード（資源置き場）の左端の列。2マス
 const BED = COLS - 2, CAB = COLS - 1; // トラックの荷台と運転席の列
 const COST = { drill: 50, conv: 5, sort: 20 };
-const START_MONEY = 300;
+// 調整できる数値：def＝初期値。キノメノが管理メニュー「調整」で動かし、結果をコピーしてClaudeに渡せる
+const TUNE_DEF = [
+  { k: 'month',      ja: '1か月の長さ（秒）',         en: 'Month length (s)',        min: 10,  max: 120,  step: 5,    def: 60 },
+  { k: 'startMoney', ja: '最初の資金',                en: 'Starting money',          min: 100, max: 3000, step: 50,   def: 500 },
+  { k: 'price',      ja: '売値の倍率',                en: 'Sale price ×',            min: 0.5, max: 4,    step: 0.1,  def: 2.5 },
+  { k: 'ore',        ja: '鉄・金・ダイヤの出やすさ',  en: 'Ore richness ×',          min: 0.5, max: 3,    step: 0.1,  def: 1.3 },
+  { k: 'hard',       ja: '地面の硬さ',                en: 'Ground hardness ×',       min: 0.3, max: 3,    step: 0.1,  def: 1 },
+  { k: 'drill',      ja: 'ドリルの速さ',              en: 'Drill speed ×',           min: 0.3, max: 3,    step: 0.1,  def: 1.5 },
+  { k: 'unmanned',   ja: '作業員なしの時の速さ',      en: 'Speed without operator',  min: 0.05, max: 1,   step: 0.05, def: 0.3 },
+  { k: 'wage',       ja: '給料の倍率',                en: 'Wages ×',                 min: 0,   max: 3,    step: 0.1,  def: 0.7 },
+  { k: 'walk',       ja: '作業員の歩く速さ',          en: 'Worker walk speed ×',     min: 0.5, max: 3,    step: 0.1,  def: 1 },
+  { k: 'belt',       ja: 'コンベアの速さ',            en: 'Conveyor speed ×',        min: 0.5, max: 3,    step: 0.1,  def: 1 },
+  { k: 'fork',       ja: 'フォークリフトの速さ',      en: 'Forklift speed ×',        min: 0.5, max: 3,    step: 0.1,  def: 1 },
+  { k: 'away',       ja: 'トラックが出かける秒数',    en: 'Truck trip (s)',          min: 1,   max: 20,   step: 1,    def: 5 },
+  { k: 'digCost',    ja: '掘削の費用',                en: 'Dig cost ×',              min: 0.2, max: 3,    step: 0.1,  def: 1 },
+  { k: 'resCost',    ja: '研究の費用',                en: 'Research cost ×',         min: 0.2, max: 3,    step: 0.1,  def: 1 },
+  { k: 'resTime',    ja: '研究の時間',                en: 'Research time ×',         min: 0.2, max: 3,    step: 0.1,  def: 1 },
+];
+const TUNE = {};
+for (const d of TUNE_DEF) TUNE[d.k] = d.def;
+try { Object.assign(TUNE, JSON.parse(localStorage.getItem('digfactory.tune') || '{}')); } catch (e) { /* 保存できない環境 */ }
+const saveTune = () => { try { localStorage.setItem('digfactory.tune', JSON.stringify(TUNE)); } catch (e) { /* 無視 */ } };
 const DRILL_HIT_SEC = 0.6;     // ドリルが1回削る間隔（秒）
 const SUB_SEC = 0.02;          // 計算の刻み（秒）
 const GRAV = 14;               // 資源が落ちる強さ
-const MONTH_SEC = 20;          // ゲーム内の1か月（秒）
 const LOAD_RATE = 10;          // トラックに積む速さ（個/秒）
 const ANIM_SEC = 1.4;          // 出発・帰還アニメの長さ
-const AWAY_SEC = 5;            // 出かけている時間
 const START_ZOOM = 1.8;        // 最初は拡大した状態から
 
 // 作業員
-const UNMANNED = 0.2;          // 作業員がいない機械・ドリルの速さ（止まりはしない）
 const WALK_H = 2.2, WALK_V = 1.2;   // 歩く速さ（横）・はしごを登り降りする速さ（縦）（マス/秒）
 const REST_SEC = 12;           // 体力が空から満タンまで休む時間
 const HIRE_FEE_X = 2;          // 契約金＝給料×2
@@ -79,6 +97,7 @@ const MACHINE_ORDER = Object.keys(MACHINES);
 // フォークリフト：地上に出た資源を、出た場所（荷おろし場）からヤードまで運ぶ
 const FORK = { cap: 6, speed: 2.4, rate: 8 };   // 積める数・走る速さ（マス/秒）・積みおろしの速さ（個/秒）
 const newFork = () => ({ x: 0, state: 'idle', load: [], tc: null, acc: 0, face: 1 });
+const LOAN = 300;        // 銀行の融資の額（行き詰まり防止）
 const LAYER_EVERY = 10;   // 10mごとに硬い岩盤の層（スキル「掘削レベル」が足りないと掘れない）
 // 事務所のレベル：休憩の速さ・定員
 const OFFICE_LV = { rest: [1, 1.5, 2, 3], cap: [3, 5, 8, 12], cost: [500, 1500, 4000] };
@@ -91,7 +110,7 @@ const SKILLS = {
   veteran:  { max: 1, cost: [2000], months: [3] },
   welfare:  { max: 2, cost: [1500, 4000], months: [2, 3] },
   black:    { max: 1, cost: [2500], months: [2] },
-  digLv:    { max: 10, cost: k => Math.round(1000 * Math.pow(2.6, k) / 100) * 100, months: k => 2 + k },
+  digLv:    { max: 10, cost: k => (k === 0 ? 250 : Math.round(250 * Math.pow(2.8, k) / 50) * 50), months: k => 1 + k },   // 1段目は安く（最初の穴の稼ぎで払える）
   truck2:   { max: 1, cost: [3000], months: [3] },
   speeding: { max: 1, cost: [2000], months: [2] },
   beltMax:  { max: 2, cost: [2500, 6000], months: [2, 3] },
@@ -99,8 +118,8 @@ const SKILLS = {
   saveSlot: { max: 2, cost: [1000, 3000], months: [1, 2] },
 };
 const SKILL_ORDER = Object.keys(SKILLS);
-const skCost = (id, lv) => { const c = SKILLS[id].cost; return typeof c === 'function' ? c(lv) : c[lv]; };
-const skMonths = (id, lv) => { const m = SKILLS[id].months; return typeof m === 'function' ? m(lv) : m[lv]; };
+const skCost = (id, lv) => { const c = SKILLS[id].cost; return Math.round((typeof c === 'function' ? c(lv) : c[lv]) * TUNE.resCost / 10) * 10; };
+const skMonths = (id, lv) => { const m = SKILLS[id].months; return Math.max(1, Math.round((typeof m === 'function' ? m(lv) : m[lv]) * TUNE.resTime)); };
 
 const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
 const OPP = { up: 'down', down: 'up', left: 'right', right: 'left' };
@@ -146,11 +165,14 @@ const TXT = {
     payPop: '人件費',
     infoRows: { money: '資金', mSale: '今月の売上', mCost: '今月の経費', mNet: '今月の収支', lNet: '先月の収支',
       tSale: '売上の合計', tCost: '経費の合計', ships: '出荷した回数', deepest: 'いちばん深い所', drills: 'ドリル',
-      machines: '機械', belts: 'コンベア・仕分け', workers: '作業員（作業中）', yard: 'ヤードの資源' },
+      machines: '機械', belts: 'コンベア・仕分け', workers: '作業員（作業中）', yard: 'ヤードの資源', loan: '借入（売上から返す）' },
+    loanPop: '銀行から融資',
     unitN: '台', unitP: '人', unitK: '個', unitT: '回',
     gMoney: '資金の動き', gMonth: '月ごとの収支（緑＝プラス・赤＝マイナス）',
     adm: { m1: '資金 ＋1000', m10: '資金 ＋10000', maxLv: '全部レベル最大', ace: '優秀な作業員を雇う',
-      month: '1か月進める', fast: '速さ ×16', clear: '地中を見る（切替）', allSk: 'スキル全部取得', finRes: '研究を即完了' },
+      month: '1か月進める', fast: '速さ ×16', clear: '地中を見る（切替）', allSk: 'スキル全部取得', finRes: '研究を即完了', tune: '調整' },
+    tuneInfo: 'バーを動かすとすぐ反映されます（最初の資金・鉱石の出やすさ・硬さは「最初から」の後に反映）。「結果をコピー」でチャットに貼れます。',
+    tuneCopy: '結果をコピー', tuneCopied: 'コピーしました。チャットに貼ってください', tuneReset: '初期値に戻す', tuneT: '調整',
     helpList: [
       '手のひら（右上）でドラッグ、または画面の端の▲▼◀▶で画面が動きます。2本指・Ctrl＋ホイール・＋－で拡大縮小。「地図」で全体を見られます。',
       '下の「メニュー」から道具を選びます。項目をタップすると、さらに上に種類が出ます。もう一度押すと解除。',
@@ -180,6 +202,8 @@ const TXT = {
       saveSlot: ['セーブ枠の追加', 'セーブできる場所が1つ増えます。'],
     },
     needDig: n => `掘削レベル${n}が必要です（スキル）`,
+    rockHint: n => `硬い岩盤：掘削レベル${n}が必要（スキル）。ドリルを横向きにすれば横へ掘れます`,
+    quit: '給料が払えず、作業員が1人やめました',
     autoConvOpt: 'コンベア自動設置', on: 'オン', off: 'オフ',
     saveT: 'セーブ', save: 'セーブ', load: 'ロード', slot: n => `スロット${n}`, empty: '空き', saved: 'セーブしました', loaded: 'ロードしました',
     confirmLoad: 'ロードしますか？（今の状態は消えます）', saveNG: 'この環境ではセーブできません',
@@ -220,11 +244,14 @@ const TXT = {
     payPop: 'きゅうりょう',
     infoRows: { money: 'おかね', mSale: 'こんげつ うれた', mCost: 'こんげつ つかった', mNet: 'こんげつの もうけ', lNet: 'せんげつの もうけ',
       tSale: 'うれた ごうけい', tCost: 'つかった ごうけい', ships: 'しゅっか した かいすう', deepest: 'いちばん ふかい ところ', drills: 'ドリル',
-      machines: 'きかい', belts: 'コンベア・しわけ', workers: 'さぎょういん（しごとちゅう）', yard: 'おきばの もの' },
+      machines: 'きかい', belts: 'コンベア・しわけ', workers: 'さぎょういん（しごとちゅう）', yard: 'おきばの もの', loan: 'かりている おかね' },
+    loanPop: 'ぎんこうから かりた',
     unitN: 'だい', unitP: 'にん', unitK: 'こ', unitT: 'かい',
     gMoney: 'おかねの うごき', gMonth: 'つきごとの もうけ（みどり＝プラス・あか＝マイナス）',
     adm: { m1: 'おかね ＋1000', m10: 'おかね ＋10000', maxLv: 'ぜんぶ レベル さいだい', ace: 'すごい さぎょういんを やとう',
-      month: '1かげつ すすめる', fast: 'はやさ ×16', clear: 'つちの なかを みる（きりかえ）', allSk: 'スキル ぜんぶ', finRes: 'けんきゅうを すぐ おわらせる' },
+      month: '1かげつ すすめる', fast: 'はやさ ×16', clear: 'つちの なかを みる（きりかえ）', allSk: 'スキル ぜんぶ', finRes: 'けんきゅうを すぐ おわらせる', tune: 'ちょうせい' },
+    tuneInfo: 'バーを うごかすと すぐ かわります。「けっかを コピー」で チャットに はれます。',
+    tuneCopy: 'けっかを コピー', tuneCopied: 'コピー しました', tuneReset: 'はじめの あたいに もどす', tuneT: 'ちょうせい',
     helpList: [
       'てのひら（みぎうえ）で ひっぱるか、がめんの はしの ▲▼◀▶で がめんが うごきます。「ちず」で ぜんたいを みられます。',
       'したの「メニュー」から どうぐを えらびます。もう いちど おすと やめます。',
@@ -254,6 +281,8 @@ const TXT = {
       saveSlot: ['セーブわく ついか', 'セーブ できる ばしょが 1つ ふえます。'],
     },
     needDig: n => `あなほり レベル${n}が ひつよう です（スキル）`,
+    rockHint: n => `かたい がんばん：あなほり レベル${n}が ひつよう。ドリルを よこむきに すれば よこへ ほれます`,
+    quit: 'きゅうりょうが はらえず、さぎょういんが 1にん やめました',
     autoConvOpt: 'コンベア じどう おき', on: 'オン', off: 'オフ',
     saveT: 'セーブ', save: 'セーブ', load: 'ロード', slot: n => `スロット${n}`, empty: 'あき', saved: 'セーブ しました', loaded: 'ロード しました',
     confirmLoad: 'ロード しますか？（いまの じょうたいは きえます）', saveNG: 'ここでは セーブ できません',
@@ -294,11 +323,14 @@ const TXT = {
     payPop: 'Wages',
     infoRows: { money: 'Money', mSale: 'Sales this month', mCost: 'Costs this month', mNet: 'Net this month', lNet: 'Net last month',
       tSale: 'Total sales', tCost: 'Total costs', ships: 'Shipments', deepest: 'Deepest', drills: 'Drills',
-      machines: 'Machines', belts: 'Conveyors & sorters', workers: 'Workers (working)', yard: 'Items in yard' },
+      machines: 'Machines', belts: 'Conveyors & sorters', workers: 'Workers (working)', yard: 'Items in yard', loan: 'Loan (repaid from sales)' },
+    loanPop: 'Bank loan',
     unitN: '', unitP: '', unitK: '', unitT: '',
     gMoney: 'Money over time', gMonth: 'Monthly net (green = profit, red = loss)',
     adm: { m1: 'Money +1000', m10: 'Money +10000', maxLv: 'Max all levels', ace: 'Hire an ace worker',
-      month: 'Skip 1 month', fast: 'Speed ×16', clear: 'Reveal underground (toggle)', allSk: 'All skills', finRes: 'Finish research now' },
+      month: 'Skip 1 month', fast: 'Speed ×16', clear: 'Reveal underground (toggle)', allSk: 'All skills', finRes: 'Finish research now', tune: 'Tuning' },
+    tuneInfo: 'Changes apply right away (starting money, ore and hardness after Restart). Copy the result to paste in chat.',
+    tuneCopy: 'Copy result', tuneCopied: 'Copied', tuneReset: 'Reset to defaults', tuneT: 'Tuning',
     helpList: [
       'Drag with the hand (top right) or use the edge arrows to scroll. Pinch, Ctrl+wheel or +/- to zoom. "Map" shows everything.',
       'Pick tools from "Menu" at the bottom. Tap a category to see its items. Tap again to cancel.',
@@ -328,6 +360,8 @@ const TXT = {
       saveSlot: ['Extra save slot', 'Adds one more save slot.'],
     },
     needDig: n => `Needs dig level ${n} (skill)`,
+    rockHint: n => `Hard bedrock: needs dig level ${n}. Turn the drill sideways to keep digging`,
+    quit: 'Could not pay wages: one worker quit',
     autoConvOpt: 'Auto conveyor', on: 'On', off: 'Off',
     saveT: 'Save', save: 'Save', load: 'Load', slot: n => `Slot ${n}`, empty: 'Empty', saved: 'Saved', loaded: 'Loaded',
     confirmLoad: 'Load this save? (current game will be lost)', saveNG: 'Saving is not available here',
@@ -356,7 +390,7 @@ const isStation = s => !!s && (s.type === 'drill' || s.type === 'machine');   //
 const isYard = (c, r) => r === YARD_R && c >= YARD_C;
 const isOffice = (c, r) => r === YARD_R && (c === OFFICE_C || c === OFFICE_C + 1);
 const OFFICE_K = key(OFFICE_C + 1, YARD_R);   // 事務所の出入り口
-const itemVal = it => (it.v !== undefined ? it.v : ITEMS[it.k].v);
+const itemVal = it => Math.round((it.v !== undefined ? it.v : ITEMS[it.k].v) * TUNE.price);   // 売値（調整の倍率つき）
 const grpOf = s => (s === 'truck' ? 'truck' : s.type === 'drill' ? 'drill' : isBelt(s) ? 'belt' : 'machine');
 const lvOf = s => (s === 'truck' ? S.truck.lv : s.lv);
 const valOf = s => LV[grpOf(s)].val[lvOf(s)];
@@ -376,12 +410,12 @@ function makeBlock(r) {
   }
   const stone = Math.random() < clamp(0.04 + 0.025 * d, 0, 0.7);
   const x = Math.random();
-  const diaP = d >= 15 ? Math.min(0.06, 0.01 + 0.002 * (d - 15)) : 0;
-  const goldP = d >= 6 ? Math.min(0.14, 0.03 + 0.006 * (d - 6)) : 0;
-  const ironP = Math.min(0.35, 0.16 + 0.01 * d);
+  const diaP = d >= 15 ? Math.min(0.06, 0.01 + 0.002 * (d - 15)) * TUNE.ore : 0;
+  const goldP = d >= 6 ? Math.min(0.14, 0.03 + 0.006 * (d - 6)) * TUNE.ore : 0;
+  const ironP = Math.min(0.35, 0.16 + 0.01 * d) * TUNE.ore;
   const ore = x < diaP ? 'dia' : x < diaP + goldP ? 'gold' : x < diaP + goldP + ironP ? 'iron' : null;
-  const yieldN = Math.min(12, 4 + Math.floor(d / 5));     // 1マスから出る数
-  const h = (2 + d * 0.08) * (stone ? 2 : 1);             // 1個出すのに必要な削る量（硬さ）
+  const yieldN = Math.min(16, 8 + Math.floor(d / 5));     // 1マスから出る数（多めに。そのぶん1マス掘るのに時間がかかる）
+  const h = (2 + d * 0.08) * (stone ? 2 : 1) * TUNE.hard;             // 1個出すのに必要な削る量（硬さ）
   return { mat: stone ? 'stone' : 'soil', ore, yieldN, left: yieldN, h, p: 0 };
 }
 function oreFrom(b) {
@@ -398,7 +432,7 @@ function row(r) {
   return a;
 }
 const blk = (c, r) => (r < 0 ? null : row(r)[c]);
-const digCost = b => Math.round(10 + b.h * b.yieldN * 1.5);  // 掘削の費用（硬いほど高い）
+const digCost = b => Math.round((10 + b.h * b.yieldN * 1.5) * TUNE.digCost);  // 掘削の費用（硬いほど高い）
 
 // ---- 作業員 ----
 function makeCandidate() {
@@ -426,7 +460,7 @@ function newGame() {
     st: new Map(),      // 設備：key -> {type:'drill'|'conv'|'sort'|'machine', dir, lv, op?, ...}
     items: [],          // 資源レイヤー：{k, x, y, vy, lane, spd, ox, oy, tk, v?, of?}
     yard: [],           // ヤードに溜まった資源：{k, v?, of?, rx, ry}
-    money: START_MONEY,
+    money: TUNE.startMoney,
     truck: { lv: 0 }, fleet: [newTruck('here')],   // トラック（レベルは共通）
     skills: {}, research: null, opts: { autoConv: true }, office: { lv: 0 }, adminFast: false,
     workers: [], wid: 0, cands: [], month: 0,
@@ -497,7 +531,7 @@ const machineAt = (c, r) => { const s = inB(c, r) && S.st.get(key(c, r)); return
 // 作業員がついていれば普通の速さ（技術で上がる）、いなければとても遅い
 function workFactor(s) {
   const w = s.op && S.workers.find(x => x.id === s.op && x.state === 'work');
-  return w ? techFactor(w) : UNMANNED;
+  return w ? techFactor(w) : TUNE.unmanned;
 }
 
 function updateMachines(dt) {
@@ -587,7 +621,7 @@ function updateForks(dt) {
     const move = tx => {
       const d = tx - f.x;
       if (Math.abs(d) > 0.01) f.face = Math.sign(d);
-      f.x += Math.sign(d) * Math.min(Math.abs(d), FORK.speed * dt);
+      f.x += Math.sign(d) * Math.min(Math.abs(d), FORK.speed * TUNE.fork * dt);
       f.moving = Math.abs(tx - f.x) > 0.01;
       return !f.moving;
     };
@@ -641,11 +675,24 @@ function sim(sec) {
 
 // 月が変わったら：給料を払う・その月の収支を記録・雇える人を入れかえ
 function updateMonth() {
-  const m = Math.floor(S.time / MONTH_SEC);
+  const m = Math.floor(S.time / TUNE.month);
   if (m === S.month) return;
   S.month = m;
-  const total = Math.round(S.workers.reduce((a, w) => a + w.wage, 0) * (sk('black') ? 0.8 : 1));
-  if (total > 0) spend(total, OFFICE_C + 1, YARD_R, tx().payPop);
+  const total = Math.round(S.workers.reduce((a, w) => a + w.wage, 0) * (sk('black') ? 0.8 : 1) * TUNE.wage);
+  if (total > 0) {
+    if (S.money >= total) spend(total, OFFICE_C + 1, YARD_R, tx().payPop);
+    else {
+      // 払えない月：給料は払わず、いちばん給料の高い作業員が1人やめる（借金が雪だるまにならないように）
+      const w = S.workers.reduce((a, b) => (b.wage > a.wage ? b : a));
+      fireWorker(w.id);
+      say(tx().quit); pop(tx().quit, OFFICE_C + 1, YARD_R - 0.4, 'cost');
+    }
+  }
+  // 銀行の融資：お金が100未満で、先月の売上が0なら300貸してくれる（売上の2割ずつ返す。返し終わるまで次は無い）
+  if (S.money < 100 && S.stats.cur.sale === 0 && !(S.loan > 0) && S.month > 1) {
+    S.money += LOAN; S.loan = LOAN;
+    pop(tx().loanPop + ' +' + LOAN, OFFICE_C + 1, YARD_R - 0.4, 'sale'); say(tx().loanPop + ' +' + LOAN);
+  }
   S.stats.months.push(S.stats.cur); if (S.stats.months.length > 24) S.stats.months.shift();
   S.stats.cur = { sale: 0, cost: 0 };
   S.cands = newCands();
@@ -675,7 +722,7 @@ function updateItems(dt) {
       continue;
     }
     it.vy = 0;
-    const v = valOf(s) * it.spd * dt;
+    const v = valOf(s) * it.spd * dt * TUNE.belt;
     let md = s.dir;
     if (s.type === 'sort' && it.k === s.filter) {
       if (it.tk !== k) {
@@ -715,12 +762,13 @@ function updateDrills(dt) {
 }
 function moveDrill(k, s, nk) {
   S.st.delete(k); S.st.set(nk, s); S.deepest = Math.max(S.deepest, rOf(nk));
+  const came = s.came; s.came = s.dir;   // そのマスに入ってきた向きを覚える
   // スキル「コンベア自動設置」：空いた後ろのマスに、後ろ向き（↓に掘るなら↑）のコンベアを置く
   if (sk('autoConv') && S.opts.autoConv) {
     const c = cOf(k), r = rOf(k);
     if (r >= SKY && isOpen(c, r) && S.money >= COST.conv) {
       spend(COST.conv, c + 0.5, r + 0.3);
-      S.st.set(k, { type: 'conv', dir: OPP[s.dir], lv: 0 });
+      S.st.set(k, { type: 'conv', dir: OPP[came || s.dir], lv: 0 });
     }
   }
 }
@@ -736,9 +784,12 @@ function drillHit(k, s) {
     else s.stuck = true;
     return;
   }
-  if (g.mat === 'rock' && sk('digLv') < g.layer) { s.stuck = true; return; }   // 掘削レベルが足りない
+  if (g.mat === 'rock' && sk('digLv') < g.layer) {   // 掘削レベルが足りない → 止まる（最初の1回だけヒント）
+    if (!s.stuck && !s.rockHint) { s.rockHint = true; say(tx().rockHint(g.layer)); }
+    s.stuck = true; return;
+  }
   s.stuck = false; s.hit = S.time;
-  g.p += valOf(s) * workFactor(s);
+  g.p += valOf(s) * workFactor(s) * TUNE.drill;
   while (g.p >= g.h && g.left > 0) { g.p -= g.h; g.left--; emitOre(c, r, s, oreFrom(g)); }
   if (g.left <= 0) { row(tr)[tc] = null; S.digVer++; moveDrill(k, s, key(tc, tr)); }
 }
@@ -751,12 +802,16 @@ function emitOre(c, r, s, kind) {
   else spawnItem(kind, c + 0.5, r + 0.5, c, r);
 }
 
-const awaySec = () => AWAY_SEC * (sk('speeding') ? 0.5 : 1);   // スピード違反
+const awaySec = () => TUNE.away * (sk('speeding') ? 0.5 : 1);   // スピード違反
 const animSec = () => ANIM_SEC * (sk('speeding') ? 0.7 : 1);
 // 駐車場にいる（または出入り中の）トラック
 const bayTruck = () => S.fleet.find(t => t.phase === 'here' || t.phase === 'leaving' || t.phase === 'returning');
 function payTruck(t) {
   earn(t.value, BED + 1, YARD_R);          // 帰ってきたら売上
+  if (S.loan > 0 && t.value > 0) {         // 融資の返済（売上の2割）
+    const back = Math.min(S.loan, Math.ceil(t.value * 0.2));
+    S.money -= back; S.loan -= back;
+  }
   S.stats.ships++;
   t.load = 0; t.value = 0;
 }
@@ -796,7 +851,7 @@ function startResearch(id) {
   const c = skCost(id, lv);
   if (S.money < c) { say(tx().noMoney); return; }
   spend(c, OFFICE_C + 1, YARD_R);
-  S.research = { id, t: 0, total: skMonths(id, lv) * MONTH_SEC };
+  S.research = { id, t: 0, total: skMonths(id, lv) * TUNE.month };
 }
 function gainSkill(id) {
   S.skills[id] = sk(id) + 1;
@@ -848,7 +903,7 @@ function slotInfo(n) {
   try {
     const j = localStorage.getItem(SAVE_KEY(n));
     if (!j) return null;
-    const d = JSON.parse(j).S, m = Math.floor(d.time / MONTH_SEC);
+    const d = JSON.parse(j).S, m = Math.floor(d.time / TUNE.month);
     return `${tx().date(Math.floor(m / 12) + 1, m % 12 + 1)}　${tx().money} ${d.money}`;
   } catch (e) { return null; }
 }
@@ -906,7 +961,7 @@ function walk(w, dt) {
     const k = w.path[0], tx_ = cOf(k) + 0.5, ty = rOf(k) + 0.5;
     const ddx = tx_ - w.x, ddy = ty - w.y;
     if (Math.abs(ddx) < 1e-3 && Math.abs(ddy) < 1e-3) { w.path.shift(); continue; }
-    const sp = Math.abs(ddy) > Math.abs(ddx) ? WALK_V : WALK_H;
+    const sp = (Math.abs(ddy) > Math.abs(ddx) ? WALK_V : WALK_H) * TUNE.walk;
     const d = Math.hypot(ddx, ddy), step = sp * dt;
     if (step >= d) { w.x = tx_; w.y = ty; dt -= d / sp; w.path.shift(); }
     else { w.x += ddx / d * step; w.y += ddy / d * step; dt = 0; }
@@ -1163,7 +1218,7 @@ function popInfoText() {
     return `${T.loaded} ${tr.load}/${valOf('truck')}　${T.worth} ${tr.value}　${T.yard} ${S.yard.length}`;
   }
   if (t.type === 'sort') return T.sortInfo;
-  const opLine = isStation(t) ? '\n' + (workFactor(t) > UNMANNED ? T.manned(T.worker(t.op)) : T.unmanned) : '';
+  const opLine = isStation(t) ? '\n' + (workFactor(t) > TUNE.unmanned ? T.manned(T.worker(t.op)) : T.unmanned) : '';
   if (t.type === 'machine') {
     const def = MACHINES[t.m];
     const rule = def.bag ? T.bagRule
@@ -1271,7 +1326,7 @@ document.querySelectorAll('#catBar .cat').forEach(b => b.addEventListener('click
 $('panBtn').addEventListener('click', () => { tool = tool === 'pan' ? 'none' : 'pan'; closePop(); updateUI(); });
 
 // ---- パネル（強化・事務所・遊び方・設定・管理） ----
-const PANELS = ['powerPanel', 'skillPanel', 'office', 'help', 'settings', 'admin'];   // 情報・地図は別（開いたまま遊べる）
+const PANELS = ['powerPanel', 'skillPanel', 'office', 'help', 'settings', 'admin', 'tune'];   // 情報・地図は別（開いたまま遊べる）
 function closePanels() { PANELS.forEach(x => { $(x).hidden = true; }); }
 function togglePanel(id) {
   const show = $(id).hidden;
@@ -1312,7 +1367,7 @@ function renderPanel(id) {
     const pay = S.workers.reduce((a, w) => a + w.wage, 0);
     const sum = document.createElement('div'); sum.className = 'sub';
     const ol = S.office.lv, cap = OFFICE_LV.cap[ol];
-    sum.textContent = `${T.workers} ${S.workers.length}/${cap}${T.unitP}　${T.payroll} ${sk('black') ? Math.round(pay * 0.8) : pay}`;
+    sum.textContent = `${T.workers} ${S.workers.length}/${cap}${T.unitP}　${T.payroll} ${Math.round(pay * (sk('black') ? 0.8 : 1) * TUNE.wage)}`;
     box.append(sum);
     // 事務所のレベル（定員・休憩の速さ）
     let olBtn;
@@ -1347,7 +1402,7 @@ function renderPanel(id) {
     if (S.research) {
       const r = S.research;
       const el = document.createElement('div'); el.className = 'sub lvline';
-      el.textContent = `${T.researching}：${T.sk[r.id][0]}（${Math.max(1, Math.ceil((r.total - r.t) / MONTH_SEC))}${T.months}）`;
+      el.textContent = `${T.researching}：${T.sk[r.id][0]}（${Math.max(1, Math.ceil((r.total - r.t) / TUNE.month))}${T.months}）`;
       const bar = document.createElement('div'); bar.className = 'bar';
       const fill = document.createElement('i'); fill.style.width = (100 * r.t / r.total) + '%'; bar.append(fill);
       box.append(el, bar);
@@ -1363,6 +1418,29 @@ function renderPanel(id) {
       }
       box.append(rowEl(title, desc, btn));
     }
+  } else if (id === 'tune') {
+    // 調整：バーで数値を変える（すぐ反映・保存）。結果をコピーして Claude に渡せる
+    const box = $('tuneBody'); box.innerHTML = '';
+    const note = document.createElement('div'); note.className = 'sub'; note.textContent = T.tuneInfo; box.append(note);
+    for (const d of TUNE_DEF) {
+      const row = document.createElement('div'); row.className = 'tuneRow';
+      const lab = document.createElement('span'); lab.className = 'lab'; lab.textContent = lang === 'en' ? d.en : d.ja;
+      const val = document.createElement('b');
+      const inp = document.createElement('input'); inp.type = 'range'; inp.min = d.min; inp.max = d.max; inp.step = d.step; inp.value = TUNE[d.k];
+      const show = () => { val.textContent = TUNE[d.k] + (TUNE[d.k] !== d.def ? ` (${d.def})` : ''); val.classList.toggle('chg', TUNE[d.k] !== d.def); };
+      inp.addEventListener('input', () => { TUNE[d.k] = +inp.value; saveTune(); show(); });
+      show();
+      row.append(lab, val, inp); box.append(row);
+    }
+    const out = document.createElement('textarea'); out.className = 'tuneOut'; out.readOnly = true; out.hidden = true;
+    const copy = document.createElement('button'); copy.className = 'wide'; copy.textContent = T.tuneCopy;
+    copy.addEventListener('click', () => {
+      out.value = tuneReport(); out.hidden = false; out.select();
+      if (navigator.clipboard) navigator.clipboard.writeText(out.value).then(() => say(T.tuneCopied), () => {});
+    });
+    const reset = document.createElement('button'); reset.className = 'wide'; reset.textContent = T.tuneReset;
+    reset.addEventListener('click', () => { for (const d of TUNE_DEF) TUNE[d.k] = d.def; saveTune(); renderPanel('tune'); });
+    box.append(copy, out, reset);
   } else if (id === 'admin') {
     const box = $('adminBody'); box.innerHTML = '';
     const A = T.adm;
@@ -1371,11 +1449,12 @@ function renderPanel(id) {
     add(A.m10, () => { S.money += 10000; });
     add(A.maxLv, () => { for (const s of S.st.values()) s.lv = lvCap(grpOf(s)); S.truck.lv = lvCap('truck'); });
     add(A.ace, () => { addWorker({ stamLv: 5, techLv: 5, wage: 0 }); });
-    add(A.month, () => { S.time = (Math.floor(S.time / MONTH_SEC) + 1) * MONTH_SEC; updateMonth(); });
+    add(A.month, () => { S.time = (Math.floor(S.time / TUNE.month) + 1) * TUNE.month; updateMonth(); });
     add(A.fast, () => { S.adminFast = true; speedIdx = speeds().length - 1; });
     add(A.clear, () => { S.reveal = !S.reveal; });
     add(A.allSk, () => { for (const sid of SKILL_ORDER) while (sk(sid) < SKILLS[sid].max) gainSkill(sid); });
     add(A.finRes, () => { if (S.research) S.research.t = S.research.total; });
+    add(A.tune, () => { togglePanel('tune'); });
   } else if (id === 'help') {
     const ul = $('helpList'); ul.innerHTML = '';
     for (const line of T.helpList) { const li = document.createElement('li'); li.textContent = line; ul.append(li); }
@@ -1411,6 +1490,15 @@ document.querySelectorAll('[data-lang]').forEach(b => b.addEventListener('click'
   setupText(); renderPanel('settings'); renderSub(); if (popTarget) buildPop();
 }));
 
+// 調整の結果を文章にする（コピーしてチャットに貼る用）
+function tuneReport() {
+  const lines = [`【ほりほり工場 調整結果 v${VERSION}】`];
+  for (const d of TUNE_DEF) lines.push(`${d.ja}: ${TUNE[d.k]}${TUNE[d.k] !== d.def ? `（初期値 ${d.def} から変更）` : ''}`);
+  const m = Math.floor(S.time / TUNE.month);
+  lines.push(`--- 今のゲーム：${Math.floor(m / 12) + 1}年${m % 12 + 1}月・資金 ${S.money}・作業員 ${S.workers.length}人・深さ ${Math.max(0, S.deepest - SKY)}m・出荷 ${S.stats.ships}回`);
+  lines.push('JSON: ' + JSON.stringify(TUNE));
+  return lines.join('\n');
+}
 // 浮いている窓を、見出しをつかんで動かせるようにする（情報・地図）
 function makeDraggable(el) {
   const hd = el.querySelector('.handle');
@@ -1443,6 +1531,7 @@ function renderInfo() {
     [R.drills, sts.filter(s => s.type === 'drill').length + T.unitN], [R.machines, sts.filter(s => s.type === 'machine').length + T.unitN],
     [R.belts, sts.filter(isBelt).length + T.unitN],
     [R.workers, `${S.workers.length}${T.unitP}（${S.workers.filter(w => w.state === 'work').length}）`],
+    [R.loan, S.loan > 0 ? S.loan : '-'],
     [R.yard, S.yard.length + T.unitK],
   ];
   const box = $('infoData'); box.innerHTML = '';
@@ -1620,7 +1709,7 @@ function draw() {
   }
   // 作業員がいない持ち場には「z」の印（とても遅い）
   for (const [k, s] of S.st) {
-    if (!isStation(s) || workFactor(s) > UNMANNED) continue;
+    if (!isStation(s) || workFactor(s) > TUNE.unmanned) continue;
     const c = cOf(k), r = rOf(k);
     if (r < r0 || r > r1) continue;
     ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.beginPath(); ctx.arc(c * cell + cell * 0.84, r * cell + cell * 0.16, cell * 0.12, 0, Math.PI * 2); ctx.fill();
@@ -1892,7 +1981,7 @@ function drawTruck() {
 function updateUI() {
   const T = tx(), m = $('money');
   m.textContent = S.money; m.classList.toggle('neg', S.money < 0);
-  const month = Math.floor(S.time / MONTH_SEC);
+  const month = Math.floor(S.time / TUNE.month);
   $('date').textContent = T.date(Math.floor(month / 12) + 1, month % 12 + 1);
   $('playBtn').textContent = running ? T.pause : T.play;
   $('speedBtn').textContent = '×' + speeds()[speedIdx];
@@ -2130,7 +2219,7 @@ setupText();
 resize();
 resetCam();
 window.__game = { // 動作確認用
-  get S() { return S; }, row, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
+  get S() { return S; }, TUNE, row, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
   setTool: t => setTool(t), setDir: d => { dir = d; }, pause: () => { running = false; },
 };
 requestAnimationFrame(frame);
