@@ -5,7 +5,7 @@ body {
   font-family: system-ui, "Hiragino Sans", "Yu Gothic UI", sans-serif;
   -webkit-user-select: none; user-select: none;
 }
-:root { --hdr: 44px; --glass: rgba(24, 26, 32, .62); }
+:root { --hdr: 80px; --edge: 26px; --glass: rgba(24, 26, 32, .62); }
 
 /* ゲーム画面は全面。ヘッダーやメニューは半透明で上に重なる */
 #cv { position: fixed; inset: 0; width: 100vw; height: 100%; display: block; touch-action: none; }
@@ -16,11 +16,13 @@ body {
 /* ヘッダー */
 #hdr {
   position: fixed; top: 0; left: 0; right: 0; height: var(--hdr); z-index: 30;
-  display: flex; align-items: center; gap: 8px; padding: 0 8px;
+  display: flex; flex-direction: column; justify-content: center; gap: 3px; padding: 2px 8px;
   background: var(--glass); border-bottom: 1px solid rgba(255,255,255,.1);
   backdrop-filter: blur(3px);
   white-space: nowrap; overflow: hidden;
 }
+.hrow { display: flex; align-items: center; gap: 8px; min-width: 0; }
+#timeGroup { gap: 4px; }
 #hdr .title { font-size: 15px; }
 #hdr small { color: #aaa; font-size: 11px; margin-left: -4px; }
 #hdr .stat { font-size: 14px; color: #ddd; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
@@ -29,7 +31,7 @@ body {
 #hdr .grow { flex: 1; }
 #hdr button { padding: 5px 8px; }
 #hdr .icon { font-size: 17px; padding: 3px 8px; }
-@media (max-width: 480px) { #hdr .title, #hdr small { display: none; } #hdr { gap: 5px; } #hdr button { padding: 5px 6px; font-size: 12px; } }
+@media (max-width: 480px) { #hdr .title, #hdr small { display: none; } .hrow { gap: 5px; } #timeGroup { gap: 3px; } #hdr button { padding: 5px 6px; font-size: 12px; } #hdr button.sq { width: 26px; } }
 
 .float {
   position: fixed; z-index: 10;
@@ -57,39 +59,40 @@ button.test { border-style: dashed; color: #ffcf9a; }
 button.hand { display: inline-flex; align-items: center; justify-content: center; padding: 4px 8px; }
 .play { min-width: 62px; }
 
-/* 移動ボタン：小さめ・半透明 */
-.mv {
-  position: fixed; z-index: 9; width: 34px; height: 22px; padding: 0; font-size: 11px; line-height: 1;
-  background: rgba(28, 30, 36, .4); border: 1px solid rgba(255,255,255,.15); color: rgba(255,255,255,.8);
-  touch-action: none;
+/* 移動：画面の端の帯（押している間動く）。中の小さなボタンは目印 */
+.mv { position: fixed; z-index: 9; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: pointer; }
+.mv:active { background: rgba(255,255,255,.06); }
+#mvUp { top: var(--hdr); left: 0; right: 0; height: var(--edge); }
+#mvDown { bottom: 0; left: 0; right: 0; height: var(--edge); }
+#mvLeft { top: calc(var(--hdr) + var(--edge)); bottom: var(--edge); left: 0; width: var(--edge); }
+#mvRight { top: calc(var(--hdr) + var(--edge)); bottom: var(--edge); right: 0; width: var(--edge); }
+.mvb {
+  display: flex; align-items: center; justify-content: center; width: 34px; height: 22px; font-size: 11px; line-height: 1;
+  background: rgba(28, 30, 36, .4); border: 1px solid rgba(255,255,255,.15); border-radius: 6px; color: rgba(255,255,255,.8);
+  pointer-events: none;
 }
-#mvLeft, #mvRight { width: 22px; height: 34px; }
-#mvUp, #mvDown { left: 50%; transform: translateX(-50%); }
-#mvLeft { left: 2px; }
-#mvRight { right: 2px; }
-
-#timeGroup { right: 8px; }
-#dirBar { left: 50%; transform: translateX(-50%); flex-wrap: nowrap; width: max-content; }
+#mvLeft .mvb, #mvRight .mvb { width: 22px; height: 34px; }
+#dirBar { right: calc(var(--edge) + 4px); flex-wrap: nowrap; width: max-content; }
 
 /* 下のメニュー */
-#menuBtn { bottom: 8px; left: 50%; transform: translateX(-50%); padding: 8px 16px; font-size: 14px; border-radius: 10px; }
+#menuBtn { bottom: calc(var(--edge) + 4px); right: calc(var(--edge) + 4px); padding: 8px 16px; font-size: 14px; border-radius: 10px; }
 #menuCur { color: #9cc4ff; margin-left: 6px; font-size: 12px; }
 #menuCur:empty { display: none; }
-#catBar { bottom: 8px; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 16px); }
-#subMenu { left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 16px); }
+#catBar { bottom: calc(var(--edge) + 4px); right: calc(var(--edge) + 4px); width: max-content; max-width: calc(100vw - var(--edge) * 2 - 8px); justify-content: flex-end; }
+#subMenu { right: calc(var(--edge) + 4px); width: max-content; max-width: calc(100vw - var(--edge) * 2 - 8px); justify-content: flex-end; }
 #subMenu .si { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; text-align: left; min-width: 92px; }
 #subMenu .si .rec { font-size: 10px; color: #bbb; }
 button.cat.open { border-color: #9cc4ff; }
 
 .msg {
-  position: fixed; top: calc(var(--hdr) + 40px); left: 50%; transform: translateX(-50%); margin: 0; z-index: 40;
+  position: fixed; top: calc(var(--hdr) + 32px); left: 50%; transform: translateX(-50%); margin: 0; z-index: 40;
   color: #ffb39a; font-size: 14px; background: rgba(20,20,24,.85); padding: 4px 12px; border-radius: 8px;
   pointer-events: none; white-space: nowrap;
 }
 .msg:empty { display: none; }
 
-.panel { top: calc(var(--hdr) + 8px); right: 8px; width: min(380px, calc(100vw - 16px)); max-height: calc(100% - var(--hdr) - 80px); overflow: auto; z-index: 20; }
-.panel.bottom { top: auto; left: 50%; right: auto; transform: translateX(-50%); }
+.panel { top: calc(var(--hdr) + var(--edge) + 4px); right: 8px; width: min(380px, calc(100vw - 16px)); max-height: calc(100% - var(--hdr) - 80px); overflow: auto; z-index: 20; }
+.panel.bottom { top: auto; right: calc(var(--edge) + 4px); }
 .panel.drag .handle { cursor: move; touch-action: none; }
 .head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 13px; }
 #help ul { margin: 4px 0 8px; padding-left: 18px; font-size: 13px; line-height: 1.6; }
@@ -112,7 +115,7 @@ button.cat.open { border-color: #9cc4ff; }
 .graph { width: 100%; height: 90px; display: block; background: rgba(0,0,0,.25); border-radius: 6px; margin: 2px 0 6px; }
 
 /* 縮小地図 */
-#mapPanel { top: calc(var(--hdr) + 80px); left: 8px; z-index: 15; padding: 4px 6px 6px; }
+#mapPanel { top: calc(var(--hdr) + var(--edge) + 4px); left: calc(var(--edge) + 4px); z-index: 15; padding: 4px 6px 6px; }
 #mapPanel .handle { cursor: move; touch-action: none; }
 #mapCv { display: block; touch-action: none; cursor: pointer; border-radius: 4px; }
 

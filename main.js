@@ -1,14 +1,15 @@
-// ほりほり工場 / Dig Factory Tycoon v0.11（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.12（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.11';
+const VERSION = '0.12';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
-// テスト用の管理メニュー：自分のPC（localhost）で開いた時だけ出る。公開サーバーでは自動で消える（?dev を付ければ出る）
-const DEV = ['localhost', '127.0.0.1', ''].includes(location.hostname) || new URLSearchParams(location.search).has('dev');
+// テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
+// 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
+const DEV = !new URLSearchParams(location.search).has('nodev');
 
 // ---- 盤面の設定 ----
 const COLS = 14;
@@ -1500,22 +1501,15 @@ function updateUI() {
   layoutFloats();
 }
 // 浮いているボタン類の位置（実際の大きさを見て、重ならないように）
+// 右下：メニュー（またはメニューを開いた列）→ その上に種類 → その上に向き
 function layoutFloats() {
   const H = window.innerHeight;
-  $('mvUp').style.top = (hdrH + 4) + 'px';               // ▲ は時間・空間メニューの上
-  $('timeGroup').style.top = (hdrH + 30) + 'px';
   const base = !$('catBar').hidden ? $('catBar') : $('menuBtn');
   const bt = base.getBoundingClientRect().top;
   let bottom = H - bt + 4;
-  $('mvDown').style.bottom = bottom + 'px';             // ▼ はメニューのすぐ上
-  bottom += 26;
   if (!$('subMenu').hidden) { $('subMenu').style.bottom = bottom + 'px'; bottom += $('subMenu').offsetHeight + 4; }
   $('dirBar').style.bottom = bottom + 'px';
-  document.querySelectorAll('.panel.bottom').forEach(p => { p.style.bottom = (H - bt + 30) + 'px'; });
-  const tg = $('timeGroup').getBoundingClientRect();
-  const midY = (tg.bottom + bt) / 2 - 17;
-  $('mvLeft').style.top = midY + 'px';
-  $('mvRight').style.top = midY + 'px';
+  document.querySelectorAll('.panel.bottom').forEach(p => { p.style.bottom = (H - bt + 4) + 'px'; });
 }
 let msgTimer = 0;
 function say(t) { $('msg').textContent = t; clearTimeout(msgTimer); msgTimer = setTimeout(() => { $('msg').textContent = ''; }, 2000); }
