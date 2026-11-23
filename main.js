@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.44（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.45（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.44';
+const VERSION = '0.45';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -145,7 +145,7 @@ const layerAt = d => (d === 5 ? 1 : d >= 10 && d % 10 === 0 ? 1 + d / 10 : 0);
 const rockLv = layer => layer - 1;                                      // 画面に出す岩盤レベル
 const stageOf = deepest => { let n = 1; while (deepest - SKY >= layerDepth(n)) n++; return n; };
 // 事務所のレベル：休憩の速さ・定員
-const OFFICE_LV = { rest: [1, 1.5, 2, 3, 4], cap: [3, 5, 8, 12, 16], forks: [1, 2, 3, 4, 5], cost: [1000, 1500, 4000, 9000] };   // レベル2＝岩盤Lv0を破れる・研究所（レンガを作ったほうが早く届く額）
+const OFFICE_LV = { rest: [1, 1.5, 2, 3, 4], cap: [3, 5, 8, 12, 16], forks: [1, 2, 3, 4, 5], cost: [1000, 4000, 16000, 64000] };   // レベル2＝岩盤Lv0を破れる・研究所。その先は4倍ずつ（会社レベルが大きな目標。インフレ）
 const ADV_LV = 2;                // 地上・上級勤務（フォークリフト・トラック・研究所）に必要なレベル
 const LV_EXP = [60, 180, 400, 750, 1300, 2100, 3200, 4600];   // 働いた時間（秒）の合計でレベルアップ
 const HIRE_FEE = lv => 40 + 30 * lv;                           // 雇うときの契約金
@@ -1983,6 +1983,18 @@ function removeAt(k) {
   const back = Math.floor(costOf(s) / 2);
   S.money += back; pop('+' + back, cOf(k) + 0.5, rOf(k) + 0.3, 'sale');
   S.st.delete(k);
+  if (s.type === 'machine') spillMachine(s, cOf(k), rOf(k));
+}
+// 撤去した機械の中身（順番待ちの材料・加工中の材料）を、そのマスにばらまく（コンベアを置けば回収できる）
+function spillMachine(m, c, r) {
+  const def = MACHINES[m.m], out = [];
+  for (const [k2, n] of Object.entries(m.buf || {})) for (let i = 0; i < n; i++) out.push(k2);
+  for (const [k2, n] of Object.entries(m.bags || {})) for (let i = 0; i < n; i++) out.push(k2);
+  if (m.cur && !def.src) {   // 加工中の物は、材料に戻す
+    if (m.cur.k === 'bag') { for (let i = 0; i < def.bag; i++) out.push(m.cur.of); }
+    else { const rec = (def.recipes || []).find(x => x.out === m.cur.k); if (rec) for (const x of recInsOf(rec)) for (let i = 0; i < recNOf(rec, x); i++) out.push(x); }
+  }
+  for (const k2 of out) spawnItem(k2, c + 0.5, r + 0.5, c, r);
 }
 function nextCost(t) { const g = grpOf(t), lv = lvOf(t); return lv < lvCap(g) ? lvCost(g, lv) : null; }
 function posOf(t) { if (t === 'truck') return [BED + 0.5, YARD_R]; if (t.type === 'fork') return [t.x, YARD_R]; const k = findKey(t); return [cOf(k) + 0.5, rOf(k) + 0.3]; }
@@ -4257,7 +4269,7 @@ function autoNewDrill(drills) {
 }
 function autoAdit(drills) {
   const drillCols = new Set(drills.map(([k]) => cOf(k))), cost = buildCost('m:adit');
-  if (S.money < (cost + 60) * 2 * aiR()) return;
+  if (S.money < cost + 60) return;   // 横穴は稼ぎの元なので、買えればすぐ置く
   for (const [dk] of drills) {
     const c = cOf(dk);
     for (let r = rOf(dk) - 2; r > SKY; r--) {   // 深い所から
@@ -4273,17 +4285,23 @@ function autoAdit(drills) {
     }
   }
 }
+// AIのお金の使い方（試走で「24・60・120か月後の資金」が大きくなるように調整する重み）
+// 数字＝「値段の何倍のお金があったら買うか」。大きいほど慎重
+const AI_W = { hire: 100, office: 1.6, office0: 1.2, drill: 2, mach: 3, price: 3, resPad: 300, truck: 1.3, fork: 1.3,
+  save: 0.5, gate: 1 };   // save＝次の会社レベルの値段の何割を残しておくか／gate＝1なら、効く時だけ強化（機械は順番待ちがたまっている・ドリルは運ぶ所が空いている）
+const AI_SKIP = new Set(['sk:speed', 'sk:dragPlus', 'sk:away']);   // 稼ぎに関係しない研究（画面の速さ・操作・放置時間）はAIは買わない
+const aiResRank = id => (id === 'sk:digLv' ? 0 : id === 'm:adit' ? 1 : 2);
 function autoStep(build = true) {
-  const R = aiR();
+  const R = aiR(), W = AI_W;
   const all = [...S.st.entries()];
   const drills = all.filter(([, x]) => x.type === 'drill'), machines = all.filter(([, x]) => x.type === 'machine');
   const posts = drills.length + machines.length + S.fac.length + (S.lab.built ? 1 : 0);
-  if (S.workers.length < Math.min(OFFICE_LV.cap[S.office.lv], posts + 1) && S.money > HIRE_FEE(hireLv()) + 100 * R) hire();
-  if (S.office.lv < OFFICE_LV.cost.length && S.money > OFFICE_LV.cost[S.office.lv] * (S.office.lv ? 1.6 : 1.2) * R) officeUp();
+  if (S.workers.length < Math.min(OFFICE_LV.cap[S.office.lv], posts + 1) && S.money > HIRE_FEE(hireLv()) + W.hire * R) hire();
+  if (S.office.lv < OFFICE_LV.cost.length && S.money > OFFICE_LV.cost[S.office.lv] * (S.office.lv ? W.office : W.office0) * R) officeUp();
   if (S.office.lv >= 1 && !S.lab.built && S.money > COST.lab + 50 * R) { const c = autoFreeCol(); if (c !== undefined) { spend(COST.lab, c + 0.5, YARD_R); S.lab.built = true; S.lab.c = c; addHist(tx().labBuilt); } }
   if (S.lab.built && !S.research) {
-    const ids = allResIds().filter(id => resAvail(id) && !resDef(id).done).sort((a, b) => (a === 'sk:digLv' ? -1 : b === 'sk:digLv' ? 1 : resDef(a).cost - resDef(b).cost));
-    for (const id of ids) if (S.money >= resDef(id).cost + (id === 'sk:digLv' ? 0 : 300 * R)) { startResearch(id); break; }
+    const ids = allResIds().filter(id => resAvail(id) && !resDef(id).done && !AI_SKIP.has(id)).sort((a, b) => aiResRank(a) - aiResRank(b) || resDef(a).cost - resDef(b).cost);   // 掘削レベル → 横穴掘削口 → 安い順
+    for (const id of ids) if (S.money >= resDef(id).cost + (aiResRank(id) < 2 ? 0 : W.resPad * R + (S.office.lv < OFFICE_LV.cost.length ? OFFICE_LV.cost[S.office.lv] * W.save : 0))) { startResearch(id); break; }
   }
   // 止まったドリル：掘れる向きがあれば向きを変える（横を先に、次に下）。どこも掘れなければ撤去して、別の所に置き直す
   for (const [dk, d] of drills) {
@@ -4297,17 +4315,22 @@ function autoStep(build = true) {
   }
   // 運ぶ所が詰まっていたら、トラック・フォークリフトを先に強化
   const dockN = Object.values(S.dock).reduce((a, p) => a + p.length, 0);
-  if (S.yard.length > valOf('truck') * 2 * aiLearn.truck) { const c = nextCost('truck'); if (c !== null && S.money > c * 1.3) levelUp('truck'); }
+  if (S.yard.length > valOf('truck') * 2 * aiLearn.truck) { const c = nextCost('truck'); if (c !== null && S.money > c * W.truck) levelUp('truck'); }
   if (dockN > 6) {
     const f0 = S.forks.reduce((a, b) => (a.lv <= b.lv ? a : b));
     const c = nextCost(f0);
     if (S.forks.length < forkMax() && S.money > FORK_BUY(S.forks.length + 1) * 1.5 && f0.lv >= 3) buyFork();
-    else if (c !== null && S.money > c * 1.3) levelUp(f0);
+    else if (c !== null && S.money > c * W.fork) levelUp(f0);
   }
   if (S.yard.length > valOf('truck') * 4 && nextCost('truck') !== null && S.money < nextCost('truck') * 3) return;   // ヤードが山になっている → トラックのためにお金を残す
-  for (const [, d] of drills) { const c = nextCost(d); if (c !== null && S.money > c * 2 * R) levelUp(d); }
-  for (const [, m] of machines) { const c = nextCost(m); if (c !== null && S.money > c * 3 * R) levelUp(m); }
-  for (const r of ROOT_ORDER) if (S.sold['@' + r] && S.money > priceCost(r) * 3 * R) priceUp(r);
+  // 会社レベル（目標）のためにためておく額。ほかの買い物は、これを割らない範囲で
+  const keep = S.office.lv < OFFICE_LV.cost.length ? OFFICE_LV.cost[S.office.lv] * W.save : 0;
+  const can = c => c !== null && S.money - c >= keep;
+  const queue = m => Object.values(m.buf || {}).reduce((a, v) => a + v, 0) + Object.values(m.bags || {}).reduce((a, v) => a + v, 0);
+  const flowOk = S.yard.length <= valOf('truck') * 2 && dockN <= 6 && S.items.length < 60;
+  for (const [, d] of drills) { const c = nextCost(d); if (c !== null && S.money > c * W.drill * R && can(c) && (!W.gate || flowOk)) levelUp(d); }
+  for (const [, m] of machines) { const c = nextCost(m); if (c !== null && S.money > c * W.mach * R && can(c) && (!W.gate || queue(m) >= 6)) levelUp(m); }
+  for (const r of ROOT_ORDER) if (S.sold['@' + r] && S.money > priceCost(r) * W.price * R && can(priceCost(r))) priceUp(r);
   if (!build) return;
   // ドリルを増やす・置き直す：段階＋1台まで（撤去された時も、ここで補う）
   const live = [...S.st.entries()].filter(([, x]) => x.type === 'drill');
@@ -4477,7 +4500,7 @@ resize();
 resetCam();
 showTitle();
 window.__game = { // 動作確認用
-  get S() { return S; }, TUNE, OFFICE_LV, row, canPlaceAt, officeUp, buyFork, finishResearch, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
+  get S() { return S; }, TUNE, OFFICE_LV, AI_W, row, canPlaceAt, officeUp, buyFork, finishResearch, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
   setTool: t => setTool(t), setDir: d => { dir = d; }, pause: () => { running = false; },
   checkStage, resAvail, buildCost, allResIds, resDef, autoSave, catchUp, showTitle, leaveTitle, autoPlay, autoStep, workNeed,
   deserialize, serialize, newGame: () => newGame(), aiLearn, autoPlan, AUTO_LINES, autoDiagnose, setLive: v => { autoLive = v; showAiLog(); }, setAutoBuild: v => { autoBuild = v; }, fmt, itemVal, placePend, priceUp, lvVal, lvCost, catalogIds,
