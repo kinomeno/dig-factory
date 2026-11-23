@@ -18,7 +18,7 @@
 <meta property="og:locale" content="ja_JP">
 <meta property="og:site_name" content="ほりほり工場 / Dig Factory Tycoon">
 <meta name="twitter:card" content="summary">
-<link rel="stylesheet" href="style.css?v=0.34">
+<link rel="stylesheet" href="style.css?v=0.35">
 </head>
 <body>
 <canvas id="cv"></canvas>
@@ -183,6 +183,9 @@
   <div id="popSideRow" class="prow labeled"><span class="lab" data-t="side">出す側</span>
     <span class="opts"><button data-ps="left" data-t="left">左</button><button data-ps="right" data-t="right">右</button></span>
   </div>
+  <div id="popPrioRow" class="prow labeled"><span class="lab" data-t="prio">優先度</span>
+    <span class="opts"><button data-pp="0" data-t="pLow">低</button><button data-pp="1" data-t="pMid">普通</button><button data-pp="2" data-t="pHigh">高</button></span>
+  </div>
   <div id="popInfo" class="sub"></div>
   <div id="popLevel" class="sub lvline"></div>
   <button id="popLvUp" class="wide"></button>
@@ -222,6 +225,6 @@
   </div>
 </div>
 
-<script src="main.js?v=0.34"></script>
+<script src="main.js?v=0.35"></script>
 </body>
 </html>
