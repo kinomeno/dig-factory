@@ -336,3 +336,9 @@ body.title .panel { z-index: 45; }
 .awaybar { height: 6px; margin: 0 0 14px; }
 
 .mv[hidden] { display: none; }
+
+/* 取引 */
+.adScreen { height: 120px; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; background: #2b2b2e; color: #c8c8c4; border-radius: 4px; letter-spacing: .2em; font-size: 13px; }
+#boostHud { display: block; font-size: 10px; color: var(--accent); letter-spacing: .04em; margin-left: 2px; }
+#moneyHud { flex-wrap: wrap; }
+#boostHud:empty { display: none; }

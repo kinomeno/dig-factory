@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.36（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.37（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.36';
+const VERSION = '0.37';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -227,6 +227,10 @@ const TXT = {
     iWhere: { soil: 'どこでも出る。1個は安いが、たくさん出る。', stone: '深いほど多い。クラッシャーで砂利にできる。', iron: '浅い所から出る（10mより下で多い）。',
       gold: '10mより下から出る（30mより下で多い）。', dia: '30mより下から出る（50mより下で多い）。' },
     autoMsg: (m, n) => `自動プレイ中… ${m}/${n}分`, autoDone: n => `自動プレイで${n}分進めました`,
+    trade: '取引', watch: 'CMを見る', tradeInfo: 'CMを見ると特典がもらえます。続けて見ると、効果の時間が足されます（上限あり）。',
+    deal: { idle2h: ['2時間ぶん進める', '2時間放置したのと同じだけ、工場が進みます。', '放置'], price2: ['売値2倍（30分）', '30分の間、売値が2倍になります。', '売値×2'],
+      wage0: ['給料カット（半年）', '半年の間、給料が0になります。', '給料0'], speed10: ['速さ10倍（3分）', '3分の間、時間が10倍の速さで進みます。', '速さ×10'] },
+    adWait: n => `CMを再生中…あと${n}秒`, adDummy: 'CM（準備中）', dealGot: n => `取引：${n}`, left: t => `あと${t}`, leftM: n => `あと${n}か月`,
     skill: '研究', researching: '研究中', researchDone: n => `研究完了：${n}`, busy: 'ほかの研究中です', months: 'か月',
     startRes: '研究', got: '取得済み', resInfo: 'お金を払って研究すると、何か月か後にスキルが手に入ります（研究は1つずつ）。',
     sk: {
@@ -344,6 +348,10 @@ const TXT = {
     iWhere: { soil: 'どこでも でる。1こは やすいが、たくさん でる。', stone: 'ふかいほど おおい。クラッシャーで じゃりに できる。', iron: 'あさい ところから でる（10mより したで おおい）。',
       gold: '10mより したから でる（30mより したで おおい）。', dia: '30mより したから でる（50mより したで おおい）。' },
     autoMsg: (m, n) => `じどう プレイちゅう… ${m}/${n}ふん`, autoDone: n => `じどう プレイで ${n}ふん すすめました`,
+    trade: 'とりひき', watch: 'CMを みる', tradeInfo: 'CMを みると とくてんが もらえます。つづけて みると、こうかの じかんが たされます（じょうげん あり）。',
+    deal: { idle2h: ['2じかんぶん すすめる', '2じかん ほうちしたのと おなじだけ、こうじょうが すすみます。', 'ほうち'], price2: ['うるね 2ばい（30ぷん）', '30ぷんの あいだ、うるねが 2ばいに なります。', 'うるね×2'],
+      wage0: ['きゅうりょう カット（はんとし）', 'はんとしの あいだ、きゅうりょうが 0に なります。', 'きゅうりょう0'], speed10: ['はやさ 10ばい（3ぷん）', '3ぷんの あいだ、じかんが 10ばいの はやさで すすみます。', 'はやさ×10'] },
+    adWait: n => `CMを さいせいちゅう…あと${n}びょう`, adDummy: 'CM（じゅんびちゅう）', dealGot: n => `とりひき：${n}`, left: t => `あと${t}`, leftM: n => `あと${n}かげつ`,
     skill: 'けんきゅう', researching: 'けんきゅうちゅう', researchDone: n => `けんきゅう おわり：${n}`, busy: 'ほかの けんきゅうちゅう です', months: 'かげつ',
     startRes: 'けんきゅう', got: 'てにいれた', resInfo: 'おかねを はらって けんきゅうすると、なんかげつか あとに スキルが てに はいります（けんきゅうは 1つずつ）。',
     sk: {
@@ -461,6 +469,10 @@ const TXT = {
     iWhere: { soil: 'Everywhere. Cheap, but plenty.', stone: 'More the deeper you go. A crusher turns it into gravel.', iron: 'From shallow ground (more below 10m).',
       gold: 'Below 10m (more below 30m).', dia: 'Below 30m (more below 50m).' },
     autoMsg: (m, n) => `Auto play… ${m}/${n} min`, autoDone: n => `Auto play ran ${n} minutes`,
+    trade: 'Deals', watch: 'Watch ad', tradeInfo: 'Watch an ad to get a bonus. Watching again adds more time (with a cap).',
+    deal: { idle2h: ['Skip 2 hours', 'Your factory runs as if you left it for 2 hours.', 'Idle'], price2: ['Double price (30 min)', 'Sale prices double for 30 minutes.', 'Price×2'],
+      wage0: ['Wage cut (6 months)', 'Wages are zero for six months.', 'Wages 0'], speed10: ['Speed ×10 (3 min)', 'Time runs ten times faster for 3 minutes.', 'Speed×10'] },
+    adWait: n => `Playing ad… ${n}s left`, adDummy: 'Ad (coming soon)', dealGot: n => `Deal: ${n}`, left: t => `${t} left`, leftM: n => `${n} mo left`,
     skill: 'Research', researching: 'Researching', researchDone: n => `Research done: ${n}`, busy: 'Another research is in progress', months: ' mo',
     startRes: 'Research', got: 'Acquired', resInfo: 'Pay to research; the skill arrives after a few in-game months (one at a time).',
     sk: {
@@ -618,6 +630,7 @@ function newGame() {
     stage: 1,           // 段階（岩盤を掘り抜くと上がる。新しい研究が出る）
     history: [],        // 会社の履歴（年月つき）
     moneyMark: 0,       // 資金の節目（履歴用）
+    boost: { priceT: 0, wageM: 0, speedUntil: 0 },   // 取引の効果：売値2倍の残り秒・給料カットの残り月・速さ10倍の終わる時刻
   };
   // 最初は作業員0人（自分ひとりでやっている設定）。事務所で雇う
   S.forks.push(Object.assign(newFork(), { x: PARK_X }));
@@ -852,6 +865,7 @@ function sim(sec) {
     updateTruck(dt);
     updateResearch(dt);
     updateMonth();
+    if (S.boost.priceT > 0) S.boost.priceT = Math.max(0, S.boost.priceT - dt);
     S.stats.histT += dt;   // 情報グラフ用に資金を記録（1秒ごと）
     if (S.stats.histT >= 1) { S.stats.histT -= 1; S.stats.hist.push(S.money); if (S.stats.hist.length > 300) S.stats.hist.shift(); }
   }
@@ -862,7 +876,8 @@ function updateMonth() {
   const m = Math.floor(S.time / TUNE.month);
   if (m === S.month) return;
   S.month = m;
-  const total = Math.round(S.workers.reduce((a, w) => a + wageOf(w), 0) * (sk('black') ? 0.8 : 1) * TUNE.wage);
+  const cut = S.boost.wageM > 0; if (cut) S.boost.wageM--;
+  const total = cut ? 0 : Math.round(S.workers.reduce((a, w) => a + wageOf(w), 0) * (sk('black') ? 0.8 : 1) * TUNE.wage);
   if (total > 0) {
     if (S.money >= total) spend(total, OFFICE_C + 1, YARD_R, tx().payPop);
     else {
@@ -1044,7 +1059,7 @@ function updateTruck(dt) {
         t.acc += dt * LOAD_RATE * (sk('yardPlus') ? 2 : 1);
         while (t.acc >= 1 && t.load < cap && S.yard.length) {
           const it = S.yard.shift();
-          t.value += itemVal(it); t.load++; t.acc--;
+          t.value += itemVal(it) * (S.boost.priceT > 0 ? 2 : 1); t.load++; t.acc--;
         }
       } else t.acc = 0;
       if (t.load >= cap) { t.phase = 'leaving'; t.t = 0; }
@@ -1149,6 +1164,7 @@ function deserialize(json) {
   d.rows = new Map(d.rows); d.st = new Map(d.st); d.pops = [];
   d.dock = d.dock || {}; d.forks = d.forks || [Object.assign(newFork(), { x: PARK_X })];
   d.stage = d.stage || stageOf(d.deepest); d.history = d.history || []; d.moneyMark = d.moneyMark || 0;
+  d.boost = d.boost || { priceT: 0, wageM: 0, speedUntil: 0 };
   // 古いセーブへの対応
   d.lab = d.lab || { type: 'lab', built: false, op: null };
   if (d.lab.built && d.lab.c === undefined) d.lab.c = OFFICE_C + 2;   // v0.17のセーブ（予定地に建っていた）
@@ -1808,7 +1824,7 @@ let helpIdx = 0;
 let panelTouchAt = -1e9;
 document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('.panel')) panelTouchAt = performance.now(); }, true);
 const panelBusy = el => el.matches(':hover') || performance.now() - panelTouchAt < 1200;
-const PANELS = ['powerPanel', 'skillPanel', 'office', 'help', 'settings', 'admin', 'tune'];   // 情報・地図は別（開いたまま遊べる）
+const PANELS = ['powerPanel', 'skillPanel', 'office', 'help', 'settings', 'admin', 'tune', 'tradePanel'];   // 情報・地図は別（開いたまま遊べる）
 function closePanels() { PANELS.forEach(x => { $(x).hidden = true; }); }
 function togglePanel(id) {
   const show = $(id).hidden;
@@ -1914,6 +1930,15 @@ function renderPanel(id) {
     section(T.resMach, Object.keys(RESEARCH_MACH).map(m => 'm:' + m));
     section(T.resBatch, ['batch']);
     section(T.resSkill, SKILL_ORDER.map(x => 'sk:' + x));
+  } else if (id === 'tradePanel') {
+    const box = $('tradeBody'); box.innerHTML = '';
+    const n = document.createElement('div'); n.className = 'sub'; n.textContent = T.tradeInfo; box.append(n);
+    for (const d of DEALS) {
+      const b = document.createElement('button'); b.textContent = T.watch;
+      b.addEventListener('click', () => showAd(() => { d.run(); addHist(T.deal[d.id][0]); say(T.dealGot(T.deal[d.id][0]), 3000); renderPanel('tradePanel'); updateUI(); }));
+      const left = dealLeft(d.id);
+      box.append(rowEl(T.deal[d.id][0], T.deal[d.id][1] + (left ? `（${left}）` : ''), b));
+    }
   } else if (id === 'tune') {
     // 調整：バーで数値を変える（すぐ反映・保存）。結果をコピーして Claude に渡せる
     const box = $('tuneBody'); box.innerHTML = '';
@@ -2977,6 +3002,7 @@ function updateUI() {
   // まだ使えない物は見せない（施設＝事務所レベル2から、スキル＝研究所ができてから）
   $('facBtn').hidden = !(S.office.lv >= 1 && !S.lab.built);
   $('skillBtn').hidden = !S.lab.built;
+  $('tradeBtn').hidden = S.office.lv < 1;
   const curName = tool === 'none' || tool === 'pan' ? '' : tool === 'machine' ? T.mach[machSel] : tool === 'lab' ? T.labName : T[tool];
   const dirTool = tool === 'conv' || tool === 'sort' || tool === 'tee' || tool === 'cross' || tool === 'machine';
   $('menuCur').textContent = curName ? `（${curName}）` : '';
@@ -3168,6 +3194,7 @@ $('zoomIn').addEventListener('click', () => zoomAt(cw / 2, ch / 2, 1.25));
 $('zoomOut').addEventListener('click', () => zoomAt(cw / 2, ch / 2, 0.8));
 $('topBtn').addEventListener('click', () => { cam.y = camTop(); metrics(); });
 $('powerBtn').addEventListener('click', () => togglePanel('powerPanel'));
+$('tradeBtn').addEventListener('click', () => togglePanel('tradePanel'));
 $('skillBtn').addEventListener('click', () => { if (S.lab.built) togglePanel('skillPanel'); });
 $('helpBtn').addEventListener('click', () => togglePanel('help'));
 $('setBtn').addEventListener('click', () => togglePanel('settings'));
@@ -3237,6 +3264,40 @@ async function autoPlay(min) {
   $('awayMsg').textContent = T.autoDone(min); $('awayOk').hidden = false;
 }
 
+// ---- 取引：CMを見ると特典。続けて見ると効果時間が足される（上限あり） ----
+// 今は広告サービスの代わりに数秒待つだけ（showAd）。本物のCMを入れる時は showAd の中だけ差し替える
+const DEALS = [
+  { id: 'idle2h', run: () => catchUp(7200) },                                                                     // 2時間ぶん放置と同じ
+  { id: 'price2', run: () => { S.boost.priceT = Math.min(28800, S.boost.priceT + 1800); } },                       // 30分 売値2倍（最大8時間ぶん）
+  { id: 'wage0',  run: () => { S.boost.wageM = Math.min(24, S.boost.wageM + 6); } },                               // 半年間 給料カット（最大2年ぶん）
+  { id: 'speed10', run: () => { S.boost.speedUntil = Math.min(Date.now() + 1800e3, Math.max(Date.now(), S.boost.speedUntil) + 180e3); } },   // 3分間 速さ10倍（最大30分ぶん）
+];
+let adBusy = false;
+function showAd(done) {   // CM（仮）：5秒待つ
+  if (adBusy) return; adBusy = true;
+  const box = $('adBox'), T = tx(), len = 5;
+  box.hidden = false; let t = 0;
+  const tick = () => {
+    $('adMsg').textContent = T.adWait(Math.ceil(len - t));
+    $('adBar').style.width = (100 * t / len) + '%';
+    if (t >= len) { box.hidden = true; adBusy = false; done(); return; }
+    t = Math.min(len, t + 0.1); setTimeout(tick, 100);
+  };
+  tick();
+}
+function dealLeft(id) {
+  const B = S.boost, T = tx();
+  if (id === 'price2' && B.priceT > 0) return T.left(fmtDur(B.priceT));
+  if (id === 'wage0' && B.wageM > 0) return T.leftM(B.wageM);
+  if (id === 'speed10' && Date.now() < B.speedUntil) return T.left(fmtDur((B.speedUntil - Date.now()) / 1000));
+  return '';
+}
+function boostText() {
+  const T = tx(), a = [];
+  for (const d of DEALS) { const l = dealLeft(d.id); if (l) a.push(`${T.deal[d.id][2]} ${l}`); }
+  return a.join('・');
+}
+
 // ---- タイトル画面 ----
 function showTitle() {
   inTitle = true; document.body.classList.add('title'); $('title').hidden = false;
@@ -3275,11 +3336,12 @@ let last = performance.now(), panelTick = 0;
 function frame(now) {
   const dt = Math.min(now - last, 250) / 1000; last = now;
   const sp = speeds(); if (speedIdx >= sp.length) speedIdx = sp.length - 1;
-  if (running && !inTitle) sim(dt * sp[speedIdx]);
+  if (running && !inTitle) sim(dt * sp[speedIdx] * (Date.now() < S.boost.speedUntil ? 10 : 1));
   applyMove(dt);
   updateUI();
   if ((panelTick = (panelTick + 1) % 15) === 0) {
-    for (const id of ['powerPanel', 'office', 'skillPanel']) if (!$(id).hidden && !panelBusy($(id))) renderPanel(id);
+    for (const id of ['powerPanel', 'office', 'skillPanel', 'tradePanel']) if (!$(id).hidden && !panelBusy($(id))) renderPanel(id);
+    $('boostHud').textContent = boostText();
     if (!$('info').hidden) renderInfo();
     if (popTarget) updatePop();
     syncDash();

@@ -18,7 +18,7 @@
 <meta property="og:locale" content="ja_JP">
 <meta property="og:site_name" content="ほりほり工場 / Dig Factory Tycoon">
 <meta name="twitter:card" content="summary">
-<link rel="stylesheet" href="style.css?v=0.36">
+<link rel="stylesheet" href="style.css?v=0.37">
 </head>
 <body>
 <canvas id="cv"></canvas>
@@ -82,6 +82,7 @@
   <button class="cat" data-cat="facility" id="facBtn" data-t="facility">施設</button>
   <button id="skillBtn" data-t="skill">スキル</button>
   <button id="powerBtn" data-t="power">強化</button>
+  <button id="tradeBtn" data-t="trade">取引</button>
   <button class="cat" data-cat="works" data-t="works">工事</button>
   <button id="menuClose" class="x">✕</button>
 </div>
@@ -95,12 +96,13 @@
   <button class="dtab" data-px="powerBtn" data-open="powerPanel"><b data-t="power">強化</b><i>UPGRADE</i></button>
   <button class="dtab" data-px="#catBar [data-cat=works]" data-open="works"><b data-t="works">工事</b><i>WORKS</i></button>
   <button class="dtab" data-px="infoBtn" data-open="info"><b data-t="info">情報</b><i>REPORT</i></button>
+  <button class="dtab" data-px="tradeBtn" data-open="tradePanel"><b data-t="trade">取引</b><i>DEALS</i></button>
 </div>
 <!-- 引き出しの取っ手（開いている引き出しの左上に付く） -->
 <div id="dHandle" hidden><b></b><i></i></div>
 
 <!-- 資金：ゲーム画面の左上に直接（白いふちで、どんな背景でも読める） -->
-<div id="moneyHud"><span data-t="money">資金</span><b id="money">0</b></div>
+<div id="moneyHud"><span data-t="money">資金</span><b id="money">0</b><small id="boostHud"></small></div>
 
 <p id="msg" class="msg"></p>
 <!-- 選択中の道具（左下） -->
@@ -110,6 +112,12 @@
 <div id="powerPanel" class="float panel bottom" hidden>
   <div class="head"><b data-t="power">強化</b><button class="x" data-close="powerPanel">✕</button></div>
   <div id="powerItems"></div>
+</div>
+
+<!-- 取引（CMを見ると特典。今はCMの代わりに数秒待つ仮の形） -->
+<div id="tradePanel" class="float panel bottom" hidden>
+  <div class="head"><b data-t="trade">取引</b><button class="x" data-close="tradePanel">✕</button></div>
+  <div id="tradeBody"></div>
 </div>
 
 <!-- スキル（研究） -->
@@ -208,6 +216,15 @@
   </div>
 </div>
 
+<!-- CM（仮）：今は数秒待つだけ。広告サービスを入れる時はここに流す -->
+<div id="adBox" class="modal" hidden>
+  <div class="box">
+    <p id="adMsg"></p>
+    <div class="adScreen"><span data-t="adDummy">CM（準備中）</span></div>
+    <div class="bar awaybar"><i id="adBar"></i></div>
+  </div>
+</div>
+
 <!-- 留守の間の計算 -->
 <div id="away" class="modal" hidden>
   <div class="box">
@@ -225,7 +242,7 @@
   </div>
 </div>
 
-<script src="sprites.js?v=0.36"></script>
-<script src="main.js?v=0.36"></script>
+<script src="sprites.js?v=0.37"></script>
+<script src="main.js?v=0.37"></script>
 </body>
 </html>
