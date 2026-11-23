@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.10（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.11（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.10';
+const VERSION = '0.11';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：自分のPC（localhost）で開いた時だけ出る。公開サーバーでは自動で消える（?dev を付ければ出る）
 const DEV = ['localhost', '127.0.0.1', ''].includes(location.hostname) || new URLSearchParams(location.search).has('dev');
