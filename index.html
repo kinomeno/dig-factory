@@ -18,7 +18,7 @@
 <meta property="og:locale" content="ja_JP">
 <meta property="og:site_name" content="ほりほり工場 / Dig Factory Tycoon">
 <meta name="twitter:card" content="summary">
-<link rel="stylesheet" href="style.css?v=0.31">
+<link rel="stylesheet" href="style.css?v=0.32">
 </head>
 <body>
 <canvas id="cv"></canvas>
@@ -127,11 +127,15 @@
 <!-- 情報（経営状況。見出しをドラッグで移動できる） -->
 <div id="info" class="float panel drag" hidden>
   <div class="head handle"><b data-t="info">情報</b><button class="x" data-close="info">✕</button></div>
+  <div class="itabs"><button data-itab="fin" class="active" data-t="finance">財務</button><button data-itab="hist" data-t="history">履歴</button></div>
+  <div id="infoFin">
   <div id="infoData" class="igrid"></div>
   <div class="igraphs">
     <div class="igrp"><div class="ihead" data-t="gMoney">資金の動き</div><canvas id="gMoney" class="graph" width="340" height="90"></canvas></div>
     <div class="igrp"><div class="ihead" data-t="gMonth">月ごとの収支</div><canvas id="gMonth" class="graph" width="340" height="90"></canvas></div>
   </div>
+  </div>
+  <div id="infoHist" class="ihist" hidden></div>
 </div>
 
 <!-- 遊び方 -->
@@ -186,6 +190,30 @@
   <button id="popRemove" class="wide" data-t="remove">撤去</button>
 </div>
 
+<!-- タイトル画面（下に地上、上はぜんぶ空） -->
+<div id="title" hidden>
+  <div class="tbox">
+    <h1 class="tname" data-t="title">ほりほり工場</h1>
+    <div class="tsub">DIG FACTORY TYCOON</div>
+    <div class="tmenu">
+      <button id="tCont" data-t="tCont">つづきから</button>
+      <button id="tNew" data-t="tNew">はじめから</button>
+      <button id="tHelp" data-t="help">遊び方</button>
+    </div>
+    <div class="tlang"><button data-lang="hira">ひらがな</button><button data-lang="kanji">漢字</button><button data-lang="en">English</button></div>
+    <div class="tfoot"><span id="tVer"></span>　© 2026 キノメノ / Kinomeno</div>
+  </div>
+</div>
+
+<!-- 留守の間の計算 -->
+<div id="away" class="modal" hidden>
+  <div class="box">
+    <p id="awayMsg"></p>
+    <div class="bar awaybar"><i id="awayBar"></i></div>
+    <div class="btns"><button id="awayOk" class="active" hidden>OK</button></div>
+  </div>
+</div>
+
 <!-- 確認（ブラウザ標準の確認窓は使わない） -->
 <div id="confirm" class="modal" hidden>
   <div class="box">
@@ -194,6 +222,6 @@
   </div>
 </div>
 
-<script src="main.js?v=0.31"></script>
+<script src="main.js?v=0.32"></script>
 </body>
 </html>

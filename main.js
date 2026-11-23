@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.31（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.32（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.31';
+const VERSION = '0.32';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -200,7 +200,7 @@ const TXT = {
       ['加工', '機械は、前以外の方向から材料を入れると、前に製品を出します。対応していない資源は、機械の中を2倍の時間をかけて通り抜けます。\n最初はレンガ焼成機とクラッシャーだけ。'],
       ['作業員', '事務所で「Lv0を増員」して雇います。作業員はドリル・機械へ自分で歩いて行って操作し、働くほどレベルが上がります。作業員がいない所は「z」の印が付き、とても遅くなります。\nLv2以上になると、地上・上級勤務（フォークリフト・トラック・研究所）にも就きます。疲れると事務所で休みます。給料は毎月。払えない月は1人やめます。'],
       ['事務所と研究所', '事務所はタップでレベルアップできます。定員・フォークリフトの台数・休憩の速さが上がり、レベル2で下のタブの「施設」から研究所（1マス・地上のどこでも）を建てられます。\n研究所では、機械・まとめて強化・スキルを研究できます。Lv2以上の研究員がいないと、研究はとても遅くなります。フォークリフトは「強化」で買い足せます。'],
-      ['お金', '売上はトラックが帰ってきた時に入ります。お金が少なく売上も無い月は、銀行が融資してくれます（売上から少しずつ返します）。\n「情報」で経営の様子をグラフで見られます。セーブは設定から。タイトルを押すとリセットできます。'],
+      ['お金', '売上はトラックが帰ってきた時に入ります。お金が少なく売上も無い月は、銀行が融資してくれます（売上から少しずつ返します）。\n「情報」で経営の様子をグラフで見られます。ゲームは自動でセーブされます。タイトルを押すとタイトル画面に戻ります。'],
     ],
     helpList: [
       '手のひら（右上）でドラッグ、または画面の端の▲▼◀▶で画面が動きます。2本指・Ctrl＋ホイール・＋－で拡大縮小。「地図」で全体を見られます。',
@@ -211,11 +211,16 @@ const TXT = {
       '地上中央の事務所で作業員を雇えます（最初は自分ひとり＝0人）。作業員は自分でドリルや機械へ歩いて行って操作します。作業員がいないととても遅くなります（「z」の印）。疲れると事務所で休みます。給料は毎月払います。',
       '置いた物をタップすると、向きの変更やレベルアップができます。レベルは黄色い点の数で分かります。',
       '「情報」で経営の様子をグラフで見られます。',
-      '下のタブの「スキル」で研究すると便利な力が手に入ります。硬い岩盤（10m、その後20mごと）は「掘削レベル」を研究しないと、とても遅くしか掘れません。事務所はタップでレベルアップできます。セーブは設定から。',
+      '下のタブの「スキル」で研究すると便利な力が手に入ります。硬い岩盤（10m、その後20mごと）は「掘削レベル」を研究しないと、とても遅くしか掘れません。事務所はタップでレベルアップできます。自動でセーブされます。',
     ],
     stageUp: (n, names) => `岩盤レベル${n}突破。` + (names.length ? `${names.join('と')}が可能になりました。` : ''), stagePop: n => `岩盤レベル${n}突破`,
     nextRock: '次の岩盤を突破すると研究できます',
     hStart: '創業（社長ひとり・ドリル1台）', hOffice: n => `事務所をレベル${n}に`, hStage: n => `岩盤レベル${n}を突破`, hMoney: v => `資金が${v.toLocaleString()}を超えた`,
+    tCont: 'つづきから', tNew: 'はじめから', confirmNew: 'はじめからにしますか？（今の遊びかけは消えます）', confirmTitle: 'タイトルにもどりますか？（自動でセーブします）',
+    dur: (h, m) => (h ? `${h}時間` : '') + `${m}分`, awayCalc: t => `おかえりなさい。留守の間（${t}）の工場を計算しています…`,
+    awayDone: (t, sale, net) => `留守の間（${t}）に、売上 ${sale.toLocaleString()}・資金 ${net >= 0 ? '+' : ''}${net.toLocaleString()}`,
+    hAway: t => `留守の間 ${t} 工場が動いた`, autoSaveNote: 'ゲームは自動でセーブされます（30秒ごと・閉じる時・タイトルに戻る時）。',
+    finance: '財務', history: '履歴', histEmpty: 'まだありません',
     skill: '研究', researching: '研究中', researchDone: n => `研究完了：${n}`, busy: 'ほかの研究中です', months: 'か月',
     startRes: '研究', got: '取得済み', resInfo: 'お金を払って研究すると、何か月か後にスキルが手に入ります（研究は1つずつ）。',
     sk: {
@@ -323,6 +328,11 @@ const TXT = {
     stageUp: (n, names) => `がんばん レベル${n} とっぱ。` + (names.length ? `${names.join('と')}が できるように なりました。` : ''), stagePop: n => `がんばん レベル${n} とっぱ`,
     nextRock: 'つぎの がんばんを とっぱすると けんきゅう できます',
     hStart: 'かいしゃを はじめた（しゃちょう ひとり・ドリル1だい）', hOffice: n => `じむしょを レベル${n}に`, hStage: n => `がんばん レベル${n}を とっぱ`, hMoney: v => `おかねが ${v.toLocaleString()}を こえた`,
+    tCont: 'つづきから', tNew: 'はじめから', confirmNew: 'はじめから に しますか？（いまの あそびかけは きえます）', confirmTitle: 'タイトルに もどりますか？（じどうで セーブします）',
+    dur: (h, m) => (h ? `${h}じかん` : '') + `${m}ふん`, awayCalc: t => `おかえりなさい。るすの あいだ（${t}）の こうじょうを けいさん しています…`,
+    awayDone: (t, sale, net) => `るすの あいだ（${t}）に、うりあげ ${sale.toLocaleString()}・おかね ${net >= 0 ? '+' : ''}${net.toLocaleString()}`,
+    hAway: t => `るすの あいだ ${t} こうじょうが うごいた`, autoSaveNote: 'ゲームは じどうで セーブ されます（30びょうごと・とじる とき・タイトルに もどる とき）。',
+    finance: 'おかね', history: 'れきし', histEmpty: 'まだ ありません',
     skill: 'けんきゅう', researching: 'けんきゅうちゅう', researchDone: n => `けんきゅう おわり：${n}`, busy: 'ほかの けんきゅうちゅう です', months: 'かげつ',
     startRes: 'けんきゅう', got: 'てにいれた', resInfo: 'おかねを はらって けんきゅうすると、なんかげつか あとに スキルが てに はいります（けんきゅうは 1つずつ）。',
     sk: {
@@ -430,6 +440,11 @@ const TXT = {
     stageUp: (n, names) => `Broke through bedrock level ${n}.` + (names.length ? ` Now available: ${names.join(', ')}.` : ''), stagePop: n => `Bedrock ${n} cleared`,
     nextRock: 'Break through the next bedrock to research',
     hStart: 'Company founded (just the boss, one drill)', hOffice: n => `Office upgraded to level ${n}`, hStage: n => `Broke through bedrock level ${n}`, hMoney: v => `Money passed ${v.toLocaleString()}`,
+    tCont: 'Continue', tNew: 'New game', confirmNew: 'Start a new game? (your current game will be lost)', confirmTitle: 'Back to the title? (the game is saved automatically)',
+    dur: (h, m) => (h ? `${h}h ` : '') + `${m}m`, awayCalc: t => `Welcome back. Working out your factory while you were away (${t})…`,
+    awayDone: (t, sale, net) => `While you were away (${t}): sales ${sale.toLocaleString()}, money ${net >= 0 ? '+' : ''}${net.toLocaleString()}`,
+    hAway: t => `Factory ran for ${t} while away`, autoSaveNote: 'The game saves automatically (every 30s, when closing, and when returning to the title).',
+    finance: 'Finance', history: 'History', histEmpty: 'Nothing yet',
     skill: 'Research', researching: 'Researching', researchDone: n => `Research done: ${n}`, busy: 'Another research is in progress', months: ' mo',
     startRes: 'Research', got: 'Acquired', resInfo: 'Pay to research; the skill arrives after a few in-game months (one at a time).',
     sk: {
@@ -1147,6 +1162,38 @@ function loadFrom(n) {
     closePop(); closePanels(); updateUI(); say(tx().loaded);
   });
 }
+// 自動セーブ：1つだけ。30秒ごと・ページを閉じる時・タイトルに戻る時
+const AUTO_KEY = 'digfactory.auto';
+let inTitle = true;
+function autoSave() {
+  if (inTitle || !S) return;
+  try { localStorage.setItem(AUTO_KEY, serialize()); } catch (e) { /* 保存できない環境 */ }
+}
+function savedJson() {
+  try { return localStorage.getItem(AUTO_KEY) || localStorage.getItem(SAVE_KEY(1)); } catch (e) { return null; }
+}
+// 放置できる時間（秒）：最初は30分、研究「放置時間延長」で30分ずつ、最大1日
+const awayLimit = () => Math.min(86400, 1800 * (1 + sk('away')));
+const fmtDur = sec => { const m = Math.round(sec / 60), T = tx(); return T.dur(Math.floor(m / 60), m % 60); };
+// 留守の間を、本当に時間を進めて計算する（バーで進み具合を見せる）
+async function catchUp(sec) {
+  const T = tx(), box = $('away');
+  box.hidden = false; $('awayOk').hidden = true;
+  $('awayMsg').textContent = T.awayCalc(fmtDur(sec));
+  const m0 = S.money, s0 = S.stats.saleTotal;
+  let done = 0;
+  while (done < sec) {
+    const t0 = performance.now();
+    while (done < sec && performance.now() - t0 < 30) { const st = Math.min(20, sec - done); sim(st); done += st; }
+    $('awayBar').style.width = (100 * done / sec) + '%';
+    await new Promise(r => setTimeout(r, 0));
+  }
+  S.pops = [];
+  $('awayMsg').textContent = T.awayDone(fmtDur(sec), S.stats.saleTotal - s0, S.money - m0);
+  $('awayOk').hidden = false;
+  addHist(T.hAway(fmtDur(sec)));
+  autoSave();
+}
 function slotInfo(n) {
   try {
     const j = localStorage.getItem(SAVE_KEY(n));
@@ -1472,7 +1519,7 @@ function metrics() {
   if (worldW <= cw) { offX = (cw - worldW) / 2; cam.x = 0; }
   else { offX = 0; cam.x = clamp(cam.x, 0, COLS - cw / cp); }
   const viewRows = ch / cp;
-  cam.y = clamp(cam.y, camTop() - 0.7, Math.max(0, S.deepest + 4 - viewRows * 0.5));
+  if (!inTitle) cam.y = clamp(cam.y, camTop() - 0.7, Math.max(0, S.deepest + 4 - viewRows * 0.5));
 }
 function resetCam() {
   cam.z = START_ZOOM;
@@ -1894,14 +1941,7 @@ function renderPanel(id) {
       }
       row.append(lab, opts); box.append(row);
     }
-    const h = document.createElement('div'); h.className = 'secT'; h.textContent = T.saveT; box.append(h);
-    for (let n = 1; n <= saveSlots(); n++) {
-      const two = document.createElement('span'); two.className = 'btn2';
-      const sv = document.createElement('button'); sv.textContent = T.save; sv.addEventListener('click', () => { saveTo(n); renderPanel('settings'); });
-      const ld = document.createElement('button'); ld.textContent = T.load; ld.disabled = !slotInfo(n); ld.addEventListener('click', () => loadFrom(n));
-      two.append(sv, ld);
-      box.append(rowEl(T.slot(n), slotInfo(n) || T.empty, two));
-    }
+    const h = document.createElement('div'); h.className = 'sub'; h.textContent = T.autoSaveNote; box.append(h);
   }
 }
 document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => { $(b.dataset.close).hidden = true; }));
@@ -1941,7 +1981,27 @@ function makeDraggable(el) {
 }
 
 // ---- 情報パネル（経営状況） ----
+let infoTab = 'fin';
+document.querySelectorAll('[data-itab]').forEach(b => b.addEventListener('click', () => {
+  infoTab = b.dataset.itab;
+  document.querySelectorAll('[data-itab]').forEach(x => x.classList.toggle('active', x === b));
+  $('infoFin').hidden = infoTab !== 'fin'; $('infoHist').hidden = infoTab !== 'hist';
+  renderInfo(); updateUI();
+}));
+function renderHist() {
+  const T = tx(), box = $('infoHist');
+  if (box.dataset.n === String(S.history.length) && box.dataset.lang === lang) return;   // 変わった時だけ作り直す
+  box.dataset.n = S.history.length; box.dataset.lang = lang; box.innerHTML = '';
+  if (!S.history.length) { box.textContent = T.histEmpty; return; }
+  for (const e of [...S.history].reverse()) {   // 新しい順
+    const r = document.createElement('div'); r.className = 'hrow2';
+    const a = document.createElement('span'); a.textContent = T.date(Math.floor(e.m / 12) + 1, e.m % 12 + 1);
+    const b = document.createElement('span'); b.textContent = e.t;
+    r.append(a, b); box.append(r);
+  }
+}
 function renderInfo() {
+  if (infoTab === 'hist') { renderHist(); return; }
   const T = tx(), R = T.infoRows, st = S.stats;
   const last = st.months[st.months.length - 1];
   const sts = [...S.st.values()];
@@ -2822,7 +2882,8 @@ function setupText() {
   document.documentElement.lang = lang === 'en' ? 'en' : 'ja';
   document.title = T.title;
   document.querySelectorAll('[data-t]').forEach(el => { const v = T[el.dataset.t]; if (typeof v === 'string') el.textContent = v; });
-  $('ver').textContent = 'v' + VERSION;
+  $('ver').textContent = 'v' + VERSION; $('tVer').textContent = 'v' + VERSION;
+  document.querySelectorAll('[data-lang]').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
   document.querySelector('#hdr .wm').hidden = lang === 'en';
   $('adminBtn').hidden = !DEV;
   $('panBtn').title = T.pan;
@@ -2972,13 +3033,13 @@ $('skillBtn').addEventListener('click', () => { if (S.lab.built) togglePanel('sk
 $('helpBtn').addEventListener('click', () => togglePanel('help'));
 $('setBtn').addEventListener('click', () => togglePanel('settings'));
 $('adminBtn').addEventListener('click', () => togglePanel('admin'));
-// タイトルを押すと「リセットしますか？」→ はい で再読み込み
-document.querySelector('#hdr .brand').addEventListener('click', () => askConfirm(tx().confirmReload, () => location.reload()));
+// タイトルを押すと「タイトルにもどりますか？」（自動でセーブしてから）
+document.querySelector('#hdr .brand').addEventListener('click', () => askConfirm(tx().confirmTitle, () => { autoSave(); showTitle(); }));
 $('resetBtn').addEventListener('click', () => askConfirm(tx().confirmReset, () => {
-  closePop(); closePanels(); newGame(); updateUI();
+  closePop(); closePanels(); newGame(); resetCam(); updateUI(); autoSave();
 }));
 window.addEventListener('keydown', e => {
-  if (!$('confirm').hidden) return;
+  if (!$('confirm').hidden || inTitle) return;
   if (e.code === 'Space') { e.preventDefault(); running = !running; }
   else if (e.key === 'r' || e.key === 'R') dir = ROT[(ROT.indexOf(dir) + 1) % 4];
   else if (e.key === '0') tool = tool === 'pan' ? 'none' : 'pan';
@@ -3010,12 +3071,45 @@ $('unfoldBtn').addEventListener('click', () => setFold(false));
 setInterval(fitHeader, 1000);   // 資金の桁が増えたときも
 requestAnimationFrame(fitHeader);
 
+// ---- タイトル画面 ----
+function showTitle() {
+  inTitle = true; document.body.classList.add('title'); $('title').hidden = false;
+  closePop(); closePanels(); $('info').hidden = true; tool = 'none'; openCat = null; renderSub();
+  $('tCont').hidden = !savedJson();
+  // 地上を画面の下に置き、上はぜんぶ空にする
+  cam.z = START_ZOOM; metrics();
+  cam.y = SKY + 2.6 - ch / cp; cam.x = OFFICE_C + 1 - cw / cp / 2; metrics();
+  updateUI();
+}
+function leaveTitle() {
+  inTitle = false; document.body.classList.remove('title'); $('title').hidden = true;
+  fitHeader(); resize(); resetCam(); updateUI();
+}
+$('tNew').addEventListener('click', () => {
+  const go = () => { newGame(); leaveTitle(); autoSave(); };
+  if (savedJson()) askConfirm(tx().confirmNew, go); else go();
+});
+$('tCont').addEventListener('click', () => {
+  const j = savedJson(); if (!j) return;
+  let at = 0;
+  try { S = deserialize(j); at = JSON.parse(j).at || 0; } catch (e) { say(tx().saveNG); return; }
+  pathCache.ver = -1; digCache.ver = -1; speedIdx = 0;
+  leaveTitle();
+  const gone = at ? Math.min((Date.now() - at) / 1000, awayLimit()) : 0;
+  if (gone >= 10) catchUp(gone);
+});
+$('tHelp').addEventListener('click', () => togglePanel('help'));
+$('awayOk').addEventListener('click', () => { $('away').hidden = true; });
+window.addEventListener('pagehide', autoSave);
+document.addEventListener('visibilitychange', () => { if (document.hidden) autoSave(); });
+setInterval(autoSave, 30000);
+
 // ---- ループ ----
 let last = performance.now(), panelTick = 0;
 function frame(now) {
   const dt = Math.min(now - last, 250) / 1000; last = now;
   const sp = speeds(); if (speedIdx >= sp.length) speedIdx = sp.length - 1;
-  if (running) sim(dt * sp[speedIdx]);
+  if (running && !inTitle) sim(dt * sp[speedIdx]);
   applyMove(dt);
   updateUI();
   if ((panelTick = (panelTick + 1) % 15) === 0) {
@@ -3036,10 +3130,11 @@ applyDash();
 setupText();
 resize();
 resetCam();
+showTitle();
 window.__game = { // 動作確認用
   get S() { return S; }, TUNE, row, canPlaceAt, officeUp, buyFork, finishResearch, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
   setTool: t => setTool(t), setDir: d => { dir = d; }, pause: () => { running = false; },
-  checkStage, resAvail, buildCost, allResIds, resDef,
+  checkStage, resAvail, buildCost, allResIds, resDef, autoSave, catchUp, showTitle, leaveTitle,
 };
 requestAnimationFrame(frame);
 })();

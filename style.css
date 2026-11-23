@@ -309,3 +309,28 @@ body.dash #infoBtn { display: none; }
 
 #timeGroup .zl { font-size: 11px; margin-right: -1px; }
 #speedBtn[hidden] { display: none; }
+
+/* 情報：財務／履歴 */
+.itabs { display: flex; gap: 4px; margin-bottom: 10px; }
+.itabs button { padding: 4px 14px; font-size: 12px; }
+.ihist { font-size: 12px; line-height: 1.6; }
+.ihist .hrow2 { display: grid; grid-template-columns: 6.5em 1fr; gap: 10px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.ihist .hrow2 span:first-child { color: var(--sub); font-variant-numeric: tabular-nums; }
+/* タイトル画面：上は空、下に地上（ゲーム画面がそのまま見える） */
+body.title #hdr, body.title #dash, body.title #moneyHud, body.title .mv, body.title #unfoldBtn,
+body.title #curTool, body.title #dirBar, body.title #subMenu, body.title #dHandle { display: none !important; }
+body.title #cv { height: 100%; }
+body.title .panel { z-index: 45; }
+#title { position: fixed; inset: 0; z-index: 40; display: flex; justify-content: center; align-items: flex-start; padding-top: 12vh; }
+#title[hidden] { display: none; }
+#title .tbox { text-align: center; }
+#title .tname { margin: 0; font-size: 38px; font-weight: 700; letter-spacing: .14em; color: #fff; text-shadow: 0 2px 0 rgba(30,60,90,.18); }
+#title .tsub { margin: 6px 0 30px; font-size: 10px; letter-spacing: .5em; color: rgba(255,255,255,.9); }
+#title .tmenu { display: flex; flex-direction: column; gap: 10px; width: 210px; margin: 0 auto; }
+#title .tmenu button { padding: 11px; font-size: 15px; letter-spacing: .2em; background: rgba(255,255,255,.94); }
+#title .tmenu button[hidden] { display: none; }
+#title .tlang { margin-top: 18px; display: flex; gap: 6px; justify-content: center; }
+#title .tlang button { font-size: 11px; padding: 4px 8px; background: rgba(255,255,255,.6); }
+#title .tlang button.active { background: var(--selbg); color: #fff; }
+#title .tfoot { margin-top: 16px; font-size: 10px; letter-spacing: .1em; color: rgba(255,255,255,.9); }
+.awaybar { height: 6px; margin: 0 0 14px; }
