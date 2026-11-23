@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.43（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.44（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.43';
+const VERSION = '0.44';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -126,7 +126,12 @@ const MACHINES = {
   polisher: { cost: 500, time: 3, recipes: [{ in: 'diaCut', n: 1, out: 'gem' }, { in: 'tile', n: 1, out: 'glossTile' }] },      // 研磨：タイル→つやタイルも
   drawer:   { cost: 350, time: 3, recipes: [{ in: 'ironbar', n: 1, out: 'wire' }, { in: 'goldbar', n: 1, out: 'goldleaf' }] },  // 伸線機（引き延ばし）
   atelier:  { cost: 700, time: 6, recipes: [{ ins: { ironbar: 1, gem: 1 }, out: 'decoIron' }, { ins: { goldbar: 1, gem: 1 }, out: 'decoGold' }] },   // 装飾工房（2つの材料を組み合わせる）
+  adit:     { cost: 500, time: 3, recipes: [], src: true },   // 横穴掘削口：その深さの資源が、前から出続ける（岩盤と岩盤の間に1つずつ）
 };
+// 岩盤と岩盤の間（ゾーン）：0＝5mより上、1＝5〜10m、2＝10〜20m…。横穴掘削口はゾーンごとに1つ
+const zoneOf = r => { let n = 0; while (SKY + layerDepth(n + 1) < r) n++; return n; };
+const aditFree = (c, r) => { const z = zoneOf(r); for (const [k, s] of S.st) if (s.type === 'machine' && s.m === 'adit' && k !== key(c, r) && zoneOf(rOf(k)) === z) return false; return true; };
+function aditOre(r) { return oreFrom(makeBlock(r)); }   // その深さで掘った時と同じ出方
 const MACHINE_ORDER = Object.keys(MACHINES);
 
 // フォークリフト：地上に出た資源を、出た場所（荷おろし場）からヤードまで運ぶ
@@ -140,7 +145,7 @@ const layerAt = d => (d === 5 ? 1 : d >= 10 && d % 10 === 0 ? 1 + d / 10 : 0);
 const rockLv = layer => layer - 1;                                      // 画面に出す岩盤レベル
 const stageOf = deepest => { let n = 1; while (deepest - SKY >= layerDepth(n)) n++; return n; };
 // 事務所のレベル：休憩の速さ・定員
-const OFFICE_LV = { rest: [1, 1.5, 2, 3, 4], cap: [3, 5, 8, 12, 16], forks: [1, 2, 3, 4, 5], cost: [300, 1500, 4000, 9000] };   // レベル2（研究所）は安め
+const OFFICE_LV = { rest: [1, 1.5, 2, 3, 4], cap: [3, 5, 8, 12, 16], forks: [1, 2, 3, 4, 5], cost: [1000, 1500, 4000, 9000] };   // レベル2＝岩盤Lv0を破れる・研究所（レンガを作ったほうが早く届く額）
 const ADV_LV = 2;                // 地上・上級勤務（フォークリフト・トラック・研究所）に必要なレベル
 const LV_EXP = [60, 180, 400, 750, 1300, 2100, 3200, 4600];   // 働いた時間（秒）の合計でレベルアップ
 const HIRE_FEE = lv => 40 + 30 * lv;                           // 雇うときの契約金
@@ -148,7 +153,7 @@ const wageOf = w => 10 + 6 * w.lv;                             // 給料（月�
 const forkSpeed = lv => Math.min(6, 1.2 * Math.pow(1.2, lv));   // フォークリフトの速さ（最初はゆっくり）
 const FORK_BUY = n => 400 + 200 * (n - 1);                     // n台目のフォークリフトの値段
 // 研究所で研究して使えるようになる機械 [費用, 月数]。レンガ焼成機・クラッシャーは最初から
-const RESEARCH_MACH = { smelter: [600, 2], bagger: [500, 2], factory: [1500, 3], washer: [1200, 3], cutter: [1800, 3], polisher: [2500, 4], drawer: [1500, 3], atelier: [5000, 4] };
+const RESEARCH_MACH = { adit: [800, 2], smelter: [600, 2], bagger: [500, 2], factory: [1500, 3], washer: [1200, 3], cutter: [1800, 3], polisher: [2500, 4], drawer: [1500, 3], atelier: [5000, 4] };
 const RESEARCH_BATCH = [800, 2];
 // 研究で増える設置物：高速ドリル・自動ドリル（ふさがると向きを変える）・T字路・交差
 const RESEARCH_TOOL = { fdrill: [800, 2], adrill: [1500, 3], tee: [300, 1], cross: [400, 2], pipe: [900, 2] };
@@ -598,19 +603,23 @@ const TXT_ADD = {
     aiFail: c => `失敗：銀行の融資を受けた（${c}）`, aiFailRun: n => `融資を${n}回受けました（失敗）。管理メニュー「AIの失敗記録」に原因があります`,
     aiCause: { noDrill: 'ドリルが無い', drillStop: 'ドリルが全部止まっている', noWorker: '作業員がいない', yard: 'ヤードが山（トラック不足）', dock: '荷おろし場が山（フォークリフト不足）', jam: '地下で資源が詰まっている', noSale: '売上が無い', spend: 'お金の使いすぎ' },
     live10: '10分進める', live60: '60分進める',
+    aditRule: 'その深さの資源が出続ける（岩盤と岩盤の間に1つ）', aiAdit: '横穴掘削口を置いた',
+    lv0Open: '会社レベル2：岩盤Lv0（5m）を破れるようになりました',
+    aditHelp: ['横穴掘削口', '研究所で研究すると置けます（段階2から）。置いた深さの資源（掘った時と同じ出方）が、前から出続けます。掘り進めない代わりに、ずっと出ます。\n岩盤と岩盤の間（5〜10m、10〜20m…）に1つずつ置けます。作業員がつくと速くなり、レベルも上げられます。掘削レベルが足りずにドリルが岩盤で止まっている間の稼ぎに。'],
     items: { tile: 'タイル', glossTile: 'つやタイル', wire: 'ワイヤー', goldleaf: '金箔', decoIron: '高級装飾品（鉄）', decoGold: '高級装飾品（金）' },
-    mach: { drawer: '伸線機', atelier: '装飾工房' }, glyph: { drawer: '伸', atelier: '飾' },
+    mach: { drawer: '伸線機', atelier: '装飾工房', adit: '横穴掘削口' }, glyph: { drawer: '伸', atelier: '飾', adit: '横' },
     adm: { diary: '制作日誌', failLog: 'AIの失敗記録', failNone: 'AIの失敗記録はまだありません（自動プレイで銀行の融資を受けると、ここに原因が残ります）',
       failHead: (r, t) => `自動プレイが銀行の融資を受けた記録（新しい順）\n学んだこと：お金を残す倍率 ×${r}・トラック強化の早さ ×${t}`,
       failRow: (t, st, d, c) => `・プレイ時間${t}・段階${st}・${d}m：${c}` }, facStaff: (n, m) => `作業員 ${n}/${m}人（多いほど速い）`,
     giftMsg: v => `社長、資金が底をつきそうです。\n会長からプレゼントが届きました！\n資金 +${v}（返さなくてよいお金です）`, giftHist: '会長からプレゼント 1000',
     stageUp: (n, names) => `岩盤Lv${n}を突破しました！` + (names.length ? `\n新しく：${names.join('・')}` : ''), stagePop: n => `岩盤Lv${n}突破`, hStage: n => `岩盤Lv${n}を突破`,
     greetT: 'ごあいさつ',
-    greet: '「ほりほり工場」で遊んでくれて、ありがとうございます！　作者のキノメノです。\nこれは、地面を掘って、運んで、加工して、売る。そんな小さな工場を、少しずつ大きくしていくゲームです。ドリル1台と小さな事務所から始まります。\n最初は、レンガ作りと、トラック・フォークリフトの強化を目指してみてください。5mの岩盤を抜けると、新しい資源が出てきます。\nまだ育てている途中のゲームです。ゆっくり、深くまで掘っていってもらえたらうれしいです。',
+    greet: '「ほりほり工場」で遊んでくれて、ありがとうございます！　作者のキノメノです。\nこれは、地面を掘って、運んで、加工して、売る。そんな小さな工場を、少しずつ大きくしていくゲームです。ドリル1台と小さな事務所から始まります。\n最初は、レンガ作りと、トラック・フォークリフトの強化を目指してみてください。会社レベルを2にすると5mの岩盤を破れて、新しい資源が出てきます。\nまだ育てている途中のゲームです。ゆっくり、深くまで掘っていってもらえたらうれしいです。',
     drillOn: '稼働中（押すと止める）', drillOff: '停止中（押すと動かす）', digUpTo: n => `（岩盤Lv${n}まで掘れる）`,
-    needDig: n => `岩盤Lv${n}：研究「掘削レベル」が必要です`, rockHint: n => `硬い岩盤Lv${n}：研究「掘削レベル」が無いと、とても遅くしか掘れません（石は出続けます）`,
-    help1: ['掘る', 'ドリルは地下に置きます（地上とつながった穴の隣なら、土を上書きして置けます）。置く所をタップして、掘る向きを選んで「設置する」。掘った資源はドリルの後ろに出て、空中の資源は下に落ちます。\n5mに岩盤Lv0、その後は10mごとに硬い岩盤があります。研究所で「掘削レベル」を研究しないと、とても遅くしか掘れません（石は出続けます）。岩盤を掘り抜くと、新しい研究ができるようになります。5mより上は土しか出ません。ドリルはタップで止めたり動かしたりできます。'],
-    sk: { land: ['土地買収', '自分の土地が左右に1マスずつ広がります（研究するごとに高くなる）。'], digLv: ['掘削レベル', '硬い岩盤（5mにLv0、その後は10mごと）を、1段ずつ普通の速さで掘れるようになります。'] },
+    needDig: n => (n === 0 ? '岩盤Lv0：会社レベルを2にすると破れます' : `岩盤Lv${n}：研究「掘削レベル」が必要です`),
+    rockHint: n => (n === 0 ? '岩盤Lv0：会社レベルを2にすると破れます（それまでは土が半分の速さで出続けます）' : `硬い岩盤Lv${n}：研究「掘削レベル」が無いと破れません（資源は半分の速さで出続けます）`),
+    help1: ['掘る', 'ドリルは地下に置きます（地上とつながった穴の隣なら、土を上書きして置けます）。置く所をタップして、掘る向きを選んで「設置する」。掘った資源はドリルの後ろに出て、空中の資源は下に落ちます。\n5mに岩盤Lv0、その後は10mごとに硬い岩盤があります。岩盤Lv0は会社レベルを2にすると、Lv1から先は研究所で「掘削レベル」を研究すると破れます。破れない間もドリルは止まらず、資源が半分の速さで出続けます。岩盤を掘り抜くと、新しい研究ができるようになります。5mより上は土しか出ません。ドリルはタップで止めたり動かしたりできます。'],
+    sk: { land: ['土地買収', '自分の土地が左右に1マスずつ広がります（研究するごとに高くなる）。'], digLv: ['掘削レベル', '硬い岩盤（10mにLv1、その後は10mごと）を1段ずつ破れるようになります（Lv0は会社レベル2で破れる）。'] },
     deal: { land: ['地上げ', '土地買収のレベルが1つ上がります（左右に1マスずつ広がる）。', '地上げ'] },
     dealMax: '上限です',
     help0: ['操作', '画面は指（マウス）でなぞると動きます。画面の端（▲▼◀▶）を押しても動きます。2本指・Ctrl＋ホイール・＋－で拡大縮小、「地図」で全体を見られます。\n下のタブを押すと引き出しが開き、道具を選べます。ドリル・機械などは1つ置くと選択が外れます。コンベアなどは続けて置けて、左下の「×」かタブを押すと外れます。ドリルは、置く所をタップしてから掘る向きを選んで「設置する」。置いた物をタップすると、向きの変更やレベルアップができます。'],
@@ -629,14 +638,16 @@ const TXT_ADD = {
     priceNote: 'うった ことの ある ものだけ でます。つくった ものにも おなじ ばいりつが かかります。', yardHas: 'おきばの なかみ',
     infoPick: 'みたい ものを えらぶ', close: 'とじる',
     items: { tile: 'タイル', glossTile: 'つやつや タイル', wire: 'ワイヤー', goldleaf: 'きんぱく', decoIron: 'こうきゅう かざり（てつ）', decoGold: 'こうきゅう かざり（きん）' },
-    mach: { drawer: 'ひきのばし き', atelier: 'かざり こうぼう' }, glyph: { drawer: '伸', atelier: '飾' }, facStaff: (n, m) => `さぎょういん ${n}/${m}にん（おおいほど はやい）`,
+    mach: { drawer: 'ひきのばし き', atelier: 'かざり こうぼう', adit: 'よこあな' }, glyph: { drawer: '伸', atelier: '飾', adit: '横' }, facStaff: (n, m) => `さぎょういん ${n}/${m}にん（おおいほど はやい）`,
     adm: { diary: 'せいさく にっし', liveOn: 'じどう プレイ（みる）', liveOff: 'じどう プレイ（みる）おわり', liveOnMsg: 'じどう プレイちゅう', liveTag: 'じどう プレイちゅう' },
     giftMsg: v => `しゃちょう、おかねが なくなりそうです。\nかいちょうから プレゼントが とどきました！\nおかね +${v}（かえさなくて いい おかねです）`, giftHist: 'かいちょうから プレゼント 1000',
     stageUp: (n, names) => `がんばん Lv${n}を とっぱ しました！` + (names.length ? `\nあたらしく：${names.join('・')}` : ''), stagePop: n => `がんばん Lv${n} とっぱ`, hStage: n => `がんばん Lv${n}を とっぱ`,
     greetT: 'ごあいさつ',
-    greet: '「ほりほりこうじょう」で あそんでくれて、ありがとう ございます！　つくった キノメノです。\nじめんを ほって、はこんで、つくって、うる。ちいさな こうじょうを すこしずつ おおきく していく ゲームです。\nさいしょは、レンガづくりと、トラック・フォークリフトを つよく することを めざしてみてね。5mの がんばんを ぬけると、あたらしい しげんが でてきます。\nまだ そだてている とちゅうの ゲームです。ゆっくり、ふかくまで ほってみてください。',
+    greet: '「ほりほりこうじょう」で あそんでくれて、ありがとう ございます！　つくった キノメノです。\nじめんを ほって、はこんで、つくって、うる。ちいさな こうじょうを すこしずつ おおきく していく ゲームです。\nさいしょは、レンガづくりと、トラック・フォークリフトを つよく することを めざしてみてね。かいしゃ レベルを 2に すると 5mの がんばんを われて、あたらしい しげんが でてきます。\nまだ そだてている とちゅうの ゲームです。ゆっくり、ふかくまで ほってみてください。',
     drillOn: 'うごいている（おすと とめる）', drillOff: 'とまっている（おすと うごかす）', digUpTo: n => `（がんばん Lv${n}まで ほれる）`,
-    needDig: n => `がんばん Lv${n}：けんきゅう「あなほり レベル」が ひつよう`, rockHint: n => `かたい がんばん Lv${n}：「あなほり レベル」が ないと とても ゆっくり`,
+    needDig: n => (n === 0 ? 'がんばん Lv0：かいしゃ レベルを 2に すると われます' : `がんばん Lv${n}：けんきゅう「あなほり レベル」が ひつよう`),
+    rockHint: n => (n === 0 ? 'がんばん Lv0：かいしゃ レベルを 2に すると われます' : `かたい がんばん Lv${n}：「あなほり レベル」が ないと われません（ものは はんぶんの はやさで でます）`),
+    aditRule: 'その ふかさの ものが でつづける', aiAdit: 'よこあなを おいた', lv0Open: 'かいしゃ レベル2：がんばん Lv0を われるように なりました',
     help1: ['ほる', 'ドリルは おく ところを タップして、ほる むきを えらんで「おく」。ほった ものは ドリルの うしろに でます。\n5mに がんばん Lv0、そのあとは 10mごとに かたい がんばんが あります。けんきゅうじょで「あなほり レベル」を けんきゅう しないと、とても ゆっくり です。5mより うえは つちしか でません。'],
     sk: { land: ['とちを かう', 'じぶんの とちが みぎと ひだりに 1マスずつ ひろがります（けんきゅう するたびに たかく なる）。'], digLv: ['あなほり レベル', 'かたい がんばん（5mに Lv0、そのあとは 10mごと）を 1だんずつ ふつうに ほれるように なります。'] },
     deal: { land: ['じあげ', '「とちを かう」の レベルが 1つ あがります。', 'じあげ'] },
@@ -664,19 +675,23 @@ const TXT_ADD = {
     aiFail: c => `Failed: took a bank loan (${c})`, aiFailRun: n => `Took ${n} bank loan(s) (failure). See Admin > AI failure log`,
     aiCause: { noDrill: 'no drill', drillStop: 'all drills stopped', noWorker: 'no workers', yard: 'yard piled up (truck too small)', dock: 'docks piled up (forklifts)', jam: 'items jammed underground', noSale: 'no sales', spend: 'overspending' },
     live10: '+10 min', live60: '+60 min',
+    aditRule: 'Keeps giving the resources of its depth (one between each pair of bedrocks)', aiAdit: 'Placed an adit',
+    lv0Open: 'Company level 2: you can now break bedrock Lv0 (5m)',
+    aditHelp: ['Adit', 'Research it at the Lab (from stage 2). It keeps giving the resources of the depth it sits at, out of its front. It never moves on, but never runs out.\nOne per band between bedrocks (5-10m, 10-20m...). Workers make it faster, and you can level it up. Good income while drills wait at bedrock.'],
     items: { tile: 'Tile', glossTile: 'Glossy tile', wire: 'Wire', goldleaf: 'Gold leaf', decoIron: 'Luxury ornament (iron)', decoGold: 'Luxury ornament (gold)' },
-    mach: { drawer: 'Wire drawer', atelier: 'Ornament workshop' }, glyph: { drawer: 'W', atelier: 'O' }, facStaff: (n, m) => `Workers ${n}/${m} (more = faster)`,
+    mach: { drawer: 'Wire drawer', atelier: 'Ornament workshop', adit: 'Adit' }, glyph: { drawer: 'W', atelier: 'O', adit: 'A' }, facStaff: (n, m) => `Workers ${n}/${m} (more = faster)`,
     adm: { failLog: 'AI failure log', failNone: 'No AI failures yet (they are recorded when auto play takes a bank loan)',
       failHead: (r, t) => `Times auto play took a bank loan (newest first)\nLearned: money reserve ×${r}, truck priority ×${t}`,
       failRow: (t, st, d, c) => `- at ${t}, stage ${st}, ${d}m: ${c}`, diary: 'Dev diary', liveOn: 'Auto play (watch)', liveOff: 'Stop auto play (watch)', liveOnMsg: 'Auto play: the AI decides every 3 seconds', liveTag: 'Auto play' },
     giftMsg: v => `Boss, we are almost out of money.\nA present from the chairman has arrived!\nMoney +${v} (no need to pay it back)`, giftHist: 'Present from the chairman: 1000',
     stageUp: (n, names) => `Broke through bedrock Lv${n}!` + (names.length ? `\nNew: ${names.join(', ')}` : ''), stagePop: n => `Bedrock Lv${n} cleared`, hStage: n => `Broke through bedrock Lv${n}`,
     greetT: 'Welcome',
-    greet: 'Thank you for playing Dig Factory! I am Kinomeno, the maker.\nDig the ground, carry, process and sell: grow a tiny factory, little by little. You start with one drill and a small office.\nFirst, try making bricks and upgrading the truck and forklift. Break through the bedrock at 5m to find new resources.\nThe game is still growing. I hope you enjoy digging deep, at your own pace.',
+    greet: 'Thank you for playing Dig Factory! I am Kinomeno, the maker.\nDig the ground, carry, process and sell: grow a tiny factory, little by little. You start with one drill and a small office.\nFirst, try making bricks and upgrading the truck and forklift. Raise the company to level 2 to break the bedrock at 5m and find new resources.\nThe game is still growing. I hope you enjoy digging deep, at your own pace.',
     drillOn: 'Running (tap to stop)', drillOff: 'Stopped (tap to start)', digUpTo: n => ` (bedrock Lv${n} and above)`,
-    needDig: n => `Bedrock Lv${n}: research Dig level first`, rockHint: n => `Hard bedrock Lv${n}: very slow without Dig level (stone keeps coming out)`,
-    help1: ['Digging', 'Tap a spot, pick a direction and Place to put a drill. Mined items come out behind the drill and fall through the air.\nBedrock Lv0 is at 5m, then every 10m. Without the Dig level research it is very slow. Above 5m there is only soil. Tap a drill to stop or start it.'],
-    sk: { land: ['Land purchase', 'Your land grows by 1 cell on each side (each purchase costs more).'], digLv: ['Dig level', 'Dig hard bedrock (Lv0 at 5m, then every 10m) at normal speed, one layer per level.'] },
+    needDig: n => (n === 0 ? 'Bedrock Lv0: raise the company to level 2 to break it' : `Bedrock Lv${n}: research Dig level first`),
+    rockHint: n => (n === 0 ? 'Bedrock Lv0: raise the company to level 2 to break it (soil keeps coming at half speed)' : `Hard bedrock Lv${n}: cannot break it without Dig level (resources keep coming at half speed)`),
+    help1: ['Digging', 'Tap a spot, pick a direction and Place to put a drill. Mined items come out behind the drill and fall through the air.\nBedrock Lv0 is at 5m (break it at company level 2), then every 10m (research Dig level). Until then drills keep running and give resources at half speed. Above 5m there is only soil. Tap a drill to stop or start it.'],
+    sk: { land: ['Land purchase', 'Your land grows by 1 cell on each side (each purchase costs more).'], digLv: ['Dig level', 'Break hard bedrock (Lv1 at 10m, then every 10m), one layer per level (Lv0 breaks at company level 2).'] },
     deal: { land: ['Land deal', 'Raises Land purchase by one level (1 cell wider on each side).', 'Land'] },
     dealMax: 'Maxed',
     help0: ['Controls', 'Swipe the screen to scroll (or press the screen edges). Pinch, Ctrl+wheel or +/- to zoom; "Map" shows everything.\nPick tools from the tabs at the bottom. Drills and machines are deselected after placing one; conveyors stay selected until you press the "x" (bottom left) or a tab. For a drill, tap the spot, pick a direction, then Place.'],
@@ -818,7 +833,7 @@ function newGame() {
     lab: { type: 'lab', built: false, op: null },   // 研究所
     unlock: { kiln: true },                         // 研究で使えるようになった物（クラッシャーは岩盤Lv0を抜けると）
     time: 0,
-    deepest: SKY + 6,
+    deepest: SKY + 1,   // 最初のドリルの深さ（5mの岩盤Lv0より上から始まる）
     pops: [],
     dock: {},           // 地上に出て、フォークリフトを待っている資源（列ごと）
     forks: [],          // フォークリフト（最初から1台）
@@ -862,6 +877,7 @@ function canPlaceAt(c, r) {
   if (isDrillTool(tool) && b) return diggable().has(key(c, r));   // 岩盤にも置ける（レベル不足ならとても遅い）
   const s0 = S.st.get(key(c, r));
   if (s0 && s0.type === 'well') return false;   // 温泉・油井の上には何も置けない
+  if (tool === 'machine' && machSel === 'adit' && !aditFree(c, r)) return false;   // 横穴掘削口は、岩盤と岩盤の間に1つだけ
   return b === null;   // 何か置いてあっても上書きできる
 }
 // 落ちてきた資源が止まるマス（下に支えがある）
@@ -938,7 +954,7 @@ function accepts(m, it) {
     return Object.keys(b).length < 3;
   }
   const rec = def.recipes.find(x => x.in === it.k || (x.ins && x.ins[it.k]));
-  return !!rec && (m.buf[it.k] || 0) < (rec.ins ? rec.ins[it.k] : rec.n) * 3;
+  return !!rec;   // 材料はいくつでも機械の中に入って、加工の順番を待つ（入口で詰まらない）
 }
 function absorb(m, it) {
   if (MACHINES[m.m].bag) { const b = m.bags || (m.bags = {}); b[it.k] = (b[it.k] || 0) + 1; }
@@ -955,6 +971,7 @@ function updateMachines(dt) {
   for (const [k, m] of S.st) {
     if (m.type !== 'machine') continue;
     const def = MACHINES[m.m];
+    if (!m.cur && def.src) { m.cur = { k: aditOre(rOf(k)) }; m.prog = 0; }   // 横穴：材料なしで次の1個を掘り出す
     if (!m.cur) {
       if (def.bag) {
         const b = m.bags || (m.bags = {});
@@ -1276,10 +1293,7 @@ function updateItems(dt) {
         const along = dx ? (it.x - (c + 0.5)) * dx : (it.y - (r + 0.5)) * dy;
         if (along >= 0) it.tk = k;
       }
-      if (it.tk === k) {
-        const sd = s.side === 'left' ? CCW[s.dir] : CW[s.dir], [sx, sy] = DIRS[sd], m2 = machineAt(c + sx, r + sy);
-        if (m2 ? accepts(m2, it) : canPut(c + sx, r + sy)) md = sd;   // 横がいっぱいなら、まっすぐ通す（詰まらない）
-      }
+      if (it.tk === k) md = s.side === 'left' ? CCW[s.dir] : CW[s.dir];
     }
     const [dx, dy] = DIRS[md];
     if (dx !== 0) it.y = approach(it.y, r + 0.5 + it.lane, v * 0.6);
@@ -1358,14 +1372,14 @@ function drillHit(k, s) {
     return;
   }
   let slow = 1;
-  if (g.mat === 'rock' && sk('digLv') < g.layer) {   // 掘削レベルが足りない → とても遅く掘る（最初の1回だけヒント）
+  if (g.mat === 'rock' && sk('digLv') < g.layer) {   // 掘削レベルが足りない → 破れない（資源は半分の速さで出続ける。最初の1回だけヒント）
     if (!s.rockHint) { s.rockHint = true; say(tx().rockHint(rockLv(g.layer)), 6000, 'bad'); }
-    slow = TUNE.rockSlow;
+    slow = 0;
   }
   s.stuck = false; s.hit = S.time;
   const pw = valOf(s) * workFactor(s) * TUNE.drill;
   if (g.mat === 'rock') {   // 岩盤：掘り進みは遅くても、石は普通の石のマスと同じ速さで出る
-    s.racc = (s.racc || 0) + pw;
+    s.racc = (s.racc || 0) + pw * (slow ? 1 : 0.5);
     const he = hardAt(tr - SKY) * 1.6;
     while (s.racc >= he) { s.racc -= he; emitOre(c, r, s, g.layer === 1 ? 'soil' : 'stone'); }   // 岩盤Lv0（5m）は土が出る
     g.p += pw * slow;
@@ -1496,6 +1510,7 @@ function officeUp() {
   if (ol >= OFFICE_LV.cost.length) return;
   if (S.money < OFFICE_LV.cost[ol]) { say(tx().noMoney); return; }
   spend(OFFICE_LV.cost[ol], OFFICE_C + 1, YARD_R); S.office.lv++; addHist(tx().hOffice(S.office.lv + 1));
+  if (S.office.lv >= 1 && sk('digLv') < 1) { S.skills.digLv = 1; say(tx().lv0Open, 5000, 'good'); }   // 会社レベル2：岩盤Lv0を破れる
   if (S.office.lv === 1 && !S.lab.built) say(tx().labUnlocked);   // 研究所を建てられるようになった（メニュー「施設」）
 }
 // フォークリフトを買う（台数の上限は事務所のレベル）
@@ -1514,7 +1529,7 @@ const saveSlots = () => 1 + sk('saveSlot');
 function serialize() {
   const keyOf = new Map(); for (const [k, v] of S.st) keyOf.set(v, k);
   const data = { ...S, rows: [...S.rows], st: [...S.st], pops: [],
-    workers: S.workers.map(w => ({ ...w, target: !w.target ? null : w.target.type === 'lab' ? 'lab'
+    workers: S.workers.map(w => ({ ...w, leftFrom: null, target: !w.target ? null : w.target.type === 'lab' ? 'lab'
       : w.target.type === 'fork' ? 'f' + S.forks.indexOf(w.target) : w.target.type === 'truck' ? 't' + S.fleet.indexOf(w.target)
       : w.target.type === 'fac' ? 'a' + S.fac.indexOf(w.target)
       : keyOf.has(w.target) ? keyOf.get(w.target) : null })) };
@@ -1542,6 +1557,7 @@ function deserialize(json) {
   }
   // 古いセーブへの対応
   d.lab = d.lab || { type: 'lab', built: false, op: null };
+  if (d.office && d.office.lv >= 1) { d.skills = d.skills || {}; d.skills.digLv = Math.max(d.skills.digLv || 0, 1); }   // v0.44：会社レベル2なら岩盤Lv0は破れる
   if (d.lab.built && d.lab.c === undefined) d.lab.c = OFFICE_C + 2;   // v0.17のセーブ（予定地に建っていた）
   d.unlock = d.unlock || Object.fromEntries(MACHINE_ORDER.map(m => [m, true]));
   for (const f of d.forks) { f.type = 'fork'; f.lv = f.lv || 0; f.op = f.op || null; }
@@ -1721,7 +1737,7 @@ function updateWorkers(dt) {
         }
         const advBest = best;
         if (!best) for (const [k, st] of S.st) {
-          if (!isStation(st) || taken.has(st)) continue;
+          if (!isStation(st) || taken.has(st) || st === w.leftFrom) continue;
           const d = dist.get(k);
           if (d === undefined) continue;
           const sc = d - workNeed(st) * 3 - (st.prio === undefined ? 1 : st.prio) * 40;   // 小さいほど先に行く
@@ -1729,7 +1745,7 @@ function updateWorkers(dt) {
         }
         if (!advBest) for (const f of S.fac) {   // 地上の施設（上級勤務に決まった人は除く）
           const fn = facN.get(f) || 0;
-          if (fn >= FAC_SLOTS) continue;
+          if (fn >= FAC_SLOTS || f === w.leftFrom) continue;
           const d = dist.get(postKey(f));
           if (d === undefined) continue;
           const sc = d - workNeed(f) * 3 - (f.prio === undefined ? 1 : f.prio) * 40;
@@ -1737,9 +1753,10 @@ function updateWorkers(dt) {
         }
         if (best) {
           w.target = best; taken.add(best); if (best.type === 'fac') facN.set(best, (facN.get(best) || 0) + 1);
-          w.path = pathFromOffice(postKey(best)) || [];
+          w.path = (wKey(w) === OFFICE_K ? pathFromOffice(postKey(best)) : pathBetween(wKey(w), postKey(best))) || [];   // 今いる所から
           w.state = 'toWork';
         }
+        w.leftFrom = null;
         break;
       }
       case 'toWork': {
@@ -1761,7 +1778,12 @@ function updateWorkers(dt) {
         w.target.op = w.id;
         w.stamina -= dt * drainMul();
         gainExp(w, dt);
-        if (w.stamina <= 0) { w.stamina = 0; goRest(w); }
+        if (w.stamina <= 0) { w.stamina = 0; goRest(w); break; }
+        // 暇な持ち場（材料が無い機械・止まったドリル・液体の無い施設）に8秒いたら、仕事のある空いた持ち場へ移る
+        if (w.target.type !== 'lab') {
+          w.idleT = workNeed(w.target) <= 0 ? (w.idleT || 0) + dt : 0;
+          if (w.idleT > 8) { w.idleT = 0; if (betterPost(w)) leavePost(w); }
+        }
         break;
       }
       case 'drive': {  // フォークリフト・トラックを運転（乗り物と一緒に動く）
@@ -1770,10 +1792,7 @@ function updateWorkers(dt) {
         if (v.type === 'fork') {
           w.x = v.x; w.y = YARD_R + 0.5;
           v.idleT = v.state === 'idle' && !v.load.length ? (v.idleT || 0) + dt : 0;
-          if (v.idleT > 8) {   // 8秒仕事が無ければ降りて、ほかの持ち場を探す
-            v.idleT = 0; v.op = null; w.target = null;
-            w.path = pathBetween(wKey(w), OFFICE_K) || []; w.state = 'toIdle'; break;
-          }
+          if (v.idleT > 8) { v.idleT = 0; leavePost(w); break; }   // 8秒仕事が無ければ降りて、ほかの持ち場を探す
         }
         else { w.x = BED + 0.5; w.y = YARD_R + 0.5; }
         w.stamina = Math.max(0, w.stamina - dt * drainMul());
@@ -1793,6 +1812,18 @@ function updateWorkers(dt) {
         break;
     }
   }
+}
+// 持ち場を離れて、その場で次の持ち場を探す（休まない）
+function leavePost(w) {
+  if (w.target && w.target.op === w.id) w.target.op = null;
+  w.leftFrom = w.target; w.target = null; w.path = []; w.state = 'idle'; w.lastLook = -9;
+}
+// 仕事があって、まだ誰もいない持ち場があるか（移る価値があるか）
+function betterPost(w) {
+  const { dist } = officeMap();
+  for (const [k, st] of S.st) if (isStation(st) && st !== w.target && !opOf(st) && dist.has(k) && workNeed(st) > 0 && !S.workers.some(o => o.target === st)) return true;
+  for (const f of S.fac) if (f !== w.target && workNeed(f) > 0 && S.workers.filter(o => o.target === f).length < FAC_SLOTS) return true;
+  return false;
 }
 // 持ち場の「仕事の多さ」：ドリルは掘っていれば5（ふさがっていれば-30）、機械は中の材料の数（0なら-10）
 function workNeed(st) {
@@ -2126,7 +2157,7 @@ function popInfoText() {
   const opLine = isStation(t) ? '\n' + (opW ? T.manned(`Lv${opW.lv}`) : T.unmanned) : '';
   if (t.type === 'machine') {
     const def = MACHINES[t.m];
-    const rule = def.bag ? T.bagRule
+    const rule = def.bag ? T.bagRule : def.src ? T.aditRule
       : def.recipes.map(x => `${recIn(x)} → ${T.items[x.out]}`).join(' / ');
     const have = def.bag ? (Object.entries(t.bags || {}).map(([k2, n]) => `${T.items[k2]}×${n}`).join(' ') || '-')
       : Object.entries(t.buf).filter(([, n]) => n > 0).map(([k2, n]) => `${T.items[k2]}×${n}`).join(' ') || '-';
@@ -2251,7 +2282,7 @@ function toolBtn(id) {
   const lab = document.createElement('span'); lab.className = 'nm'; lab.append(document.createTextNode(name));
   if (cost) { const sm = document.createElement('small'); sm.textContent = fmt(cost); lab.append(sm); }
   b.append(lab);
-  if (id.startsWith('m:')) { const def = MACHINES[id.slice(2)]; const rc = document.createElement('span'); rc.className = 'rec'; rc.textContent = def.bag ? T.bagRule : def.recipes.map(x => `${recIn(x)}→${T.items[x.out]}`).join(' / '); b.append(rc); }
+  if (id.startsWith('m:')) { const def = MACHINES[id.slice(2)]; const rc = document.createElement('span'); rc.className = 'rec'; rc.textContent = def.bag ? T.bagRule : def.src ? T.aditRule : def.recipes.map(x => `${recIn(x)}→${T.items[x.out]}`).join(' / '); b.append(rc); }
   b.classList.toggle('active', toolId() === id);
   b.addEventListener('click', () => {
     if (toolId() === id) tool = 'none'; else setTool(id);   // もう一度押すと解除
@@ -2516,6 +2547,7 @@ function renderPanel(id) {
     };
     // 最初に「ごあいさつ」。事務所と研究所の話は会社レベル2から・石油と温泉は段階5から。3つ目＝挿絵の番号
     const topics = [[T.greetT, T.greet, 'greet'], ...T.helpTopics.map((tp, i) => [tp[0], tp[1], i]).filter(([, , i]) => (i !== 5 || S.office.lv >= 1) && (i !== 7 || S.stage >= 5))];
+    if (S.stage >= 2 && T.aditHelp) topics.push([T.aditHelp[0], T.aditHelp[1], 'adit']);   // 横穴掘削口（段階2から）
     nav.append(mark);
     topics.forEach(([t], i) => { const b = document.createElement('button'); b.textContent = t; b.addEventListener('click', () => show(i)); nav.append(b); });
     // 高さは、いちばん長い説明に合わせて最初に確保する（項目を替えても窓の大きさが変わらない）
@@ -3566,7 +3598,7 @@ function drawTruck() {   // 1マスの小さなトラック。右からヤード
 }
 
 // 遊び方の挿絵：ゲームのドット絵を並べる
-const HELP_FIG = { greet: ['drill', 'conv', 'm:kiln', '@truck'], 0: ['drill', 'conv', 'remove'], 1: ['drill', '@rock', '#soil', '#stone'], 2: ['conv', 'sort', '#brick', '@truck'],
+const HELP_FIG = { adit: ['m:adit', '@rock', '#stone', '#iron'], greet: ['drill', 'conv', 'm:kiln', '@truck'], 0: ['drill', 'conv', 'remove'], 1: ['drill', '@rock', '#soil', '#stone'], 2: ['conv', 'sort', '#brick', '@truck'],
   3: ['m:kiln', 'm:crusher', 'm:smelter'], 4: ['@worker', 'drill', 'm:kiln'], 5: ['lab', '@worker'], 6: ['#goldbar', '#gem', '@truck'], 7: ['@spring', '@oilwell', 'spa', 'power'] };
 function helpFig(k) {
   const list = HELP_FIG[k]; if (!list) return null;
@@ -4223,6 +4255,24 @@ function autoNewDrill(drills) {
   if (ok) for (let rr = Math.max(SKY, best.ur + 1); rr < best.r; rr++) autoPut(key(best.c, rr), { type: 'conv', dir: 'up', lv: 0 }, COST.conv);   // すき間にも上向きのコンベア
   return ok;
 }
+function autoAdit(drills) {
+  const drillCols = new Set(drills.map(([k]) => cOf(k))), cost = buildCost('m:adit');
+  if (S.money < (cost + 60) * 2 * aiR()) return;
+  for (const [dk] of drills) {
+    const c = cOf(dk);
+    for (let r = rOf(dk) - 2; r > SKY; r--) {   // 深い所から
+      const sh = S.st.get(key(c, r));
+      if (!sh || sh.type !== 'conv' || sh.dir !== 'up' || !upToTop(c, r) || !aditFree(c, r)) continue;
+      for (const dx of [1, -1]) {
+        const ac = c + dx, b = inB(ac, r) && blk(ac, r);
+        if (!inB(ac, r) || drillCols.has(ac) || S.st.has(key(ac, r)) || b && b.mat === 'rock') continue;
+        if (b) { spend(digCost(b), ac + 0.5, r + 0.3); row(r)[ac] = null; S.digVer++; }
+        autoPut(key(ac, r), { type: 'machine', m: 'adit', dir: dx > 0 ? 'left' : 'right', lv: 0, buf: {}, bags: {}, cur: null, prog: 0, op: null }, cost);
+        return;
+      }
+    }
+  }
+}
 function autoStep(build = true) {
   const R = aiR();
   const all = [...S.st.entries()];
@@ -4275,6 +4325,7 @@ function autoStep(build = true) {
       }
     }
   } else autoSortLines(live);
+  if (S.unlock.adit) autoAdit(live);
   // 湧き口：パイプで地下1段目までつなぐ
   if (S.unlock.pipe) {
     const net = pipeNet();
@@ -4426,7 +4477,7 @@ resize();
 resetCam();
 showTitle();
 window.__game = { // 動作確認用
-  get S() { return S; }, TUNE, row, canPlaceAt, officeUp, buyFork, finishResearch, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
+  get S() { return S; }, TUNE, OFFICE_LV, row, canPlaceAt, officeUp, buyFork, finishResearch, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
   setTool: t => setTool(t), setDir: d => { dir = d; }, pause: () => { running = false; },
   checkStage, resAvail, buildCost, allResIds, resDef, autoSave, catchUp, showTitle, leaveTitle, autoPlay, autoStep, workNeed,
   deserialize, serialize, newGame: () => newGame(), aiLearn, autoPlan, AUTO_LINES, autoDiagnose, setLive: v => { autoLive = v; showAiLog(); }, setAutoBuild: v => { autoBuild = v; }, fmt, itemVal, placePend, priceUp, lvVal, lvCost, catalogIds,

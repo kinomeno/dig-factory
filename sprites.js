@@ -260,6 +260,24 @@ window.DF_SPRITES = {
    "..kSSSbbbbSSSk..",
    "...kSSSSSSSSk..."
   ],
+  "adit": [
+   "SSSSSSSSSSSSSSSS",
+   "SnnnnnnnnnnnnnnS",
+   "SnNNNNNNNNNNNNnS",
+   "SnNkddddddddkNnS",
+   "SnNdkllllllkdNnS",
+   "SnNdlkkkkkkldNnS",
+   "SnNdlkllllkldNnS",
+   "SnNdlklkklkldNnS",
+   "SnNdlklkklkldNnS",
+   "SnNdlkllllkldNnS",
+   "SnNdlkkkkkkldNnS",
+   "SnNdkllllllkdNnS",
+   "SnNkddddddddkNnS",
+   "SnNssssssssssNnS",
+   "SnnsSSSSSSSSsnnS",
+   "SSSSSSSSSSSSSSSS"
+  ],
   "drawer": [
    "................",
    "..kkkk....kkkk..",
