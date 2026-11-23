@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.12（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.13（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.12';
+const VERSION = '0.13';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -93,7 +93,7 @@ const TXT = {
     menu: 'メニュー', info: '情報', admin: '管理', map: '地図',
     play: '▶︎ 再生', pause: '❚❚ 停止', top: '地上', dir: '向き',
     help: '遊び方', settings: '設定', lang: '表示', reset: '最初から',
-    confirmReset: '最初からやり直しますか？', yes: 'はい', no: 'いいえ',
+    confirmReset: '最初からやり直しますか？', confirmReload: 'リセットしますか？（ページを読み込み直します）', yes: 'はい', no: 'いいえ',
     noMoney: '資金が足りません', cantPlace: 'ここには置けません', underOnly: 'コンベアと機械は地下にだけ置けます',
     cantDig: 'ここは掘れません（地上からつながる穴の隣だけ）', maxed: '最大',
     drillDir: 'ドリル', convDir: 'コンベア', sortTitle: '仕分けコンベア',
@@ -144,7 +144,7 @@ const TXT = {
     menu: 'メニュー', info: 'じょうほう', admin: 'かんり', map: 'ちず',
     play: '▶︎ うごかす', pause: '❚❚ とめる', top: 'ちじょう', dir: 'むき',
     help: 'あそびかた', settings: 'せってい', lang: 'もじ', reset: 'さいしょから',
-    confirmReset: 'さいしょから やりなおしますか？', yes: 'はい', no: 'いいえ',
+    confirmReset: 'さいしょから やりなおしますか？', confirmReload: 'リセット しますか？（さいしょから よみこみ なおします）', yes: 'はい', no: 'いいえ',
     noMoney: 'おかねが たりません', cantPlace: 'ここには おけません', underOnly: 'コンベアと きかいは ちかに だけ おけます',
     cantDig: 'ここは ほれません（ちじょうと つながる あなの となりだけ）', maxed: 'さいだい',
     drillDir: 'ドリル', convDir: 'コンベア', sortTitle: 'しわけコンベア',
@@ -195,7 +195,7 @@ const TXT = {
     menu: 'Menu', info: 'Info', admin: 'Admin', map: 'Map',
     play: '▶︎ Play', pause: '❚❚ Pause', top: 'Top', dir: 'Dir',
     help: 'How to play', settings: 'Settings', lang: 'Text', reset: 'Restart',
-    confirmReset: 'Start over from the beginning?', yes: 'Yes', no: 'No',
+    confirmReset: 'Start over from the beginning?', confirmReload: 'Reset? (reloads the page)', yes: 'Yes', no: 'No',
     noMoney: 'Not enough money', cantPlace: 'Cannot place here', underOnly: 'Conveyors and machines go underground only',
     cantDig: 'Cannot dig here (only next to holes connected to the surface)', maxed: 'MAX',
     drillDir: 'Drill', convDir: 'Conveyor', sortTitle: 'Sorting conveyor',
@@ -1646,6 +1646,8 @@ $('powerBtn').addEventListener('click', () => togglePanel('powerPanel'));
 $('helpBtn').addEventListener('click', () => togglePanel('help'));
 $('setBtn').addEventListener('click', () => togglePanel('settings'));
 $('adminBtn').addEventListener('click', () => togglePanel('admin'));
+// タイトルを押すと「リセットしますか？」→ はい で再読み込み
+document.querySelector('#hdr .title').addEventListener('click', () => askConfirm(tx().confirmReload, () => location.reload()));
 $('resetBtn').addEventListener('click', () => askConfirm(tx().confirmReset, () => {
   closePop(); closePanels(); newGame(); updateUI();
 }));

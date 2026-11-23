@@ -23,7 +23,7 @@ body {
 }
 .hrow { display: flex; align-items: center; gap: 8px; min-width: 0; }
 #timeGroup { gap: 4px; }
-#hdr .title { font-size: 15px; }
+#hdr .title { font-size: 15px; cursor: pointer; white-space: nowrap; }
 #hdr small { color: #aaa; font-size: 11px; margin-left: -4px; }
 #hdr .stat { font-size: 14px; color: #ddd; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
 #hdr .stat b { color: #ffd34d; font-variant-numeric: tabular-nums; }
@@ -31,7 +31,7 @@ body {
 #hdr .grow { flex: 1; }
 #hdr button { padding: 5px 8px; }
 #hdr .icon { font-size: 17px; padding: 3px 8px; }
-@media (max-width: 480px) { #hdr .title, #hdr small { display: none; } .hrow { gap: 5px; } #timeGroup { gap: 3px; } #hdr button { padding: 5px 6px; font-size: 12px; } #hdr button.sq { width: 26px; } }
+@media (max-width: 480px) { #hdr small { display: none; } #hdr .title { font-size: 13px; } #hdr .stat { font-size: 12px; } .hrow { gap: 4px; } #timeGroup { gap: 3px; } #hdr button { padding: 5px 6px; font-size: 12px; } #hdr button.sq { width: 26px; } }
 
 .float {
   position: fixed; z-index: 10;
