@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>採掘ゲーム</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=0.05">
 </head>
 <body>
 <!-- ヘッダー -->
@@ -29,6 +29,14 @@
   <button id="topBtn" data-t="top">地上</button>
 </div>
 
+<!-- 画面を動かすボタン（押し続けると動き続ける） -->
+<div id="movePad" class="float">
+  <button class="mv" data-mv="up">▲&#xFE0E;</button>
+  <button class="mv" data-mv="left">◀&#xFE0E;</button>
+  <button class="mv" data-mv="right">▶&#xFE0E;</button>
+  <button class="mv" data-mv="down">▼&#xFE0E;</button>
+</div>
+
 <!-- 向き（コンベア・仕分け・機械を置くとき） -->
 <div id="dirBar" class="float group">
   <span class="lab" data-t="dir">向き</span>
@@ -43,6 +51,7 @@
   <button class="tool" data-tool="pan" data-t="pan">移動</button>
   <span class="sep"></span>
   <button class="tool" data-tool="drill"><span data-t="drill">ドリル</span> <small>50</small></button>
+  <button class="tool" data-tool="dig" data-t="dig">掘削</button>
   <button class="tool" data-tool="conv"><span data-t="conv">コンベア</span> <small>5</small></button>
   <button class="tool" data-tool="sort"><span data-t="sort">仕分け</span> <small>20</small></button>
   <button class="tool" data-tool="machine" id="machBtn"><span id="machBtnLabel" data-t="machine">機械</span> ▾</button>
@@ -81,6 +90,8 @@
     </span>
   </div>
   <button id="resetBtn" class="wide" data-t="reset">最初から</button>
+  <!-- テスト用（公開前に外す） -->
+  <button id="loanBtn" class="wide test" data-t="loan">テスト用：借り入れ ＋1000</button>
   <div class="credit"></div>
 </div>
 
@@ -98,6 +109,8 @@
     <span class="opts"><button data-ps="left" data-t="left">左</button><button data-ps="right" data-t="right">右</button></span>
   </div>
   <div id="popInfo" class="sub"></div>
+  <div id="popLevel" class="sub lvline"></div>
+  <button id="popLvUp" class="wide"></button>
   <button id="popAction" class="wide"></button>
   <button id="popRemove" class="wide" data-t="remove">撤去</button>
 </div>
@@ -110,6 +123,6 @@
   </div>
 </div>
 
-<script src="main.js"></script>
+<script src="main.js?v=0.05"></script>
 </body>
 </html>

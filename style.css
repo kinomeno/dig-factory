@@ -50,6 +50,17 @@ button.dir { width: 34px; padding: 6px 0; }
 .play { min-width: 66px; }
 
 #timeGroup { top: calc(var(--hdr) + 8px); right: 8px; }
+/* 十字の移動ボタン */
+#movePad {
+  right: 8px; top: 50%; transform: translateY(-50%);
+  display: grid; grid-template-columns: repeat(3, 36px); grid-template-rows: repeat(3, 36px); gap: 2px;
+  padding: 4px; background: rgba(28, 30, 36, .6);
+}
+#movePad .mv { padding: 0; font-size: 14px; }
+#movePad [data-mv="up"] { grid-column: 2; grid-row: 1; }
+#movePad [data-mv="left"] { grid-column: 1; grid-row: 2; }
+#movePad [data-mv="right"] { grid-column: 3; grid-row: 2; }
+#movePad [data-mv="down"] { grid-column: 2; grid-row: 3; }
 #toolBar { bottom: 8px; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 16px); }
 #dirBar { bottom: 62px; left: 50%; transform: translateX(-50%); flex-wrap: nowrap; width: max-content; }
 @media (max-width: 560px) { #dirBar { bottom: 96px; } .panel.bottom { bottom: 96px; } }
@@ -84,6 +95,8 @@ button.dir { width: 34px; padding: 6px 0; }
 .prow .opts { display: flex; gap: 4px; flex-wrap: wrap; }
 .prow .opts button { padding: 4px 7px; font-size: 12px; }
 #pop .wide { margin-top: 0; }
+.lvline { color: #ffe08a; }
+button.test { border-style: dashed; color: #ffcf9a; }
 
 .modal { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; }
 .modal .box { background: #2a2d34; border: 1px solid #5a5f6a; border-radius: 12px; padding: 16px 18px; width: min(320px, calc(100vw - 32px)); }
