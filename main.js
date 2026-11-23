@@ -1,10 +1,10 @@
-// 採掘ゲーム v0.05
+// 採掘ゲーム v0.06
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 (() => {
 'use strict';
 
-const VERSION = '0.05';
+const VERSION = '0.06';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 const TEST_LOAN = true;        // テスト用の借り入れボタン（公開前に false にする）
 
@@ -587,6 +587,23 @@ function zoomAt(sx, sy, f) {
   cam.y = wr - sy / cp;
   metrics();
 }
+// 移動ボタン（▲▼◀▶）を画面の端に置く。他のメニューと重ならないよう、実際の大きさを見て決める
+function layoutFloats() {
+  const W = window.innerWidth, H = window.innerHeight;
+  const tg = $('timeGroup').getBoundingClientRect(), tb = $('toolBar').getBoundingClientRect();
+  const hdr = cv.getBoundingClientRect().top;
+  // ▲：上の端。右上の操作と横に重なるときは、その下に
+  const upTop = (tg.left < W / 2 + 26 && tg.right > W / 2 - 26) ? tg.bottom + 6 : hdr + 6;
+  $('mvUp').style.top = upTop + 'px';
+  // ▼：下の端（道具の上）。向きのバーはさらにその上
+  const downBottom = H - tb.top + 6;
+  $('mvDown').style.bottom = downBottom + 'px';
+  $('dirBar').style.bottom = (downBottom + 40) + 'px';
+  // ◀▶：左右の端、ゲーム画面の縦の真ん中
+  const midY = (hdr + tb.top) / 2 - 22;
+  $('mvLeft').style.top = midY + 'px';
+  $('mvRight').style.top = midY + 'px';
+}
 function resize() {
   const dpr = window.devicePixelRatio || 1;
   cv.width = cv.clientWidth * dpr; cv.height = cv.clientHeight * dpr;
@@ -1022,6 +1039,11 @@ function updateUI() {
   document.querySelectorAll('.dir').forEach(b => b.classList.toggle('active', b.dataset.dir === dir));
   $('dirBar').hidden = !(tool === 'conv' || tool === 'sort' || tool === 'machine');
   $('machBtnLabel').textContent = tool === 'machine' ? T.mach[machSel] : T.machine;
+  // カーソル：移動のときは手のひら、つかんでいる間は握った手
+  cv.classList.toggle('grab', tool === 'pan' && !(gesture && gesture.type === 'pan'));
+  cv.classList.toggle('grabbing', !!(gesture && gesture.type === 'pan'));
+  cv.classList.toggle('place', tool !== 'pan');
+  layoutFloats();
 }
 let msgTimer = 0;
 function say(t) { $('msg').textContent = t; clearTimeout(msgTimer); msgTimer = setTimeout(() => { $('msg').textContent = ''; }, 2000); }
@@ -1033,6 +1055,7 @@ function setupText() {
   document.querySelectorAll('[data-t]').forEach(el => { const v = T[el.dataset.t]; if (typeof v === 'string') el.textContent = v; });
   $('ver').textContent = 'v' + VERSION;
   $('loanBtn').hidden = !TEST_LOAN;
+  $('panBtn').title = T.pan;
   // 作者・支援（フッターの代わりに 遊び方／設定 の中に表示）
   document.querySelectorAll('.credit').forEach(el => {
     el.innerHTML = '';
@@ -1063,7 +1086,7 @@ cv.addEventListener('contextmenu', e => e.preventDefault());
 cv.addEventListener('pointerdown', e => {
   const q = local(e);
   ptrs.set(e.pointerId, q);
-  cv.setPointerCapture(e.pointerId);
+  try { cv.setPointerCapture(e.pointerId); } catch (err) { /* 指の情報が無い環境 */ }
   if (ptrs.size === 2) {        // 2本指：拡大縮小と移動
     down = false;
     const [a, b] = [...ptrs.values()];
@@ -1129,9 +1152,9 @@ cv.addEventListener('wheel', e => {
 
 // ▲▼◀▶ボタン：押している間なめらかに動く
 const moveHeld = new Set();
-document.querySelectorAll('#movePad .mv').forEach(b => {
+document.querySelectorAll('.mv').forEach(b => {
   const d = b.dataset.mv;
-  const start = e => { e.preventDefault(); moveHeld.add(d); b.setPointerCapture?.(e.pointerId); };
+  const start = e => { e.preventDefault(); moveHeld.add(d); try { b.setPointerCapture(e.pointerId); } catch (err) { /* 無視 */ } };
   const stop = () => moveHeld.delete(d);
   b.addEventListener('pointerdown', start);
   b.addEventListener('pointerup', stop);

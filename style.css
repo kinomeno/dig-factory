@@ -50,17 +50,21 @@ button.dir { width: 34px; padding: 6px 0; }
 .play { min-width: 66px; }
 
 #timeGroup { top: calc(var(--hdr) + 8px); right: 8px; }
-/* 十字の移動ボタン */
-#movePad {
-  right: 8px; top: 50%; transform: translateY(-50%);
-  display: grid; grid-template-columns: repeat(3, 36px); grid-template-rows: repeat(3, 36px); gap: 2px;
-  padding: 4px; background: rgba(28, 30, 36, .6);
+/* 移動ボタン：それぞれ画面の端（縦位置・横位置は main.js で調整） */
+.mv {
+  position: fixed; z-index: 9; width: 44px; height: 34px; padding: 0; font-size: 15px;
+  background: rgba(28, 30, 36, .55); border: 1px solid rgba(255,255,255,.18); color: #ddd;
+  touch-action: none;
 }
-#movePad .mv { padding: 0; font-size: 14px; }
-#movePad [data-mv="up"] { grid-column: 2; grid-row: 1; }
-#movePad [data-mv="left"] { grid-column: 1; grid-row: 2; }
-#movePad [data-mv="right"] { grid-column: 3; grid-row: 2; }
-#movePad [data-mv="down"] { grid-column: 2; grid-row: 3; }
+#mvLeft, #mvRight { width: 34px; height: 44px; }
+#mvUp, #mvDown { left: 50%; transform: translateX(-50%); }
+#mvLeft { left: 2px; }
+#mvRight { right: 2px; }
+/* 手のひら（移動）ボタンとカーソル */
+button.hand { display: inline-flex; align-items: center; justify-content: center; padding: 4px 9px; }
+#cv.grab { cursor: grab; }
+#cv.grabbing { cursor: grabbing; }
+#cv.place { cursor: crosshair; }
 #toolBar { bottom: 8px; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 16px); }
 #dirBar { bottom: 62px; left: 50%; transform: translateX(-50%); flex-wrap: nowrap; width: max-content; }
 @media (max-width: 560px) { #dirBar { bottom: 96px; } .panel.bottom { bottom: 96px; } }
