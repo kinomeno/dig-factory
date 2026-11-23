@@ -342,3 +342,40 @@ body.title .panel { z-index: 45; }
 #boostHud { display: block; font-size: 10px; color: var(--accent); letter-spacing: .04em; margin-left: 2px; }
 #moneyHud { flex-wrap: wrap; }
 #boostHud:empty { display: none; }
+
+/* ===== v0.40 ===== */
+/* お知らせ：スマホでもはみ出さず、折り返す */
+.msg { white-space: normal; width: max-content; max-width: calc(100vw - 24px); text-align: center; line-height: 1.5; text-overflow: clip; }
+/* 選択中の道具（左下）：押すと選択が外れる */
+#curTool { pointer-events: auto; cursor: pointer; display: flex; align-items: center; gap: 8px; padding-right: 4px; }
+#curTool .ctx { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: 1px solid var(--line2); border-radius: var(--radius); background: #fff; font-size: 11px; color: var(--sub); }
+/* ▼の帯は、下のタブと少し離す（押し間違い防止） */
+body.dash #mvDown { bottom: calc(var(--dash) + 14px); }
+body.dash #mvLeft, body.dash #mvRight { bottom: calc(var(--dash) + var(--edge) + 14px); }
+/* 引き出しを閉じる×（右上） */
+#dClose { position: fixed; z-index: 21; right: 8px; height: 24px; padding: 0 10px; background: var(--paper2, #fff); border: 1px solid var(--line2); border-bottom: none; border-radius: 4px 4px 0 0; }
+#dClose[hidden] { display: none; }
+/* 情報：引き出しで選ぶので、中のタブは出さない */
+body.dash #info .itabs { display: none; }
+#subMenu .ipick { gap: 6px; }
+#subMenu .ipick button { min-width: 96px; padding: 10px 14px; font-size: 13px; letter-spacing: .08em; }
+/* カタログ */
+.icat .row2 .name { display: flex; align-items: center; gap: 6px; }
+.icat .cicon { width: 16px; height: 16px; image-rendering: pixelated; }
+.icat .cprice { grid-row: 1 / span 2; grid-column: 2; color: var(--accent); font-variant-numeric: tabular-nums; font-size: 14px; }
+/* 今月の収支（資金の下） */
+#monthHud { display: block; width: 100%; font-size: 11px; font-weight: 600; letter-spacing: .03em; }
+#monthHud.pos { color: var(--good); } #monthHud.neg { color: var(--bad); }
+#monthHud:empty { display: none; }
+#dClose.go { animation: handleUp .24s ease-out; }
+/* お知らせ：秘書の顔＋文（改行あり） */
+.msg { display: flex; align-items: center; gap: 8px; white-space: pre-line; text-align: left; padding: 6px 12px 6px 8px; }
+.msg:empty { display: none; }
+.msg .secIcon { width: 32px; height: 32px; flex: none; image-rendering: pixelated; border-radius: 3px; background: #eef1f4; }
+.msg.good { border-left-color: var(--good); }
+.msg.bad { border-left-color: var(--bad); }
+#noticeMsg { display: flex; gap: 12px; align-items: flex-start; white-space: pre-line; }
+#noticeMsg .secBig { width: 48px; height: 48px; flex: none; image-rendering: pixelated; border-radius: 4px; background: #eef1f4; }
+/* 遊び方の挿絵 */
+.hfig { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; margin: 2px 0 10px; padding: 8px; background: #eceae4; border-radius: var(--radius); }
+.hfig .hpic { width: 40px; height: 40px; image-rendering: pixelated; }

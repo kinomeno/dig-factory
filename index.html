@@ -18,7 +18,7 @@
 <meta property="og:locale" content="ja_JP">
 <meta property="og:site_name" content="ほりほり工場 / Dig Factory Tycoon">
 <meta name="twitter:card" content="summary">
-<link rel="stylesheet" href="style.css?v=0.39">
+<link rel="stylesheet" href="style.css?v=0.40">
 </head>
 <body>
 <canvas id="cv"></canvas>
@@ -84,6 +84,7 @@
   <button id="powerBtn" data-t="power">強化</button>
   <button id="tradeBtn" data-t="trade">取引</button>
   <button class="cat" data-cat="works" data-t="works">工事</button>
+  <button class="cat" data-cat="infoCat" data-t="info">情報</button>
   <button id="menuClose" class="x">✕</button>
 </div>
 <button id="menuBtn" class="float"><span data-t="menu">メニュー</span><span id="menuCur"></span></button>
@@ -95,14 +96,16 @@
   <button class="dtab" data-px="skillBtn" data-open="skillPanel"><b data-t="skill">スキル</b><i>RESEARCH</i></button>
   <button class="dtab" data-px="powerBtn" data-open="powerPanel"><b data-t="power">強化</b><i>UPGRADE</i></button>
   <button class="dtab" data-px="#catBar [data-cat=works]" data-open="works"><b data-t="works">工事</b><i>WORKS</i></button>
-  <button class="dtab" data-px="infoBtn" data-open="info"><b data-t="info">情報</b><i>REPORT</i></button>
+  <button class="dtab" data-px="#catBar [data-cat=infoCat]" data-open="infoCat"><b data-t="info">情報</b><i>REPORT</i></button>
   <button class="dtab" data-px="tradeBtn" data-open="tradePanel"><b data-t="trade">取引</b><i>DEALS</i></button>
 </div>
 <!-- 引き出しの取っ手（開いている引き出しの左上に付く） -->
 <div id="dHandle" hidden><b></b><i></i></div>
+<!-- 引き出しを閉じる（右上の×） -->
+<button id="dClose" class="x" aria-label="close" hidden>✕</button>
 
 <!-- 資金：ゲーム画面の左上に直接（白いふちで、どんな背景でも読める） -->
-<div id="moneyHud"><span data-t="money">資金</span><b id="money">0</b><small id="boostHud"></small></div>
+<div id="moneyHud"><span data-t="money">資金</span><b id="money">0</b><small id="monthHud"></small><small id="boostHud"></small></div>
 
 <p id="msg" class="msg"></p>
 <!-- 選択中の道具（左下） -->
@@ -135,7 +138,7 @@
 <!-- 情報（経営状況。見出しをドラッグで移動できる） -->
 <div id="info" class="float panel drag" hidden>
   <div class="head handle"><b data-t="info">情報</b><button class="x" data-close="info">✕</button></div>
-  <div class="itabs"><button data-itab="fin" class="active" data-t="finance">財務</button><button data-itab="hist" data-t="history">履歴</button></div>
+  <div class="itabs"><button data-itab="fin" class="active" data-t="finance">財務</button><button data-itab="hist" data-t="history">履歴</button><button data-itab="cat" data-t="catalog">カタログ</button></div>
   <div id="infoFin">
   <div id="infoData" class="igrid"></div>
   <div class="igraphs">
@@ -144,6 +147,7 @@
   </div>
   </div>
   <div id="infoHist" class="ihist" hidden></div>
+  <div id="infoCatl" class="icat" hidden></div>
 </div>
 
 <!-- 遊び方 -->
@@ -234,6 +238,14 @@
   </div>
 </div>
 
+<!-- お知らせ（銀行の融資など） -->
+<div id="notice" class="modal" hidden>
+  <div class="box">
+    <p id="noticeMsg"></p>
+    <div class="btns"><button id="noticeOk" class="active">OK</button></div>
+  </div>
+</div>
+
 <!-- 確認（ブラウザ標準の確認窓は使わない） -->
 <div id="confirm" class="modal" hidden>
   <div class="box">
@@ -242,7 +254,7 @@
   </div>
 </div>
 
-<script src="sprites.js?v=0.39"></script>
-<script src="main.js?v=0.39"></script>
+<script src="sprites.js?v=0.40"></script>
+<script src="main.js?v=0.40"></script>
 </body>
 </html>
