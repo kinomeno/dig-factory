@@ -259,6 +259,42 @@ window.DF_SPRITES = {
    "..kSSbbbbbbSSk..",
    "..kSSSbbbbSSSk..",
    "...kSSSSSSSSk..."
+  ],
+  "drawer": [
+   "................",
+   "..kkkk....kkkk..",
+   ".kgGGgk..kgGGgk.",
+   ".kGwwGk..kGwwGk.",
+   ".kGwwGkyykGwwGk.",
+   ".kgGGgk..kgGGgk.",
+   "..kkkk....kkkk..",
+   "......yyyy......",
+   ".kkkkkkkkkkkkkk.",
+   ".kGGGGGGGGGGGGk.",
+   ".kGgggggggggggk.",
+   ".kGgdddddddddgk.",
+   ".kGgggggggggggk.",
+   ".kddddddddddddk.",
+   ".kkkkkkkkkkkkkk.",
+   "................"
+  ],
+  "atelier": [
+   "................",
+   ".......kk.......",
+   "......kcck......",
+   ".....kcwcBk.....",
+   "....kkkkkkkk....",
+   "..kkyyyyyyyykk..",
+   ".kyyyyyyyyyyyyk.",
+   ".kkkkkkkkkkkkkk.",
+   ".kssssssssssssk.",
+   ".kskkksssskkksk.",
+   ".kskcksssskpksk.",
+   ".kskkksssskkksk.",
+   ".kssssssssssssk.",
+   ".kddddddddddddk.",
+   ".kkkkkkkkkkkkkk.",
+   "................"
   ]
  }
 };

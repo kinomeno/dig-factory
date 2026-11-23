@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>制作日誌 / ほりほり工場</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<style>
+/* ほりほり工場 制作日誌：一覧 → 読む（日誌は list.json と .md。tools の外の build_diary.py が作る） */
+:root { --bg: #e6e6e3; --paper: #fbfaf7; --text: #2b2b2e; --sub: #77767a; --line: rgba(0,0,0,.12); --accent: #d0661f; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; line-height: 1.9; -webkit-font-smoothing: antialiased; }
+header { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: rgba(250,250,248,.92); border-bottom: 1px solid var(--line); backdrop-filter: blur(6px); }
+header b { font-size: 15px; letter-spacing: .1em; }
+header small { color: var(--sub); font-size: 11px; letter-spacing: .2em; }
+header .grow { flex: 1; }
+button, a.btn { font: inherit; font-size: 13px; padding: 5px 12px; border: 1px solid rgba(0,0,0,.2); border-radius: 4px; background: #fff; color: var(--text); text-decoration: none; cursor: pointer; }
+main { max-width: 720px; margin: 0 auto; padding: 16px; }
+.list a { display: block; padding: 14px 16px; margin: 0 0 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 4px; color: var(--text); text-decoration: none; }
+.list a:hover { border-color: rgba(0,0,0,.3); }
+.list .d { font-size: 12px; color: var(--sub); font-variant-numeric: tabular-nums; }
+.list .t { font-size: 16px; font-weight: 600; line-height: 1.5; margin-top: 2px; }
+.list .n { font-size: 12px; color: var(--accent); }
+article { background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 20px 18px 28px; }
+article h1 { font-size: 21px; line-height: 1.5; margin: 0 0 6px; }
+article h2 { font-size: 17px; margin: 28px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+article h3 { font-size: 13px; font-weight: 500; color: var(--sub); margin: 0 0 18px; }
+article p { margin: 0 0 14px; font-size: 15px; }
+article blockquote { margin: 0 0 14px; padding: 2px 14px; border-left: 3px solid var(--accent); color: #444; }
+article hr { border: none; border-top: 1px dashed var(--line); margin: 22px 0; }
+.pager { display: flex; justify-content: space-between; gap: 10px; margin: 14px 0 30px; }
+.empty { color: var(--sub); }
+@media (max-width: 480px) { article { padding: 16px 14px 24px; } article p { font-size: 14.5px; } }
+</style>
+</head>
+<body>
+<header><b>制作日誌</b><small>DEV DIARY</small><span class="grow"></span><a class="btn" href="../">ゲームへ</a></header>
+<main id="main"></main>
+<script>
+(() => {
+  'use strict';
+  const main = document.getElementById('main');
+  const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  // かんたんなマークダウン：見出し・引用・区切り線・段落・太字
+  function md(src) {
+    const out = [], lines = src.replace(/\r/g, '').split('\n');
+    let para = [];
+    const flush = () => { if (para.length) { out.push('<p>' + para.join('<br>') + '</p>'); para = []; } };
+    const inline = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\\([\\`*_\-#>])/g, '$1');
+    for (const raw of lines) {
+      const l = raw.trimEnd();
+      if (!l.trim()) { flush(); continue; }
+      let m;
+      if ((m = l.match(/^(#{1,3})\s+(.*)$/))) { flush(); out.push(`<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`); continue; }
+      if (/^\\?-{3,}$/.test(l.trim())) { flush(); out.push('<hr>'); continue; }
+      if ((m = l.match(/^>\s?(.*)$/))) { flush(); out.push('<blockquote>' + inline(m[1]) + '</blockquote>'); continue; }
+      para.push(inline(l));
+    }
+    flush();
+    return out.join('\n');
+  }
+  let list = [];
+  async function showList() {
+    document.title = '制作日誌 / ほりほり工場';
+    if (!list.length) main.innerHTML = '<p class="empty">まだありません</p>';
+    else main.innerHTML = '<div class="list">' + list.map((d, i) => `<a href="#${i + 1}"><div class="d">${esc(d.date)}　<span class="n">その${i + 1}</span></div><div class="t">${esc(d.title)}</div></a>`).reverse().join('') + '</div>';
+    window.scrollTo(0, 0);
+  }
+  async function showOne(i) {
+    const d = list[i]; if (!d) { showList(); return; }
+    main.innerHTML = '<p class="empty">読み込み中…</p>';
+    const txt = await fetch(d.file).then(r => r.text()).catch(() => '読み込めませんでした');
+    document.title = d.title + ' / 制作日誌';
+    const prev = i > 0 ? `<a class="btn" href="#${i}">← その${i}</a>` : '<span></span>';
+    const next = i < list.length - 1 ? `<a class="btn" href="#${i + 2}">その${i + 2} →</a>` : '<span></span>';
+    main.innerHTML = `<div class="pager"><a class="btn" href="#">一覧</a>${next}</div><article>${md(txt)}</article><div class="pager">${prev}<a class="btn" href="#">一覧</a>${next}</div>`;
+    window.scrollTo(0, 0);
+  }
+  function route() { const n = parseInt(location.hash.slice(1), 10); if (n > 0) showOne(n - 1); else showList(); }
+  fetch('list.json', { cache: 'no-cache' }).then(r => r.json()).then(j => { list = j; route(); }).catch(() => { main.innerHTML = '<p class="empty">一覧を読み込めませんでした</p>'; });
+  window.addEventListener('hashchange', route);
+})();
+</script>
+</body>
+</html>

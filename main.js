@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.41（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.42（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.41';
+const VERSION = '0.42';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -105,6 +105,12 @@ const ITEMS = {
   gem:      { v: 200, c: ['#f2fcff', '#1f5a7a'], s: 'gem' },
   bag:      { v: 0,   c: ['#d8c9a0', '#6d5f3c'], s: 'bag' },
   fuel:     { v: 40,  c: ['#e0a040', '#6a4410'], s: 'rect' },   // 燃料（製油所で石油から）
+  tile:      { v: 6,   c: ['#d9d4c8', '#7d776b'], s: 'square' },   // タイル（石を切断）
+  glossTile: { v: 14,  c: ['#f4f1ea', '#8a8478'], s: 'square' },   // つやタイル（タイルを研磨）
+  wire:      { v: 30,  c: ['#9aa3ae', '#3c4450'], s: 'small' },    // ワイヤー（鉄の延べ棒を引き延ばす）
+  goldleaf:  { v: 95,  c: ['#ffe27a', '#9a7400'], s: 'rect' },     // 金箔（金の延べ棒を引き延ばす）
+  decoIron:  { v: 320, c: ['#c9d2de', '#d0661f'], s: 'gem' },      // 高級装飾品（鉄）：鉄の延べ棒＋宝石
+  decoGold:  { v: 420, c: ['#ffd34d', '#b0306a'], s: 'gem' },      // 高級装飾品（金）：金の延べ棒＋宝石
 };
 const ITEM_ORDER = Object.keys(ITEMS);
 
@@ -116,8 +122,10 @@ const MACHINES = {
   factory:  { cost: 400, time: 5, recipes: [{ in: 'ironbar', n: 2, out: 'tool' }, { in: 'goldbar', n: 2, out: 'jewel' }] },
   bagger:   { cost: 150, time: 2, bag: 5 },  // 同じ物5個を1袋に（売値1.2倍）
   washer:   { cost: 300, time: 2, recipes: [{ in: 'dia', n: 1, out: 'diaClean' }] },
-  cutter:   { cost: 400, time: 3, recipes: [{ in: 'diaClean', n: 1, out: 'diaCut' }] },
-  polisher: { cost: 500, time: 3, recipes: [{ in: 'diaCut', n: 1, out: 'gem' }] },
+  cutter:   { cost: 400, time: 3, recipes: [{ in: 'diaClean', n: 1, out: 'diaCut' }, { in: 'stone', n: 1, out: 'tile' }] },     // 切断：石→タイルも
+  polisher: { cost: 500, time: 3, recipes: [{ in: 'diaCut', n: 1, out: 'gem' }, { in: 'tile', n: 1, out: 'glossTile' }] },      // 研磨：タイル→つやタイルも
+  drawer:   { cost: 350, time: 3, recipes: [{ in: 'ironbar', n: 1, out: 'wire' }, { in: 'goldbar', n: 1, out: 'goldleaf' }] },  // 伸線機（引き延ばし）
+  atelier:  { cost: 700, time: 6, recipes: [{ ins: { ironbar: 1, gem: 1 }, out: 'decoIron' }, { ins: { goldbar: 1, gem: 1 }, out: 'decoGold' }] },   // 装飾工房（2つの材料を組み合わせる）
 };
 const MACHINE_ORDER = Object.keys(MACHINES);
 
@@ -140,7 +148,7 @@ const wageOf = w => 10 + 6 * w.lv;                             // 給料（月�
 const forkSpeed = lv => Math.min(6, 1.2 * Math.pow(1.2, lv));   // フォークリフトの速さ（最初はゆっくり）
 const FORK_BUY = n => 400 + 200 * (n - 1);                     // n台目のフォークリフトの値段
 // 研究所で研究して使えるようになる機械 [費用, 月数]。レンガ焼成機・クラッシャーは最初から
-const RESEARCH_MACH = { smelter: [600, 2], bagger: [500, 2], factory: [1500, 3], washer: [1200, 3], cutter: [1800, 3], polisher: [2500, 4] };
+const RESEARCH_MACH = { smelter: [600, 2], bagger: [500, 2], factory: [1500, 3], washer: [1200, 3], cutter: [1800, 3], polisher: [2500, 4], drawer: [1500, 3], atelier: [5000, 4] };
 const RESEARCH_BATCH = [800, 2];
 // 研究で増える設置物：高速ドリル・自動ドリル（ふさがると向きを変える）・T字路・交差
 const RESEARCH_TOOL = { fdrill: [800, 2], adrill: [1500, 3], tee: [300, 1], cross: [400, 2], pipe: [900, 2] };
@@ -581,7 +589,14 @@ const TXT_ADD = {
     catalog: 'カタログ', catNote: '今つくれる・売れる物の一覧（売値は今の値段）。', catSold: '売った数',
     priceSec: '売値アップ', priceName: n => `${n}の売値`, priceSpec: (m, list) => `売値 ×${m}` + (list ? `（${list}にも掛かる）` : ''),
     priceNote: '売ったことのある資源だけ出ます。加工した物・袋詰めにも同じ倍率が掛かります。', yardHas: 'ヤードの中身',
-    infoPick: '見たいものを選ぶ', close: '閉じる', facStaff: (n, m) => `作業員 ${n}/${m}人（多いほど速い）`,
+    infoPick: '見たいものを選ぶ', close: '閉じる',
+    aiHire: n => `作業員を${n}人雇った`, aiCompany: n => `会社をレベル${n}に`, aiLab: '研究所を建てた', aiRes: n => `研究を始めた：${n}`,
+    aiTruck: n => `トラックをレベル${n}に`, aiForkBuy: 'フォークリフトを買った', aiFork: 'フォークリフトを強化', aiDrill: 'ドリルを増やした',
+    aiDrillUp: 'ドリルを強化', aiTurn: '止まったドリルを横に向けた', aiMach: n => `${n}を振り分けで設置`, aiMachUp: '機械を強化',
+    aiPrice: n => `${n}の売値アップ`, aiPipe: '湧き口をパイプでつないだ', aiFac: n => `${n}を建てた`,
+    items: { tile: 'タイル', glossTile: 'つやタイル', wire: 'ワイヤー', goldleaf: '金箔', decoIron: '高級装飾品（鉄）', decoGold: '高級装飾品（金）' },
+    mach: { drawer: '伸線機', atelier: '装飾工房' }, glyph: { drawer: '伸', atelier: '飾' },
+    adm: { diary: '制作日誌' }, facStaff: (n, m) => `作業員 ${n}/${m}人（多いほど速い）`,
     giftMsg: v => `社長、資金が底をつきそうです。\n会長からプレゼントが届きました！\n資金 +${v}（返さなくてよいお金です）`, giftHist: '会長からプレゼント 1000',
     stageUp: (n, names) => `岩盤Lv${n}を突破しました！` + (names.length ? `\n新しく：${names.join('・')}` : ''), stagePop: n => `岩盤Lv${n}突破`, hStage: n => `岩盤Lv${n}を突破`,
     greetT: 'ごあいさつ',
@@ -606,8 +621,10 @@ const TXT_ADD = {
     catalog: 'カタログ', catNote: 'いま つくれる・うれる ものの いちらん（ねだんは いまの ねだん）。', catSold: 'うった かず',
     priceSec: 'ねだん アップ', priceName: n => `${n}の ねだん`, priceSpec: (m, list) => `ねだん ×${m}` + (list ? `（${list}にも かかる）` : ''),
     priceNote: 'うった ことの ある ものだけ でます。つくった ものにも おなじ ばいりつが かかります。', yardHas: 'おきばの なかみ',
-    infoPick: 'みたい ものを えらぶ', close: 'とじる', facStaff: (n, m) => `さぎょういん ${n}/${m}にん（おおいほど はやい）`,
-    adm: { liveOn: 'じどう プレイ（みる）', liveOff: 'じどう プレイ（みる）おわり', liveOnMsg: 'じどう プレイちゅう', liveTag: 'じどう プレイちゅう' },
+    infoPick: 'みたい ものを えらぶ', close: 'とじる',
+    items: { tile: 'タイル', glossTile: 'つやつや タイル', wire: 'ワイヤー', goldleaf: 'きんぱく', decoIron: 'こうきゅう かざり（てつ）', decoGold: 'こうきゅう かざり（きん）' },
+    mach: { drawer: 'ひきのばし き', atelier: 'かざり こうぼう' }, glyph: { drawer: '伸', atelier: '飾' }, facStaff: (n, m) => `さぎょういん ${n}/${m}にん（おおいほど はやい）`,
+    adm: { diary: 'せいさく にっし', liveOn: 'じどう プレイ（みる）', liveOff: 'じどう プレイ（みる）おわり', liveOnMsg: 'じどう プレイちゅう', liveTag: 'じどう プレイちゅう' },
     giftMsg: v => `しゃちょう、おかねが なくなりそうです。\nかいちょうから プレゼントが とどきました！\nおかね +${v}（かえさなくて いい おかねです）`, giftHist: 'かいちょうから プレゼント 1000',
     stageUp: (n, names) => `がんばん Lv${n}を とっぱ しました！` + (names.length ? `\nあたらしく：${names.join('・')}` : ''), stagePop: n => `がんばん Lv${n} とっぱ`, hStage: n => `がんばん Lv${n}を とっぱ`,
     greetT: 'ごあいさつ',
@@ -632,8 +649,14 @@ const TXT_ADD = {
     catalog: 'Catalog', catNote: 'Everything you can make and sell now (current prices).', catSold: 'Sold',
     priceSec: 'Price up', priceName: n => `${n} price`, priceSpec: (m, list) => `Price ×${m}` + (list ? ` (also ${list})` : ''),
     priceNote: 'Only resources you have sold are shown. The same rate applies to products made from them and to bags.', yardHas: 'In the yard',
-    infoPick: 'Pick a page', close: 'Close', facStaff: (n, m) => `Workers ${n}/${m} (more = faster)`,
-    adm: { liveOn: 'Auto play (watch)', liveOff: 'Stop auto play (watch)', liveOnMsg: 'Auto play: the AI decides every 3 seconds', liveTag: 'Auto play' },
+    infoPick: 'Pick a page', close: 'Close',
+    aiHire: n => `Hired ${n} worker(s)`, aiCompany: n => `Company to level ${n}`, aiLab: 'Built the Lab', aiRes: n => `Research: ${n}`,
+    aiTruck: n => `Truck to level ${n}`, aiForkBuy: 'Bought a forklift', aiFork: 'Upgraded a forklift', aiDrill: 'Added a drill',
+    aiDrillUp: 'Upgraded drills', aiTurn: 'Turned a stuck drill', aiMach: n => `Placed ${n} with a sorter`, aiMachUp: 'Upgraded machines',
+    aiPrice: n => `${n} price up`, aiPipe: 'Piped a source', aiFac: n => `Built ${n}`,
+    items: { tile: 'Tile', glossTile: 'Glossy tile', wire: 'Wire', goldleaf: 'Gold leaf', decoIron: 'Luxury ornament (iron)', decoGold: 'Luxury ornament (gold)' },
+    mach: { drawer: 'Wire drawer', atelier: 'Ornament workshop' }, glyph: { drawer: 'W', atelier: 'O' }, facStaff: (n, m) => `Workers ${n}/${m} (more = faster)`,
+    adm: { diary: 'Dev diary', liveOn: 'Auto play (watch)', liveOff: 'Stop auto play (watch)', liveOnMsg: 'Auto play: the AI decides every 3 seconds', liveTag: 'Auto play' },
     giftMsg: v => `Boss, we are almost out of money.\nA present from the chairman has arrived!\nMoney +${v} (no need to pay it back)`, giftHist: 'Present from the chairman: 1000',
     stageUp: (n, names) => `Broke through bedrock Lv${n}!` + (names.length ? `\nNew: ${names.join(', ')}` : ''), stagePop: n => `Bedrock Lv${n} cleared`, hStage: n => `Broke through bedrock Lv${n}`,
     greetT: 'Welcome',
@@ -655,7 +678,7 @@ for (const l of Object.keys(TXT_ADD)) {
     else if (k === 'help0') TXT[l].helpTopics[0] = a[k];
     else if (k === 'help7') TXT[l].helpTopics[7] = a[k];
     else if (k === 'help1') TXT[l].helpTopics[1] = a[k];
-    else if (k === 'adm') Object.assign(TXT[l].adm, a[k]);
+    else if (k === 'adm' || k === 'items' || k === 'mach' || k === 'glyph') Object.assign(TXT[l][k], a[k]);
     else TXT[l][k] = a[k];
   }
 }
@@ -690,8 +713,8 @@ const owned = c => c >= S.landL && c <= S.landR;
 const surfaceFree = c => inB(c, YARD_R) && owned(c) && !isYard(c, YARD_R) && !isOffice(c, YARD_R) && !isLab(c, YARD_R) && !facAt(c);
 const OFFICE_K = key(OFFICE_C + 1, YARD_R);   // 事務所の出入り口
 // 元の資源（売値アップの倍率をどれに掛けるか）
-const ROOT = { soil: 'soil', brick: 'soil', stone: 'stone', gravel: 'stone', iron: 'iron', ironbar: 'iron', tool: 'iron',
-  gold: 'gold', goldbar: 'gold', jewel: 'gold', dia: 'dia', diaClean: 'dia', diaCut: 'dia', gem: 'dia', fuel: 'fuel' };
+const ROOT = { soil: 'soil', brick: 'soil', stone: 'stone', gravel: 'stone', tile: 'stone', glossTile: 'stone', iron: 'iron', ironbar: 'iron', tool: 'iron', wire: 'iron',
+  gold: 'gold', goldbar: 'gold', jewel: 'gold', goldleaf: 'gold', dia: 'dia', diaClean: 'dia', diaCut: 'dia', gem: 'dia', decoIron: 'dia', decoGold: 'dia', fuel: 'fuel' };
 const ROOT_ORDER = ['soil', 'stone', 'iron', 'gold', 'dia', 'fuel'];
 const rootOf = it => ROOT[it.k === 'bag' ? it.of : it.k] || 'soil';
 const PRICE_BASE = { soil: 120, stone: 160, iron: 350, gold: 900, dia: 2200, fuel: 1500 };   // 売値アップ1回目の値段
@@ -852,7 +875,7 @@ function addHist(text) { S.history.push({ m: Math.floor(S.time / TUNE.month), t:
 const RES_STAGE = { 'sk:away': 2, 'sk:land': 2, 'm:smelter': 3, 't:tee': 3, 'sk:dragPlus': 3, 'm:bagger': 4, 'sk:yardPlus': 4,
   'm:factory': 5, 't:cross': 5, 't:fdrill': 5, batch: 5, 't:pipe': 5, 'f:spa': 5, 'f:power': 5,
   'sk:truck2': 6, 'sk:black': 6, 'sk:speeding': 6,
-  'm:washer': 7, 'm:cutter': 7, 't:adrill': 7, 'sk:veteran': 7, 'f:refinery': 7, 'm:polisher': 9 };
+  'm:washer': 7, 'm:cutter': 7, 't:adrill': 7, 'sk:veteran': 7, 'f:refinery': 7, 'm:polisher': 9, 'm:drawer': 4, 'm:atelier': 9 };
 const SK_STAGE = { speed: [3, 7, 9], welfare: [3, 7], hr: [4, 7], beltMax: [8, 9] };   // 段ごとに出てくる段階
 function resAvail(id) {
   if (id === 'sk:digLv') return sk('digLv') < S.stage;   // 次の岩盤のぶんだけ研究できる
@@ -902,8 +925,8 @@ function accepts(m, it) {
     if (b[it.k] !== undefined) return b[it.k] < def.bag * 2;
     return Object.keys(b).length < 3;
   }
-  const rec = def.recipes.find(x => x.in === it.k);
-  return !!rec && (m.buf[it.k] || 0) < rec.n * 3;
+  const rec = def.recipes.find(x => x.in === it.k || (x.ins && x.ins[it.k]));
+  return !!rec && (m.buf[it.k] || 0) < (rec.ins ? rec.ins[it.k] : rec.n) * 3;
 }
 function absorb(m, it) {
   if (MACHINES[m.m].bag) { const b = m.bags || (m.bags = {}); b[it.k] = (b[it.k] || 0) + 1; }
@@ -932,7 +955,9 @@ function updateMachines(dt) {
         }
       } else {
         for (const rec of def.recipes) {
-          if ((m.buf[rec.in] || 0) >= rec.n) { m.buf[rec.in] -= rec.n; m.cur = { k: rec.out }; m.prog = 0; break; }
+          if (rec.ins) {   // 2つの材料がそろったら
+            if (Object.entries(rec.ins).every(([k2, n]) => (m.buf[k2] || 0) >= n)) { for (const [k2, n] of Object.entries(rec.ins)) m.buf[k2] -= n; m.cur = { k: rec.out }; m.prog = 0; break; }
+          } else if ((m.buf[rec.in] || 0) >= rec.n) { m.buf[rec.in] -= rec.n; m.cur = { k: rec.out }; m.prog = 0; break; }
         }
       }
     }
@@ -2043,8 +2068,8 @@ function itemInfo(k) {
   if (raw) lines.push(T.iWhere[raw]);
   const made = []; const into = [];
   for (const m of MACHINE_ORDER) for (const rc of (MACHINES[m].recipes || [])) {
-    if (rc.out === k) made.push(`${T.items[rc.in]}×${rc.n}（${T.mach[m]}）`);
-    if (rc.in === k) into.push(`${T.items[rc.out]}（${T.mach[m]}）`);
+    if (rc.out === k) made.push(`${recIn(rc)}（${T.mach[m]}）`);
+    if (rc.in === k || (rc.ins && rc.ins[k])) into.push(`${T.items[rc.out]}（${T.mach[m]}）`);
   }
   if (made.length) lines.push(`${T.iFrom}：${made.join('、')}`);
   if (k === 'fuel') lines.push(`${T.iFrom}：${T.facDesc.refinery}`);
@@ -2052,6 +2077,8 @@ function itemInfo(k) {
   if (k !== 'bag') lines.push(T.iBag);
   return lines.join('\n');
 }
+// レシピの材料の書き方（「鉄の延べ棒×1＋宝石×1」など）
+const recIn = x => x.ins ? Object.entries(x.ins).map(([k2, n]) => `${tx().items[k2]}×${n}`).join('＋') : `${tx().items[x.in]}×${x.n}`;
 // 原料の出る場所（言葉は iWhere）
 const RAW_NOTE = { soil: 'soil', stone: 'stone', iron: 'iron', gold: 'gold', dia: 'dia' };
 function popInfoText() {
@@ -2074,7 +2101,7 @@ function popInfoText() {
   if (t.type === 'machine') {
     const def = MACHINES[t.m];
     const rule = def.bag ? T.bagRule
-      : def.recipes.map(x => `${T.items[x.in]}×${x.n} → ${T.items[x.out]}`).join(' / ');
+      : def.recipes.map(x => `${recIn(x)} → ${T.items[x.out]}`).join(' / ');
     const have = def.bag ? (Object.entries(t.bags || {}).map(([k2, n]) => `${T.items[k2]}×${n}`).join(' ') || '-')
       : Object.entries(t.buf).filter(([, n]) => n > 0).map(([k2, n]) => `${T.items[k2]}×${n}`).join(' ') || '-';
     return `${rule}\n${T.outDir}：${ARROW[t.dir]}　${T.inBuf}：${have}　${t.cur ? T.making : T.waiting}${opLine}`;
@@ -2197,7 +2224,7 @@ function toolBtn(id) {
   const lab = document.createElement('span'); lab.className = 'nm'; lab.append(document.createTextNode(name));
   if (cost) { const sm = document.createElement('small'); sm.textContent = fmt(cost); lab.append(sm); }
   b.append(lab);
-  if (id.startsWith('m:')) { const def = MACHINES[id.slice(2)]; const rc = document.createElement('span'); rc.className = 'rec'; rc.textContent = def.bag ? T.bagRule : def.recipes.map(x => `${T.items[x.in]}×${x.n}→${T.items[x.out]}`).join(' / '); b.append(rc); }
+  if (id.startsWith('m:')) { const def = MACHINES[id.slice(2)]; const rc = document.createElement('span'); rc.className = 'rec'; rc.textContent = def.bag ? T.bagRule : def.recipes.map(x => `${recIn(x)}→${T.items[x.out]}`).join(' / '); b.append(rc); }
   b.classList.toggle('active', toolId() === id);
   b.addEventListener('click', () => {
     if (toolId() === id) tool = 'none'; else setTool(id);   // もう一度押すと解除
@@ -2434,8 +2461,9 @@ function renderPanel(id) {
     });
     add(A.auto10, () => { closePanels(); autoPlay(10); });
     add(A.auto60, () => { closePanels(); autoPlay(60); });
-    add(autoLive ? A.liveOff : A.liveOn, () => { autoLive = !autoLive; liveT = 0; say(autoLive ? tx().adm.liveOnMsg : tx().adm.liveOff, 2500); renderPanel('admin'); });
+    add(autoLive ? A.liveOff : A.liveOn, () => { autoLive = !autoLive; liveT = 0; aiLog = []; showAiLog(); say(autoLive ? tx().adm.liveOnMsg : tx().adm.liveOff, 2500); renderPanel('admin'); });
     add(A.pixel, () => { window.open('tools/pixel.html', '_blank'); });
+    add(A.diary, () => { window.open('diary/', '_blank'); });
   } else if (id === 'help') {
     // 2ペイン：左に項目、右に説明
     const nav = $('helpNav'), body = $('helpBody');
@@ -2539,7 +2567,7 @@ function catalogIds() {
   if (S.stage >= 2) { have.add('stone'); have.add('iron'); }
   if (S.stage >= 3) have.add('gold');
   if (S.stage >= 5) have.add('dia');
-  for (let pass = 0; pass < 4; pass++) for (const m of MACHINE_ORDER) if (S.unlock[m]) for (const rc of (MACHINES[m].recipes || [])) if (have.has(rc.in)) have.add(rc.out);
+  for (let pass = 0; pass < 5; pass++) for (const m of MACHINE_ORDER) if (S.unlock[m]) for (const rc of (MACHINES[m].recipes || [])) if (rc.ins ? Object.keys(rc.ins).every(k2 => have.has(k2)) : have.has(rc.in)) have.add(rc.out);
   if (S.unlock.refinery) have.add('fuel');
   return ITEM_ORDER.filter(k => have.has(k));
 }
@@ -3104,7 +3132,7 @@ function hatch(x, y, cell) {
 }
 function drawLvPix(x, y, w, lv) {   // x,y＝並べ始め、w＝本体の幅
   if (!lv) return;
-  const d = 1 / (window.devicePixelRatio || 1), n = Math.min(lv, Math.floor(w / (d * 3)));   // d＝モニターの1ドット
+  const d = Math.max(1 / (window.devicePixelRatio || 1), cp / 48), n = Math.min(lv, Math.floor(w / (d * 3)));   // 小さい時はモニターの1ドット、拡大すると車体に合わせて大きく
   ctx.fillStyle = THEME.level;
   for (let i = 0; i < n; i++) ctx.fillRect(x + i * d * 3, y, d, d);
 }
@@ -3970,6 +3998,39 @@ function autoSortLines(drills) {
     }
   }
 }
+// 自動プレイ（見る）：AIが何をしたかを、前後の様子を比べて短い文にする（資金の下に小さく出す）
+function autoSnap() {
+  const sts = [...S.st.values()];
+  return { w: S.workers.length, ol: S.office.lv, lab: S.lab.built, res: S.research && S.research.id, tl: S.truck.lv, fn: S.forks.length,
+    fl: S.forks.reduce((a, f2) => a + f2.lv, 0), dl: sts.filter(s => s.type === 'drill').reduce((a, s) => a + s.lv, 0),
+    ml: sts.filter(s => s.type === 'machine').reduce((a, s) => a + s.lv, 0), pr: { ...(S.priceLv || {}) },
+    dn: sts.filter(s => s.type === 'drill').length, ms: sts.filter(s => s.type === 'machine').map(s => s.m),
+    pn: sts.filter(s => s.type === 'pipe').length, fac: S.fac.map(x => x.f), dirs: sts.filter(s => s.type === 'drill').map(s => s.dir).join() };
+}
+function autoDiff(a, b) {
+  const T = tx(), o = [];
+  if (b.w > a.w) o.push(T.aiHire(b.w - a.w));
+  if (b.ol > a.ol) o.push(T.aiCompany(b.ol + 1));
+  if (b.lab && !a.lab) o.push(T.aiLab);
+  if (b.res && b.res !== a.res) o.push(T.aiRes(resDef(b.res).name));
+  if (b.tl > a.tl) o.push(T.aiTruck(b.tl + 1));
+  if (b.fn > a.fn) o.push(T.aiForkBuy); else if (b.fl > a.fl) o.push(T.aiFork);
+  if (b.dn > a.dn) o.push(T.aiDrill); else if (b.dl > a.dl) o.push(T.aiDrillUp);
+  if (b.dirs !== a.dirs && b.dn === a.dn) o.push(T.aiTurn);
+  for (const m of b.ms) { const i = a.ms.indexOf(m); if (i < 0) o.push(T.aiMach(T.mach[m])); else a.ms.splice(i, 1); }
+  if (b.ml > a.ml) o.push(T.aiMachUp);
+  for (const r of Object.keys(b.pr)) if (b.pr[r] > (a.pr[r] || 0)) o.push(T.aiPrice(T.items[r]));
+  if (b.pn > a.pn) o.push(T.aiPipe);
+  for (const x of b.fac) if (!a.fac.includes(x)) o.push(T.aiFac(T.fac[x]));
+  return o;
+}
+let aiLog = [];
+function autoLiveStep() {
+  const a = autoSnap(); autoStep(true);
+  const lines = autoDiff(a, autoSnap());
+  if (lines.length) { aiLog = [...lines.reverse(), ...aiLog].slice(0, 4); showAiLog(); }
+}
+function showAiLog() { const el = $('aiHud'); el.textContent = autoLive ? aiLog.map(x => '・' + x).join('\n') : ''; }
 function autoStep(build = true) {
   const all = [...S.st.entries()];
   const drills = all.filter(([, x]) => x.type === 'drill'), machines = all.filter(([, x]) => x.type === 'machine');
@@ -4141,7 +4202,7 @@ function frame(now) {
   if (running && !inTitle) {
     const gdt = dt * sp[speedIdx] * (Date.now() < S.boost.speedUntil ? 10 : 1);
     sim(gdt);
-    if (autoLive) { liveT += gdt; if (liveT >= 3) { liveT = 0; autoStep(true); } }   // 自動プレイ（見る）：ゲームの3秒ごとにAIが考える
+    if (autoLive) { liveT += gdt; if (liveT >= 3) { liveT = 0; autoLiveStep(); } }   // 自動プレイ（見る）：ゲームの3秒ごとにAIが考える
   }
   applyMove(dt);
   updateUI();
