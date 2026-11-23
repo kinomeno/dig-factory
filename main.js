@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.35（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.36（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.35';
+const VERSION = '0.36';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -191,7 +191,7 @@ const TXT = {
     gMoney: '資金の動き', gMonth: '月ごとの収支（緑＝プラス・赤＝マイナス）',
     adm: { m1: '資金 ＋1000', m10: '資金 ＋10000', maxLv: '全部レベル最大', ace: '優秀な作業員を雇う',
       month: '1か月進める', fast: '速さ ×16', clear: '地中を見る（切替）', allSk: 'スキル全部取得', finRes: '研究を即完了', tune: '調整',
-      stageUp: '段階ジャンプ（次の岩盤を突破）', auto10: '自動プレイ 10分', auto60: '自動プレイ 60分' },
+      stageUp: '段階ジャンプ（次の岩盤を突破）', auto10: '自動プレイ 10分', auto60: '自動プレイ 60分', pixel: 'ドット編集ツール' },
     tuneInfo: 'バーを動かすとすぐ反映されます（最初の資金・鉱石の出やすさ・硬さは「最初から」の後に反映）。「結果をコピー」でチャットに貼れます。',
     tuneCopy: '結果をコピー', tuneCopied: 'コピーしました。チャットに貼ってください', tuneReset: '初期値に戻す', tuneT: '調整',
     helpTopics: [
@@ -308,7 +308,7 @@ const TXT = {
     unitN: 'だい', unitP: 'にん', unitK: 'こ', unitT: 'かい',
     gMoney: 'おかねの うごき', gMonth: 'つきごとの もうけ（みどり＝プラス・あか＝マイナス）',
     adm: { m1: 'おかね ＋1000', m10: 'おかね ＋10000', maxLv: 'ぜんぶ レベル さいだい', ace: 'すごい さぎょういんを やとう',
-      month: '1かげつ すすめる', fast: 'はやさ ×16', clear: 'つちの なかを みる（きりかえ）', allSk: 'スキル ぜんぶ', finRes: 'けんきゅうを すぐ おわらせる', tune: 'ちょうせい', stageUp: 'だんかい ジャンプ', auto10: 'じどう プレイ 10ぷん', auto60: 'じどう プレイ 60ぷん' },
+      month: '1かげつ すすめる', fast: 'はやさ ×16', clear: 'つちの なかを みる（きりかえ）', allSk: 'スキル ぜんぶ', finRes: 'けんきゅうを すぐ おわらせる', tune: 'ちょうせい', stageUp: 'だんかい ジャンプ', auto10: 'じどう プレイ 10ぷん', auto60: 'じどう プレイ 60ぷん', pixel: 'ドット へんしゅう' },
     tuneInfo: 'バーを うごかすと すぐ かわります。「けっかを コピー」で チャットに はれます。',
     tuneCopy: 'けっかを コピー', tuneCopied: 'コピー しました', tuneReset: 'はじめの あたいに もどす', tuneT: 'ちょうせい',
     helpTopics: [
@@ -425,7 +425,7 @@ const TXT = {
     unitN: '', unitP: '', unitK: '', unitT: '',
     gMoney: 'Money over time', gMonth: 'Monthly net (green = profit, red = loss)',
     adm: { m1: 'Money +1000', m10: 'Money +10000', maxLv: 'Max all levels', ace: 'Hire an ace worker',
-      month: 'Skip 1 month', fast: 'Speed ×16', clear: 'Reveal underground (toggle)', allSk: 'All skills', finRes: 'Finish research now', tune: 'Tuning', stageUp: 'Stage jump', auto10: 'Auto play 10 min', auto60: 'Auto play 60 min' },
+      month: 'Skip 1 month', fast: 'Speed ×16', clear: 'Reveal underground (toggle)', allSk: 'All skills', finRes: 'Finish research now', tune: 'Tuning', stageUp: 'Stage jump', auto10: 'Auto play 10 min', auto60: 'Auto play 60 min', pixel: 'Pixel editor' },
     tuneInfo: 'Changes apply right away (starting money, ore and hardness after Restart). Copy the result to paste in chat.',
     tuneCopy: 'Copy result', tuneCopied: 'Copied', tuneReset: 'Reset to defaults', tuneT: 'Tuning',
     helpTopics: [
@@ -1956,6 +1956,7 @@ function renderPanel(id) {
     });
     add(A.auto10, () => { closePanels(); autoPlay(10); });
     add(A.auto60, () => { closePanels(); autoPlay(60); });
+    add(A.pixel, () => { window.open('tools/pixel.html', '_blank'); });
   } else if (id === 'help') {
     // 2ペイン：左に項目、右に説明
     const nav = $('helpNav'), body = $('helpBody');
@@ -2687,11 +2688,31 @@ function glyph(ch, x, y, color, size) {
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(ch, x + cp / 2, y + cp / 2 + 1);
 }
+// ---- ドット絵（sprites.js。ドット編集ツールで直した物はブラウザに保存され、こちらが優先） ----
+const SPRITE_DATA = (() => {
+  const base = window.DF_SPRITES || { palette: {}, sprites: {} };
+  let over = {};
+  try { over = JSON.parse(localStorage.getItem('digfactory.sprites') || '{}'); } catch (e) { over = {}; }
+  return { palette: Object.assign({}, base.palette, over.palette || {}), sprites: Object.assign({}, base.sprites, over.sprites || {}) };
+})();
+const SPR_CV = {};
+function sprite(name) {
+  if (SPR_CV[name] !== undefined) return SPR_CV[name];
+  const rows = SPRITE_DATA.sprites[name];
+  if (!rows) return (SPR_CV[name] = null);
+  const c = document.createElement('canvas'); c.width = c.height = 16;
+  const g = c.getContext('2d');
+  rows.forEach((row, y) => [...row].forEach((ch, x) => { const col = SPRITE_DATA.palette[ch]; if (col) { g.fillStyle = col; g.fillRect(x, y, 1, 1); } }));
+  return (SPR_CV[name] = c);
+}
 function drawMachine(x, y, m) {
-  const cell = cp;
-  ctx.fillStyle = THEME.machBg; ctx.fillRect(x + 1, y + 1, cell - 2, cell - 2);
-  ctx.strokeStyle = THEME.machLine; ctx.lineWidth = 1.5; ctx.strokeRect(x + 1.5, y + 1.5, cell - 3, cell - 3);
-  glyph(tx().glyph[m.m], x, y + cell * 0.02, THEME.machText, 0.38);
+  const cell = cp, sp = sprite(m.m);
+  if (sp) { ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(sp, x, y, cell, cell); ctx.restore(); }
+  else {
+    ctx.fillStyle = THEME.machBg; ctx.fillRect(x + 1, y + 1, cell - 2, cell - 2);
+    ctx.strokeStyle = THEME.machLine; ctx.lineWidth = 1.5; ctx.strokeRect(x + 1.5, y + 1.5, cell - 3, cell - 3);
+    glyph(tx().glyph[m.m], x, y + cell * 0.02, THEME.machText, 0.38);
+  }
   const [dx, dy] = DIRS[m.dir];
   const cx = x + cell / 2 + dx * cell * 0.38, cy = y + cell / 2 + dy * cell * 0.38;
   ctx.save(); ctx.translate(cx, cy); ctx.rotate(Math.atan2(dy, dx));

@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ドット編集 / ほりほり工場</title>
+<style>
+  :root { --bg: #e9e9e6; --panel: #fbfbf9; --line: rgba(0,0,0,.14); --text: #2b2b2e; --sub: #77767a; --sel: #2b2b2e; --accent: #d0661f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; font-size: 13px; }
+  header { padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+  header b { font-size: 15px; letter-spacing: .08em; }
+  header span { color: var(--sub); font-size: 12px; }
+  main { display: grid; grid-template-columns: 150px auto 1fr; gap: 16px; padding: 16px; align-items: start; }
+  @media (max-width: 760px) { main { grid-template-columns: 1fr; } }
+  .box { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 10px; }
+  h3 { margin: 0 0 8px; font-size: 12px; letter-spacing: .12em; color: var(--sub); font-weight: 600; }
+  button { background: #fff; color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 6px 10px; font: inherit; cursor: pointer; }
+  button:hover { background: #f1f1ef; }
+  button.active { background: var(--sel); color: #fff; border-color: var(--sel); }
+  #list { display: flex; flex-direction: column; gap: 3px; }
+  #list button { text-align: left; }
+  #list button.chg::after { content: " ●"; color: var(--accent); font-size: 10px; }
+  #grid { display: block; touch-action: none; cursor: crosshair; image-rendering: pixelated; border: 1px solid var(--line); background: repeating-conic-gradient(#ddd 0 25%, #fff 0 50%) 0 0 / 16px 16px; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  #pal { display: grid; grid-template-columns: repeat(6, 32px); gap: 4px; }
+  #pal button { width: 32px; height: 32px; padding: 0; position: relative; }
+  #pal button i { position: absolute; inset: 3px; border-radius: 2px; }
+  #pal button.active { outline: 2px solid var(--accent); outline-offset: 1px; background: #fff; }
+  #pal button.erase i { background: repeating-conic-gradient(#ccc 0 25%, #fff 0 50%) 0 0 / 8px 8px; }
+  .prev { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; }
+  .prev canvas { image-rendering: pixelated; border: 1px solid var(--line); }
+  .bgs button { font-size: 11px; padding: 3px 7px; }
+  textarea { width: 100%; height: 160px; font-family: ui-monospace, Consolas, monospace; font-size: 11px; margin-top: 8px; }
+  .note { color: var(--sub); font-size: 12px; line-height: 1.6; margin: 6px 0 0; }
+  #msg { color: var(--accent); min-height: 18px; margin-top: 6px; }
+</style>
+</head>
+<body>
+<header><b>ドット編集</b><span>ほりほり工場の絵（16×16）を1ドットずつ直せます。「ゲームに反映」を押すと、同じブラウザでゲームを開き直した時に新しい絵になります。</span></header>
+<main>
+  <div class="box"><h3>絵の一覧</h3><div id="list"></div></div>
+  <div class="box">
+    <h3 id="name">-</h3>
+    <canvas id="grid" width="352" height="352"></canvas>
+    <div class="row">
+      <button data-tool="pen" class="active">ペン</button>
+      <button data-tool="fill">塗りつぶし</button>
+      <button data-tool="pick">色を拾う</button>
+      <button id="undo">戻す（Ctrl+Z）</button>
+    </div>
+    <div class="row">
+      <button data-shift="up">↑ずらす</button><button data-shift="down">↓</button><button data-shift="left">←</button><button data-shift="right">→</button>
+      <button id="flip">左右反転</button>
+    </div>
+  </div>
+  <div>
+    <div class="box">
+      <h3>色</h3>
+      <div id="pal"></div>
+      <div class="row"><input type="color" id="newCol" value="#7fb069"><button id="addCol">この色を足す</button></div>
+      <p class="note">右クリックでも消せます。</p>
+    </div>
+    <div class="box" style="margin-top:12px">
+      <h3>見え方</h3>
+      <div class="prev"><canvas id="p1" width="16" height="16"></canvas><canvas id="p2" width="32" height="32" style="width:32px"></canvas><canvas id="p4" width="64" height="64" style="width:64px"></canvas><canvas id="p6" width="96" height="96" style="width:96px"></canvas></div>
+      <div class="row bgs"><button data-bg="#7a5e48" class="active">洞窟</button><button data-bg="#c4bfb4">土</button><button data-bg="#b9d7ec">空</button><button data-bg="#ffffff">白</button></div>
+    </div>
+    <div class="box" style="margin-top:12px">
+      <h3>保存と書き出し</h3>
+      <div class="row">
+        <button id="save" class="active">ゲームに反映</button>
+        <button id="revert">この絵を元に戻す</button>
+        <button id="revertAll">全部元に戻す</button>
+        <button id="export">書き出し（コピー）</button>
+      </div>
+      <div id="msg"></div>
+      <textarea id="out" hidden readonly></textarea>
+      <p class="note">書き出した文字をClaudeに渡すと、ゲームの正式な絵として組み込めます。</p>
+    </div>
+  </div>
+</main>
+<script src="../sprites.js"></script>
+<script>
+(() => {
+  'use strict';
+  const KEY = 'digfactory.sprites';
+  const base = window.DF_SPRITES || { palette: {}, sprites: {} };
+  let over = {};
+  try { over = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { over = {}; }
+  over.palette = over.palette || {}; over.sprites = over.sprites || {};
+  const pal = () => Object.assign({}, base.palette, over.palette);
+  const cur = { name: null, px: null, tool: 'pen', ch: 'k', hist: [], bg: '#7a5e48' };
+  const $ = id => document.getElementById(id);
+  const grid = $('grid'), gg = grid.getContext('2d'), Z = 22;
+  const rowsOf = n => (over.sprites[n] || base.sprites[n]).map(r => [...r]);
+  const say = t => { $('msg').textContent = t; setTimeout(() => { if ($('msg').textContent === t) $('msg').textContent = ''; }, 2500); };
+
+  function renderList() {
+    const box = $('list'); box.innerHTML = '';
+    for (const n of Object.keys(base.sprites)) {
+      const b = document.createElement('button'); b.textContent = n;
+      b.classList.toggle('active', n === cur.name); b.classList.toggle('chg', !!over.sprites[n]);
+      b.addEventListener('click', () => open(n)); box.append(b);
+    }
+  }
+  function renderPal() {
+    const box = $('pal'), P = pal(); box.innerHTML = '';
+    for (const [ch, col] of Object.entries(P)) {
+      const b = document.createElement('button'); b.title = col ? `${ch}  ${col}` : '透明（消しゴム）';
+      const i = document.createElement('i'); if (col) i.style.background = col; else b.classList.add('erase');
+      b.append(i); b.classList.toggle('active', ch === cur.ch);
+      b.addEventListener('click', () => { cur.ch = ch; if (cur.tool === 'pick') setTool('pen'); renderPal(); });
+      box.append(b);
+    }
+  }
+  function draw() {
+    const P = pal();
+    gg.clearRect(0, 0, 352, 352);
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const col = P[cur.px[y][x]]; if (col) { gg.fillStyle = col; gg.fillRect(x * Z, y * Z, Z, Z); } }
+    gg.strokeStyle = 'rgba(0,0,0,.12)'; gg.lineWidth = 1;
+    for (let i = 0; i <= 16; i++) { gg.beginPath(); gg.moveTo(i * Z + .5, 0); gg.lineTo(i * Z + .5, 352); gg.stroke(); gg.beginPath(); gg.moveTo(0, i * Z + .5); gg.lineTo(352, i * Z + .5); gg.stroke(); }
+    gg.strokeStyle = 'rgba(0,0,0,.3)'; gg.beginPath(); gg.moveTo(8 * Z + .5, 0); gg.lineTo(8 * Z + .5, 352); gg.moveTo(0, 8 * Z + .5); gg.lineTo(352, 8 * Z + .5); gg.stroke();
+    for (const [id, s] of [['p1', 1], ['p2', 2], ['p4', 4], ['p6', 6]]) {
+      const c = $(id), g = c.getContext('2d'); g.fillStyle = cur.bg; g.fillRect(0, 0, c.width, c.height);
+      for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const col = P[cur.px[y][x]]; if (col) { g.fillStyle = col; g.fillRect(x * s, y * s, s, s); } }
+    }
+  }
+  function open(n) { cur.name = n; cur.px = rowsOf(n); cur.hist = []; $('name').textContent = n; renderList(); draw(); }
+  const snap = () => { cur.hist.push(cur.px.map(r => r.slice())); if (cur.hist.length > 60) cur.hist.shift(); };
+  function setTool(t) { cur.tool = t; document.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === t)); }
+  function fill(x, y, ch) {
+    const from = cur.px[y][x]; if (from === ch) return;
+    const q = [[x, y]];
+    while (q.length) { const [a, b] = q.pop(); if (a < 0 || b < 0 || a > 15 || b > 15 || cur.px[b][a] !== from) continue; cur.px[b][a] = ch; q.push([a + 1, b], [a - 1, b], [a, b + 1], [a, b - 1]); }
+  }
+  let painting = false, erase = false;
+  const at = e => { const r = grid.getBoundingClientRect(); return [Math.floor((e.clientX - r.left) / r.width * 16), Math.floor((e.clientY - r.top) / r.height * 16)]; };
+  function act(e) {
+    const [x, y] = at(e); if (x < 0 || y < 0 || x > 15 || y > 15) return;
+    if (cur.tool === 'pick') { cur.ch = cur.px[y][x]; setTool('pen'); renderPal(); return; }
+    if (cur.tool === 'fill') { fill(x, y, erase ? '.' : cur.ch); draw(); return; }
+    cur.px[y][x] = erase ? '.' : cur.ch; draw();
+  }
+  grid.addEventListener('contextmenu', e => e.preventDefault());
+  grid.addEventListener('pointerdown', e => { if (!cur.px) return; snap(); painting = true; erase = e.button === 2; grid.setPointerCapture(e.pointerId); act(e); });
+  grid.addEventListener('pointermove', e => { if (painting && cur.tool === 'pen') act(e); });
+  grid.addEventListener('pointerup', () => { painting = false; });
+  document.querySelectorAll('[data-tool]').forEach(b => b.addEventListener('click', () => setTool(b.dataset.tool)));
+  $('undo').addEventListener('click', () => { if (cur.hist.length) { cur.px = cur.hist.pop(); draw(); } });
+  window.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); $('undo').click(); } });
+  document.querySelectorAll('[data-shift]').forEach(b => b.addEventListener('click', () => {
+    if (!cur.px) return; snap();
+    const d = b.dataset.shift, p = cur.px, n = Array.from({ length: 16 }, () => Array(16).fill('.'));
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      const nx = x + (d === 'right' ? 1 : d === 'left' ? -1 : 0), ny = y + (d === 'down' ? 1 : d === 'up' ? -1 : 0);
+      if (nx >= 0 && ny >= 0 && nx < 16 && ny < 16) n[ny][nx] = p[y][x];
+    }
+    cur.px = n; draw();
+  }));
+  $('flip').addEventListener('click', () => { if (!cur.px) return; snap(); cur.px = cur.px.map(r => r.slice().reverse()); draw(); });
+  document.querySelectorAll('[data-bg]').forEach(b => b.addEventListener('click', () => { cur.bg = b.dataset.bg; document.querySelectorAll('[data-bg]').forEach(x => x.classList.toggle('active', x === b)); draw(); }));
+  $('addCol').addEventListener('click', () => {
+    const used = new Set(Object.keys(pal())), chars = 'ABCDFHIJKLMOPQTUVWXYZacfhijqtuvxz0123456789';
+    const ch = [...chars].find(c => !used.has(c)); if (!ch) { say('これ以上は色を足せません'); return; }
+    over.palette[ch] = $('newCol').value; cur.ch = ch; renderPal(); say('色を足しました');
+  });
+  const store = () => { try { localStorage.setItem(KEY, JSON.stringify(over)); return true; } catch (e) { say('保存できませんでした'); return false; } };
+  $('save').addEventListener('click', () => { if (!cur.name) return; over.sprites[cur.name] = cur.px.map(r => r.join('')); if (store()) { renderList(); say('ゲームに反映しました（ゲームを開き直すと新しい絵になります）'); } });
+  $('revert').addEventListener('click', () => { if (!cur.name) return; delete over.sprites[cur.name]; store(); open(cur.name); say('元に戻しました'); });
+  $('revertAll').addEventListener('click', () => { if (!confirm('全部の絵と、足した色を元に戻しますか？')) return; over = { palette: {}, sprites: {} }; store(); open(cur.name || Object.keys(base.sprites)[0]); renderPal(); say('全部元に戻しました'); });
+  $('export').addEventListener('click', () => {
+    const o = $('out'); o.hidden = false;
+    o.value = JSON.stringify({ palette: over.palette, sprites: over.sprites }, null, 1);
+    o.select(); if (navigator.clipboard) navigator.clipboard.writeText(o.value).then(() => say('コピーしました。Claudeに貼ってください'), () => {});
+  });
+  renderPal(); open(Object.keys(base.sprites)[0]);
+})();
+</script>
+</body>
+</html>
