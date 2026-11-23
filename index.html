@@ -7,56 +7,81 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-  <h1><span data-t="title">採掘ゲーム</span> <small id="ver"></small></h1>
-  <div class="stats">
-    <span><span data-t="money">資金</span>：<b id="money">0</b></span>
-    <span><span data-t="truck">荷台</span>：<b id="load">0/10</b></span>
-  </div>
-</header>
+<canvas id="cv"></canvas>
 
-<div class="toolbar">
-  <div class="group">
-    <button class="tool" data-tool="drill"><span data-t="drill">ドリル</span> <small>50</small></button>
-    <button class="tool" data-tool="conv"><span data-t="conv">コンベア</span> <small>5</small></button>
-    <button class="tool" data-tool="remove"><span data-t="remove">撤去</span></button>
+<!-- 左上：状態と操作 -->
+<div id="topPanel" class="float">
+  <div class="row">
+    <b class="title" data-t="title">採掘ゲーム</b> <small id="ver"></small>
+    <span class="money"><span data-t="money">資金</span>：<b id="money">0</b></span>
   </div>
-  <div class="group" id="dirGroup">
-    <span class="label" data-t="dir">向き</span>
-    <button class="dir" data-dir="left">←</button>
-    <button class="dir" data-dir="up">↑</button>
-    <button class="dir" data-dir="down">↓</button>
-    <button class="dir" data-dir="right">→</button>
-  </div>
-  <div class="group">
+  <div class="row">
     <button id="playBtn" class="play"></button>
     <button id="speedBtn">×1</button>
+    <button id="shopBtn" data-t="shop">ショップ</button>
+    <button id="helpBtn" data-t="help">遊び方</button>
     <button id="resetBtn" data-t="reset">最初から</button>
   </div>
 </div>
 
-<div id="wrap">
-  <canvas id="cv"></canvas>
-  <div id="pop" hidden>
-    <div class="pop-head"><span id="popTitle"></span><button id="popClose" class="x">✕</button></div>
-    <div class="pop-dirs">
-      <button data-pdir="left">←</button>
-      <button data-pdir="up">↑</button>
-      <button data-pdir="down">↓</button>
-      <button data-pdir="right">→</button>
-    </div>
-    <button id="popRemove" class="pop-remove"></button>
-  </div>
-</div>
-<p id="msg" class="msg"></p>
-<p class="hint"><span data-t="hint"></span><br><small data-t="keys"></small></p>
-
-<footer>
-  <span><span data-t="author">キノメノ</span>：<a id="noteUrl" target="_blank" rel="noopener"></a></span>
-  <span class="support">
-    <a href="https://ko-fi.com/kinomeno" target="_blank" rel="noopener" data-t="kofi">☞ko-fiで支援</a>
-    <a id="noteTip" target="_blank" rel="noopener" data-t="tip">☞noteでチップ</a>
+<!-- 下：道具 -->
+<div id="palette" class="float">
+  <button class="tool" data-tool="drill"><span data-t="drill">ドリル</span> <small>50</small></button>
+  <button class="tool" data-tool="conv"><span data-t="conv">コンベア</span> <small>5</small></button>
+  <button class="tool" data-tool="sort"><span data-t="sort">仕分け</span> <small>20</small></button>
+  <button class="tool" data-tool="remove"><span data-t="remove">撤去</span></button>
+  <span class="sep"></span>
+  <span id="dirGroup" class="dirs">
+    <button class="dir" data-dir="left">←</button>
+    <button class="dir" data-dir="up">↑</button>
+    <button class="dir" data-dir="down">↓</button>
+    <button class="dir" data-dir="right">→</button>
   </span>
+</div>
+
+<p id="msg" class="msg"></p>
+
+<!-- 遊び方 -->
+<div id="help" class="float panel" hidden>
+  <div class="head"><b data-t="help">遊び方</b><button class="x" data-close="help">✕</button></div>
+  <ul id="helpList"></ul>
+  <small data-t="keys"></small>
+</div>
+
+<!-- ショップ -->
+<div id="shop" class="float panel" hidden>
+  <div class="head"><b data-t="shopTitle">トラックを買う</b><button class="x" data-close="shop">✕</button></div>
+  <div id="shopFree" class="sub"></div>
+  <div id="shopList"></div>
+</div>
+
+<!-- 置いた物をタップしたときのメニュー -->
+<div id="pop" class="float" hidden>
+  <div class="head"><span id="popTitle"></span><button id="popClose" class="x">✕</button></div>
+  <div id="popDirs" class="prow">
+    <button data-pdir="left">←</button>
+    <button data-pdir="up">↑</button>
+    <button data-pdir="down">↓</button>
+    <button data-pdir="right">→</button>
+  </div>
+  <div id="popFilterRow" class="prow labeled"><span class="lab" data-t="filter">選ぶ資源</span>
+    <span class="opts">
+      <button data-pf="soil"></button><button data-pf="iron"></button><button data-pf="gold"></button>
+    </span>
+  </div>
+  <div id="popSideRow" class="prow labeled"><span class="lab" data-t="side">出す側</span>
+    <span class="opts">
+      <button data-ps="left" data-t="left">左</button><button data-ps="right" data-t="right">右</button>
+    </span>
+  </div>
+  <div id="popInfo" class="sub"></div>
+  <button id="popRemove" class="wide"></button>
+</div>
+
+<footer class="float">
+  <span><span data-t="author">キノメノ</span>：<a id="noteUrl" target="_blank" rel="noopener"></a></span>
+  <a href="https://ko-fi.com/kinomeno" target="_blank" rel="noopener" data-t="kofi">☞ko-fiで支援</a>
+  <a id="noteTip" target="_blank" rel="noopener" data-t="tip">☞noteでチップ</a>
 </footer>
 <script src="main.js"></script>
 </body>
