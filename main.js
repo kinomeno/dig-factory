@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.30（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.31（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.30';
+const VERSION = '0.31';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -36,6 +36,10 @@ const TUNE_DEF = [
   { k: 'digCost',    ja: '掘削の費用',                en: 'Dig cost ×',              min: 0.2, max: 3,    step: 0.1,  def: 1 },
   { k: 'resCost',    ja: '研究の費用',                en: 'Research cost ×',         min: 0.2, max: 3,    step: 0.1,  def: 1 },
   { k: 'resTime',    ja: '研究の時間',                en: 'Research time ×',         min: 0.2, max: 3,    step: 0.1,  def: 1 },
+  { k: 'yield',      ja: '1マスから出る資源の数',     en: 'Items per cell ×',        min: 0.5, max: 3,    step: 0.1,  def: 1 },
+  { k: 'deepHard',   ja: '深いほど硬くなる強さ',      en: 'Hardness growth ×',       min: 0,   max: 3,    step: 0.1,  def: 1 },
+  { k: 'costGrow',   ja: '同じ物を建てるごとの値上がり', en: 'Price growth per unit',  min: 1,   max: 3,    step: 0.1,  def: 2 },
+  { k: 'rockSlow',   ja: 'レベル不足で岩盤を掘る速さ', en: 'Bedrock speed w/o level', min: 0.01, max: 0.3, step: 0.01, def: 0.05 },
 ];
 const TUNE = {};
 for (const d of TUNE_DEF) TUNE[d.k] = d.def;
@@ -100,7 +104,10 @@ const FORK = { cap: 6, speed: 2.4, rate: 8 };   // 積める数・走る速さ�
 const newFork = () => ({ type: 'fork', lv: 0, op: null, x: 0, state: 'idle', load: [], tc: null, acc: 0, face: 1 });
 const LOAN = 300;        // 銀行の融資の額（行き詰まり防止）
 const LOAN_MAX = 1500;   // 借りられる合計の上限
-const LAYER_EVERY = 10;   // 10mごとに硬い岩盤の層（スキル「掘削レベル」が足りないと掘れない）
+// 硬い岩盤：Lv1＝10m、その後は20mごと（30m・50m…）。掘り抜くと段階が上がる（新しい研究が出る）
+const layerDepth = n => 10 + 20 * (n - 1);
+const layerAt = d => (d === 10 ? 1 : d > 10 && (d - 10) % 20 === 0 ? 1 + (d - 10) / 20 : 0);
+const stageOf = deepest => { let n = 1; while (deepest - SKY >= layerDepth(n)) n++; return n; };
 // 事務所のレベル：休憩の速さ・定員
 const OFFICE_LV = { rest: [1, 1.5, 2, 3, 4], cap: [3, 5, 8, 12, 16], forks: [1, 2, 3, 4, 5], cost: [300, 1500, 4000, 9000] };   // レベル2（研究所）は安め
 const ADV_LV = 2;                // 地上・上級勤務（フォークリフト・トラック・研究所）に必要なレベル
@@ -127,7 +134,7 @@ const SKILLS = {
   speeding: { max: 1, cost: [2000], months: [2] },
   beltMax:  { max: 2, cost: [2500, 6000], months: [2, 3] },
   yardPlus: { max: 1, cost: [1500], months: [2] },
-  saveSlot: { max: 2, cost: [1000, 3000], months: [1, 2] },
+  away:     { max: 47, cost: k => Math.round(300 * Math.pow(1.25, k) / 10) * 10, months: k => 1 + Math.floor(k / 8) },   // 放置できる時間 +30分ずつ（最大1日）
 };
 const SKILL_ORDER = Object.keys(SKILLS);
 const skCost = (id, lv) => { const c = SKILLS[id].cost; return Math.round((typeof c === 'function' ? c(lv) : c[lv]) * TUNE.resCost / 10) * 10; };
@@ -188,7 +195,7 @@ const TXT = {
     tuneCopy: '結果をコピー', tuneCopied: 'コピーしました。チャットに貼ってください', tuneReset: '初期値に戻す', tuneT: '調整',
     helpTopics: [
       ['操作', '画面は、右上の手のひらでつかんで動かすか、画面の端（▲▼◀▶の帯）を押すと動きます。2本指・Ctrl＋ホイール・＋－で拡大縮小、「地図」で全体を見られます。\n下のタブ（設置・工事など）を押すと引き出しが開き、道具を選べます。選んだ道具は、もう一度押すか、タブを押すと解除できます。置いた物をタップすると、向きの変更やレベルアップができます。'],
-      ['掘る', 'ドリルは地下に置きます（地上とつながった穴の隣なら、土を上書きして置けます）。置くと下へ掘ります。掘った資源はドリルの後ろに出て、空中の資源は下に落ちます。\n10mごとに硬い岩盤があり、研究所で「掘削レベル」を研究しないと掘れません（上限なし・だんだん高くなる）。ドリルを横向きにすれば横へ掘れます。「掘削」で、地上とつながった穴の隣を掘って場所を広げられます。'],
+      ['掘る', 'ドリルは地下に置きます（地上とつながった穴の隣なら、土を上書きして置けます）。置くと下へ掘ります。掘った資源はドリルの後ろに出て、空中の資源は下に落ちます。\n10m、その後は20mごとに硬い岩盤があります。研究所で「掘削レベル」を研究しないと、とても遅くしか掘れません。岩盤を掘り抜くと、新しい研究ができるようになります。ドリルを横向きにすれば横へ掘れます。「掘削」で、地上とつながった穴の隣を掘って場所を広げられます。'],
       ['運ぶ', 'コンベアで資源を運びます。仕分けコンベアは、選んだ資源だけを左右に出します。\n地上に出た資源はその場に置かれ、フォークリフトがヤードまで運びます。トラックが積んで出発し、帰ってきたら売上になります。'],
       ['加工', '機械は、前以外の方向から材料を入れると、前に製品を出します。対応していない資源は、機械の中を2倍の時間をかけて通り抜けます。\n最初はレンガ焼成機とクラッシャーだけ。'],
       ['作業員', '事務所で「Lv0を増員」して雇います。作業員はドリル・機械へ自分で歩いて行って操作し、働くほどレベルが上がります。作業員がいない所は「z」の印が付き、とても遅くなります。\nLv2以上になると、地上・上級勤務（フォークリフト・トラック・研究所）にも就きます。疲れると事務所で休みます。給料は毎月。払えない月は1人やめます。'],
@@ -204,8 +211,11 @@ const TXT = {
       '地上中央の事務所で作業員を雇えます（最初は自分ひとり＝0人）。作業員は自分でドリルや機械へ歩いて行って操作します。作業員がいないととても遅くなります（「z」の印）。疲れると事務所で休みます。給料は毎月払います。',
       '置いた物をタップすると、向きの変更やレベルアップができます。レベルは黄色い点の数で分かります。',
       '「情報」で経営の様子をグラフで見られます。',
-      '下のタブの「スキル」で研究すると便利な力が手に入ります。10mごとの硬い岩盤は「掘削レベル」を研究しないと掘れません。事務所はタップでレベルアップできます。セーブは設定から。',
+      '下のタブの「スキル」で研究すると便利な力が手に入ります。硬い岩盤（10m、その後20mごと）は「掘削レベル」を研究しないと、とても遅くしか掘れません。事務所はタップでレベルアップできます。セーブは設定から。',
     ],
+    stageUp: (n, names) => `岩盤レベル${n}突破。` + (names.length ? `${names.join('と')}が可能になりました。` : ''), stagePop: n => `岩盤レベル${n}突破`,
+    nextRock: '次の岩盤を突破すると研究できます',
+    hStart: '創業（社長ひとり・ドリル1台）', hOffice: n => `事務所をレベル${n}に`, hStage: n => `岩盤レベル${n}を突破`, hMoney: v => `資金が${v.toLocaleString()}を超えた`,
     skill: '研究', researching: '研究中', researchDone: n => `研究完了：${n}`, busy: 'ほかの研究中です', months: 'か月',
     startRes: '研究', got: '取得済み', resInfo: 'お金を払って研究すると、何か月か後にスキルが手に入ります（研究は1つずつ）。',
     sk: {
@@ -216,15 +226,16 @@ const TXT = {
       veteran: ['ベテラン教育', '作業員のレベルが2倍の速さで上がります。'],
       welfare: ['福利厚生', '作業員が疲れにくくなり、休憩も早く終わります。'],
       black: ['ブラック企業', '給料を2割安くします。'],
-      digLv: ['掘削レベル', '10mごとにある硬い岩盤を、1段ずつ掘れるようになります。'],
+      digLv: ['掘削レベル', '硬い岩盤（10m、その後は20mごと）を、1段ずつ普通の速さで掘れるようになります。'],
       truck2: ['トラック2台目', 'トラックが2台になり、交代で出発します。'],
       speeding: ['スピード違反', 'トラックが出かけている時間が半分になります。'],
       beltMax: ['コンベア最高速アップ', 'コンベアのレベル上限が1つ上がります。'],
       yardPlus: ['ヤード拡張', 'ヤードからの積み込みが2倍速くなり、山も大きく積めます。'],
       saveSlot: ['セーブ枠の追加', 'セーブできる場所が1つ増えます。'],
+      away: ['放置時間延長', '留守の間も工場が動く時間が、30分のびます（最初は30分・最大1日）。'],
     },
     needDig: n => `掘削レベル${n}が必要です（スキル）`,
-    rockHint: n => `硬い岩盤：掘削レベル${n}が必要（スキル）。ドリルを横向きにすれば横へ掘れます`,
+    rockHint: n => `硬い岩盤：掘削レベル${n}が無いと、とても遅くしか掘れません（研究所で研究）`,
     quit: '給料が払えず、作業員が1人やめました',
     autoConvOpt: 'コンベア自動設置', on: 'オン', off: 'オフ',
     saveT: 'セーブ', save: 'セーブ', load: 'ロード', slot: n => `スロット${n}`, empty: '空き', saved: 'セーブしました', loaded: 'ロードしました',
@@ -307,8 +318,11 @@ const TXT = {
       'ちじょう まんなかの じむしょで さぎょういんを やとえます。さぎょういんが いないと とても おそく なります（「z」の しるし）。つかれると やすみます。きゅうりょうは まいつき はらいます。',
       'おいた ものを タップすると むきを かえたり レベルアップ できます。',
       '「じょうほう」で ようすを グラフで みられます。',
-      'したの タブの「スキル」で けんきゅうすると べんりな ちからが てに はいります。10mごとの かたい がんばんは「あなほり レベル」が ないと ほれません。セーブは せっていから。',
+      'したの タブの「スキル」で けんきゅうすると べんりな ちからが てに はいります。かたい がんばんは「あなほり レベル」が ないと、とても ゆっくりしか ほれません。セーブは せっていから。',
     ],
+    stageUp: (n, names) => `がんばん レベル${n} とっぱ。` + (names.length ? `${names.join('と')}が できるように なりました。` : ''), stagePop: n => `がんばん レベル${n} とっぱ`,
+    nextRock: 'つぎの がんばんを とっぱすると けんきゅう できます',
+    hStart: 'かいしゃを はじめた（しゃちょう ひとり・ドリル1だい）', hOffice: n => `じむしょを レベル${n}に`, hStage: n => `がんばん レベル${n}を とっぱ`, hMoney: v => `おかねが ${v.toLocaleString()}を こえた`,
     skill: 'けんきゅう', researching: 'けんきゅうちゅう', researchDone: n => `けんきゅう おわり：${n}`, busy: 'ほかの けんきゅうちゅう です', months: 'かげつ',
     startRes: 'けんきゅう', got: 'てにいれた', resInfo: 'おかねを はらって けんきゅうすると、なんかげつか あとに スキルが てに はいります（けんきゅうは 1つずつ）。',
     sk: {
@@ -319,15 +333,16 @@ const TXT = {
       veteran: ['ベテランきょういく', 'さぎょういんの レベルが 2ばいの はやさで あがります。'],
       welfare: ['ふくりこうせい', 'さぎょういんが つかれにくく なり、やすみも はやく おわります。'],
       black: ['ブラックきぎょう', 'きゅうりょうを 2わり やすく します。'],
-      digLv: ['あなほり レベル', '10mごとに ある かたい がんばんを、1だんずつ ほれるように なります。'],
+      digLv: ['あなほり レベル', 'かたい がんばん（10m、そのあとは 20mごと）を、1だんずつ ふつうに ほれるように なります。'],
       truck2: ['トラック 2だいめ', 'トラックが 2だいに なり、こうたいで でかけます。'],
       speeding: ['スピードいはん', 'トラックが でかけている じかんが はんぶんに なります。'],
       beltMax: ['コンベア さいこうそく アップ', 'コンベアの レベルの じょうげんが 1つ あがります。'],
       yardPlus: ['おきば かくちょう', 'おきばから つむのが 2ばい はやく なり、やまも おおきく つめます。'],
       saveSlot: ['セーブわく ついか', 'セーブ できる ばしょが 1つ ふえます。'],
+      away: ['ほうち じかん のばし', 'るすの あいだも こうじょうが うごく じかんが 30ぷん のびます（さいしょは 30ぷん・さいだい 1にち）。'],
     },
     needDig: n => `あなほり レベル${n}が ひつよう です（スキル）`,
-    rockHint: n => `かたい がんばん：あなほり レベル${n}が ひつよう。ドリルを よこむきに すれば よこへ ほれます`,
+    rockHint: n => `かたい がんばん：あなほり レベル${n}が ないと、とても ゆっくりしか ほれません`,
     quit: 'きゅうりょうが はらえず、さぎょういんが 1にん やめました',
     autoConvOpt: 'コンベア じどう おき', on: 'オン', off: 'オフ',
     saveT: 'セーブ', save: 'セーブ', load: 'ロード', slot: n => `スロット${n}`, empty: 'あき', saved: 'セーブ しました', loaded: 'ロード しました',
@@ -410,8 +425,11 @@ const TXT = {
       'Hire workers at the office (center of the surface; you start alone). They walk to drills and machines and run them; without one ("z" mark) they are very slow. Tired workers rest at the office. Wages are paid monthly.',
       'Tap anything you placed to turn it or level it up. Yellow dots show the level.',
       '"Info" shows how your business is doing, with graphs.',
-      'Research "Skills" from the menu. The hard bedrock every 10m needs the Dig level skill. Tap the office to upgrade it. Save from Settings.',
+      'Research "Skills" from the menu. Hard bedrock (10m, then every 20m) is very slow without the Dig level research. Tap the office to upgrade it. Save from Settings.',
     ],
+    stageUp: (n, names) => `Broke through bedrock level ${n}.` + (names.length ? ` Now available: ${names.join(', ')}.` : ''), stagePop: n => `Bedrock ${n} cleared`,
+    nextRock: 'Break through the next bedrock to research',
+    hStart: 'Company founded (just the boss, one drill)', hOffice: n => `Office upgraded to level ${n}`, hStage: n => `Broke through bedrock level ${n}`, hMoney: v => `Money passed ${v.toLocaleString()}`,
     skill: 'Research', researching: 'Researching', researchDone: n => `Research done: ${n}`, busy: 'Another research is in progress', months: ' mo',
     startRes: 'Research', got: 'Acquired', resInfo: 'Pay to research; the skill arrives after a few in-game months (one at a time).',
     sk: {
@@ -422,15 +440,16 @@ const TXT = {
       veteran: ['Veteran training', 'Workers level up twice as fast.'],
       welfare: ['Welfare', 'Workers tire more slowly and rest faster.'],
       black: ['Black company', 'Wages are 20% cheaper.'],
-      digLv: ['Dig level', 'Lets you break through the hard bedrock layer every 10m, one layer per level.'],
+      digLv: ['Dig level', 'Dig the hard bedrock (at 10m, then every 20m) at normal speed, one layer per level.'],
       truck2: ['Second truck', 'Two trucks take turns.'],
       speeding: ['Speeding', 'Trucks are away for half the time.'],
       beltMax: ['Conveyor top speed', 'Raises the conveyor level cap by one.'],
       yardPlus: ['Bigger yard', 'Loading from the yard is twice as fast and the pile can grow bigger.'],
       saveSlot: ['Extra save slot', 'Adds one more save slot.'],
+      away: ['Idle time', 'The factory keeps running 30 more minutes while you are away (starts at 30 min, up to 1 day).'],
     },
     needDig: n => `Needs dig level ${n} (skill)`,
-    rockHint: n => `Hard bedrock: needs dig level ${n}. Turn the drill sideways to keep digging`,
+    rockHint: n => `Hard bedrock: without dig level ${n} it is very slow (research it at the Lab)`,
     quit: 'Could not pay wages: one worker quit',
     autoConvOpt: 'Auto conveyor', on: 'On', off: 'Off',
     saveT: 'Save', save: 'Save', load: 'Load', slot: n => `Slot ${n}`, empty: 'Empty', saved: 'Saved', loaded: 'Loaded',
@@ -492,19 +511,22 @@ const restMul = () => [1, 1.5, 2][sk('welfare')] * OFFICE_LV.rest[S.office.lv]; 
 const newTruck = phase => ({ type: 'truck', op: null, load: 0, value: 0, phase, t: 0, acc: 0 });
 
 // ■をつくる（中身は見えない）
+// 硬さ（1個出すのに必要な削る量）：浅い所はやわらかく、深いほどどんどん硬くなる（放置しても進みにくい→強化したくなる）
+const hardAt = d => (1 + 0.012 * TUNE.deepHard * Math.pow(Math.max(0, d), 1.6)) * TUNE.hard;
 function makeBlock(r) {
-  const d = r - SKY;
-  if (d > 0 && d % LAYER_EVERY === 0) {   // 硬い岩盤（掘削レベルが必要）
-    return { mat: 'rock', layer: d / LAYER_EVERY, ore: null, yieldN: 2, left: 2, h: (2 + d * 0.08) * 3, p: 0 };
+  const d = r - SKY, ly = layerAt(d);
+  if (ly) {   // 硬い岩盤（掘削レベルが無いと、とても遅くしか掘れない）
+    return { mat: 'rock', layer: ly, ore: null, yieldN: 4, left: 4, h: hardAt(d) * 4, p: 0 };
   }
-  const stone = Math.random() < clamp(0.04 + 0.025 * d, 0, 0.7);
-  const x = Math.random();
-  const diaP = d >= 15 ? Math.min(0.06, 0.01 + 0.002 * (d - 15)) * TUNE.ore : 0;
-  const goldP = d >= 6 ? Math.min(0.14, 0.03 + 0.006 * (d - 6)) * TUNE.ore : 0;
-  const ironP = Math.min(0.35, 0.16 + 0.01 * d) * TUNE.ore;
+  const stone = Math.random() < clamp(0.04 + 0.02 * d, 0, 0.6);
+  const x = Math.random(), O = TUNE.ore;
+  // 段階1(〜10m)：鉄が少し／段階2(10〜30m)：鉄が多く・金が少し／段階3(30〜50m)：金が多く・ダイヤが少し／段階4(50m〜)：ダイヤが多く
+  const ironP = (d < 10 ? 0.12 : 0.24) * O;
+  const goldP = (d < 10 ? 0 : d < 30 ? 0.05 : 0.13) * O;
+  const diaP = (d < 30 ? 0 : d < 50 ? 0.03 : 0.08) * O;
   const ore = x < diaP ? 'dia' : x < diaP + goldP ? 'gold' : x < diaP + goldP + ironP ? 'iron' : null;
-  const yieldN = Math.min(16, 8 + Math.floor(d / 5));     // 1マスから出る数（多めに。そのぶん1マス掘るのに時間がかかる）
-  const h = (2 + d * 0.08) * (stone ? 2 : 1) * TUNE.hard;             // 1個出すのに必要な削る量（硬さ）
+  const yieldN = Math.round(Math.min(30, 14 + Math.floor(d / 4)) * TUNE.yield);   // 1マスから出る数（たくさん出て、コンベアがにぎやかに）
+  const h = hardAt(d) * (stone ? 1.6 : 1);
   return { mat: stone ? 'stone' : 'soil', ore, yieldN, left: yieldN, h, p: 0 };
 }
 function oreFrom(b) {
@@ -562,11 +584,15 @@ function newGame() {
     digVer: 0,          // 地形が変わった回数（掘れる場所・歩ける道の再計算用）
     stats: { saleTotal: 0, costTotal: 0, ships: 0, cur: { sale: 0, cost: 0 }, months: [], hist: [], histT: 0 },
     reveal: false,
+    stage: 1,           // 段階（岩盤を掘り抜くと上がる。新しい研究が出る）
+    history: [],        // 会社の履歴（年月つき）
+    moneyMark: 0,       // 資金の節目（履歴用）
   };
   // 最初は作業員0人（自分ひとりでやっている設定）。事務所で雇う
   S.forks.push(Object.assign(newFork(), { x: PARK_X }));
   row(SKY)[3] = null;   // 最初からドリルが1つ置いてある
   S.st.set(key(3, SKY), { type: 'drill', tid: 'drill', dir: 'down', lv: 0, t: 0, hit: -99, op: null });
+  addHist(tx().hStart);
   resetCam();
 }
 
@@ -582,7 +608,7 @@ function canPlaceAt(c, r) {
   if (tool === 'lab') return r === YARD_R && surfaceFree(c) && !S.lab.built;
   if (!inB(c, r) || r < SKY) return false;
   const b = blk(c, r);
-  if (isDrillTool(tool) && b) return diggable().has(key(c, r)) && !(b.mat === 'rock' && sk('digLv') < b.layer);
+  if (isDrillTool(tool) && b) return diggable().has(key(c, r));   // 岩盤にも置ける（レベル不足ならとても遅い）
   return b === null;   // 何か置いてあっても上書きできる
 }
 // 落ちてきた資源が止まるマス（下に支えがある）
@@ -598,6 +624,31 @@ function canPut(c, r) {
   if (!inB(c, r) || blk(c, r) !== null) return false;
   const s = S.st.get(key(c, r));
   return !s || isBelt(s);
+}
+
+// ---- 会社の履歴（お知らせ・節目を年月つきで） ----
+function addHist(text) { S.history.push({ m: Math.floor(S.time / TUNE.month), t: text }); if (S.history.length > 400) S.history.shift(); }
+// ---- 段階：岩盤を掘り抜いたら上がる。研究できる物が増える ----
+// 研究ごとに、出てくる段階（無い物は段階1から）
+const RES_STAGE = { 'm:smelter': 2, 't:tee': 2, 'm:bagger': 2, 'sk:dragPlus': 2,
+  'm:factory': 3, 't:cross': 3, 't:fdrill': 3, batch: 3, 'sk:truck2': 3, 'sk:black': 3, 'sk:speeding': 3, 'sk:yardPlus': 3,
+  'm:washer': 4, 'm:cutter': 4, 't:adrill': 4, 'sk:veteran': 4, 'm:polisher': 5 };
+const SK_STAGE = { speed: [2, 4, 5], welfare: [2, 4], hr: [3, 4], beltMax: [4, 5] };   // 段ごとに出てくる段階
+function resAvail(id) {
+  if (id === 'sk:digLv') return sk('digLv') < S.stage;   // 次の岩盤のぶんだけ研究できる
+  if (id.startsWith('sk:')) { const k2 = id.slice(3), a = SK_STAGE[k2]; if (a) return S.stage >= a[Math.min(sk(k2), a.length - 1)]; }
+  return S.stage >= (RES_STAGE[id] || 1);
+}
+const allResIds = () => [...Object.keys(RESEARCH_TOOL).map(t => 't:' + t), ...Object.keys(RESEARCH_MACH).map(m => 'm:' + m), 'batch', ...SKILL_ORDER.map(x => 'sk:' + x)];
+function checkStage() {
+  while (S.deepest - SKY >= layerDepth(S.stage)) {
+    const before = new Set(allResIds().filter(id => resAvail(id) && !resDef(id).done));
+    S.stage++;
+    const names = allResIds().filter(id => id !== 'sk:digLv' && resAvail(id) && !resDef(id).done && !before.has(id)).map(id => resDef(id).name);
+    const msg = tx().stageUp(S.stage - 1, names);
+    say(msg, 6000); pop(tx().stagePop(S.stage - 1), OFFICE_C + 1, YARD_R - 0.6, 'sale');
+    addHist(tx().hStage(S.stage - 1));
+  }
 }
 
 // ---- お金と浮き文字 ----
@@ -787,14 +838,16 @@ function updateMonth() {
       // 払えない月：給料は払わず、いちばん給料の高い作業員が1人やめる（借金が雪だるまにならないように）
       const w = S.workers.reduce((a, b) => (wageOf(b) > wageOf(a) ? b : a));
       fireWorker(w.id);
-      say(tx().quit); pop(tx().quit, OFFICE_C + 1, YARD_R - 0.4, 'cost');
+      say(tx().quit); pop(tx().quit, OFFICE_C + 1, YARD_R - 0.4, 'cost'); addHist(tx().quit);
     }
   }
   // 銀行の融資：お金が100未満で、先月の売上が0なら300貸してくれる（売上の2割ずつ返す。合計1500まで）
   if (S.money < 100 && S.stats.cur.sale === 0 && (S.loan || 0) + LOAN <= LOAN_MAX && S.month > 1) {   // 返している途中でも、上限までは借りられる
     S.money += LOAN; S.loan = (S.loan || 0) + LOAN;
-    pop(tx().loanPop + ' +' + LOAN, OFFICE_C + 1, YARD_R - 0.4, 'sale'); say(tx().loanPop + ' +' + LOAN);
+    pop(tx().loanPop + ' +' + LOAN, OFFICE_C + 1, YARD_R - 0.4, 'sale'); say(tx().loanPop + ' +' + LOAN); addHist(tx().loanPop + ' ' + LOAN);
   }
+  // 資金の節目（1000・1万・10万…を初めて超えた月）
+  while (S.money >= Math.pow(10, 3 + S.moneyMark)) { addHist(tx().hMoney(Math.pow(10, 3 + S.moneyMark))); S.moneyMark++; }
   S.stats.months.push(S.stats.cur); if (S.stats.months.length > 24) S.stats.months.shift();
   S.stats.cur = { sale: 0, cost: 0 };
 }
@@ -885,7 +938,7 @@ function updateDrills(dt) {
   }
 }
 function moveDrill(k, s, nk) {
-  S.st.delete(k); S.st.set(nk, s); S.deepest = Math.max(S.deepest, rOf(nk));
+  S.st.delete(k); S.st.set(nk, s); S.deepest = Math.max(S.deepest, rOf(nk)); checkStage();
   const came = s.came; s.came = s.dir;   // そのマスに入ってきた向きを覚える
   // スキル「コンベア自動設置」：空いた後ろのマスに、後ろ向き（↓に掘るなら↑）のコンベアを置く
   if (S.opts.autoConv) {
@@ -920,12 +973,13 @@ function drillHit(k, s) {
     else s.stuck = true;
     return;
   }
-  if (g.mat === 'rock' && sk('digLv') < g.layer) {   // 掘削レベルが足りない → 止まる（最初の1回だけヒント）
-    if (!s.stuck && !s.rockHint) { s.rockHint = true; say(tx().rockHint(g.layer)); }
-    s.stuck = true; return;
+  let slow = 1;
+  if (g.mat === 'rock' && sk('digLv') < g.layer) {   // 掘削レベルが足りない → とても遅く掘る（最初の1回だけヒント）
+    if (!s.rockHint) { s.rockHint = true; say(tx().rockHint(g.layer), 5000); }
+    slow = TUNE.rockSlow;
   }
   s.stuck = false; s.hit = S.time;
-  g.p += valOf(s) * workFactor(s) * TUNE.drill;
+  g.p += valOf(s) * workFactor(s) * TUNE.drill * slow;
   while (g.p >= g.h && g.left > 0) { g.p -= g.h; g.left--; emitOre(c, r, s, oreFrom(g)); }
   if (g.left <= 0) { row(tr)[tc] = null; S.digVer++; moveDrill(k, s, key(tc, tr)); }
 }
@@ -1002,7 +1056,7 @@ function startResearch(id) {
   if (SKILLS[id]) id = 'sk:' + id;             // 古い呼び方にも対応
   if (!S.lab.built) { say(tx().needLab); return; }
   const d = resDef(id);
-  if (d.done) return;
+  if (d.done || !resAvail(id)) return;
   if (S.research) { say(tx().busy); return; }
   if (S.money < d.cost) { say(tx().noMoney); return; }
   spend(d.cost, labC() + 0.5, YARD_R);
@@ -1028,14 +1082,14 @@ function updateResearch(dt) {
   const name = resDef(r.id).name;
   finishResearch(r.id);
   const msg = tx().researchDone(name);
-  pop(msg, labC() + 0.5, YARD_R - 0.4, 'sale'); say(msg);
+  pop(msg, labC() + 0.5, YARD_R - 0.4, 'sale'); say(msg); addHist(msg);
 }
 // 事務所のレベルアップ（レベル2で研究所が建つ）
 function officeUp() {
   const ol = S.office.lv;
   if (ol >= OFFICE_LV.cost.length) return;
   if (S.money < OFFICE_LV.cost[ol]) { say(tx().noMoney); return; }
-  spend(OFFICE_LV.cost[ol], OFFICE_C + 1, YARD_R); S.office.lv++;
+  spend(OFFICE_LV.cost[ol], OFFICE_C + 1, YARD_R); S.office.lv++; addHist(tx().hOffice(S.office.lv + 1));
   if (S.office.lv === 1 && !S.lab.built) say(tx().labUnlocked);   // 研究所を建てられるようになった（メニュー「施設」）
 }
 // フォークリフトを買う（台数の上限は事務所のレベル）
@@ -1063,6 +1117,7 @@ function deserialize(json) {
   const d = JSON.parse(json).S;
   d.rows = new Map(d.rows); d.st = new Map(d.st); d.pops = [];
   d.dock = d.dock || {}; d.forks = d.forks || [Object.assign(newFork(), { x: PARK_X })];
+  d.stage = d.stage || stageOf(d.deepest); d.history = d.history || []; d.moneyMark = d.moneyMark || 0;
   // 古いセーブへの対応
   d.lab = d.lab || { type: 'lab', built: false, op: null };
   if (d.lab.built && d.lab.c === undefined) d.lab.c = OFFICE_C + 2;   // v0.17のセーブ（予定地に建っていた）
@@ -1319,13 +1374,21 @@ function digAt(c, r) {
   if (S.money < cost) { say(tx().noMoney); return; }
   spend(cost, c + 0.5, r + 0.3);
   row(r)[c] = null; S.digVer++;
-  S.deepest = Math.max(S.deepest, r);
+  S.deepest = Math.max(S.deepest, r); checkStage();
 }
 
 // ---- 設置・レベル ----
 let tool = 'none', machSel = 'kiln', dir = 'right', running = true, speedIdx = 0;
 
-function costOf(s) { return s.type === 'machine' ? MACHINES[s.m].cost : s.type === 'drill' ? COST[s.tid || 'drill'] : COST[s.type]; }
+// 値段：ドリル（種類ごと）と機械（種類ごと）は、すでに建っている数だけ「値上がりの倍率」が掛かる
+const grows = id => isDrillTool(id) || id.startsWith('m:');
+const countOf = id => { let n = 0; for (const s of S.st.values()) if (id.startsWith('m:') ? s.type === 'machine' && s.m === id.slice(2) : s.type === 'drill' && (s.tid || 'drill') === id) n++; return n; };
+function buildCost(id, back = 0) {
+  const base = id.startsWith('m:') ? MACHINES[id.slice(2)].cost : COST[id];
+  return grows(id) ? Math.round(base * Math.pow(TUNE.costGrow, Math.max(0, countOf(id) - back))) : base;
+}
+const idOfSt = s => (s.type === 'machine' ? 'm:' + s.m : s.type === 'drill' ? s.tid || 'drill' : s.type);
+function costOf(s) { return buildCost(idOfSt(s), 1); }   // 撤去で戻る額の元（その物の値段）
 // 同じ物がもう置いてあるか（同じなら何もしない）
 function sameAs(st) {
   if (!st) return false;
@@ -1345,7 +1408,7 @@ function apply(c, r, dragging) {
     return;
   }
   if (sameAs(s)) return;
-  const cost = tool === 'machine' ? MACHINES[machSel].cost : COST[tool];
+  const cost = buildCost(toolId());
   if (S.money < cost) { if (!dragging) say(tx().noMoney); return; }
   // 上書き：今ある物を撤去（半額戻る）してから置く。高い物（機械）は確認してから
   if (s && !dragging && costOf(s) >= 100) { askConfirm(tx().overwriteQ, () => { removeAt(k); placeAt(c, r, cost); updateUI(); }); return; }
@@ -1355,7 +1418,7 @@ function apply(c, r, dragging) {
 function placeAt(c, r, cost) {
   const k = key(c, r);
   spend(cost, c + 0.5, r + 0.3);
-  if (tool === 'lab') { S.lab.built = true; S.lab.c = c; tool = 'none'; say(tx().labBuilt); return; }
+  if (tool === 'lab') { S.lab.built = true; S.lab.c = c; tool = 'none'; say(tx().labBuilt); addHist(tx().labBuilt); return; }
   if (isDrillTool(tool) && blk(c, r)) { row(r)[c] = null; S.digVer++; }   // ドリルは土を上書きして置く（中の資源はなくなる）
   if (isDrillTool(tool)) S.st.set(k, { type: 'drill', tid: tool, dir: 'down', lv: 0, t: 0, hit: -99, op: null });
   else if (tool === 'sort') S.st.set(k, { type: 'sort', dir, lv: 0, filter: 'iron', side: 'left' });
@@ -1586,8 +1649,8 @@ function thumb(id) {
 function toolBtn(id) {
   const T = tx(), b = document.createElement('button'); b.className = 'si';
   let name, cost;
-  if (id.startsWith('m:')) { const m = id.slice(2); name = T.mach[m]; cost = MACHINES[m].cost; }
-  else { name = id === 'lab' ? T.labName : T[id]; cost = COST[id]; }
+  if (id.startsWith('m:')) { const m = id.slice(2); name = T.mach[m]; cost = buildCost(id); }
+  else { name = id === 'lab' ? T.labName : T[id]; cost = buildCost(id); }
   b.append(thumb(id));
   const lab = document.createElement('span'); lab.className = 'nm'; lab.append(document.createTextNode(name));
   if (cost) { const sm = document.createElement('small'); sm.textContent = cost; lab.append(sm); }
@@ -1733,14 +1796,14 @@ function renderPanel(id) {
       box.append(el, bar);
     }
     const section = (title, ids) => {
-      const list = ids.filter(id => !resDef(id).done || id.startsWith('sk:'));
+      const list = ids.filter(id => id.startsWith('sk:') ? resAvail(id) || sk(id.slice(3)) > 0 : !resDef(id).done && resAvail(id));
       if (!list.length) return;
       const h = document.createElement('div'); h.className = 'secT'; h.textContent = title; box.append(h);
       for (const id of list) {
         const d = resDef(id);
         const title2 = d.max > 50 ? `${d.name}　Lv${d.lv}` : d.max > 1 ? `${d.name}　${d.lv}/${d.max}` : d.name;
         let btn;
-        if (d.done) { btn = document.createElement('button'); btn.textContent = T.got; btn.disabled = true; }
+        if (d.done || !resAvail(id)) { btn = document.createElement('button'); btn.textContent = d.done ? T.got : T.nextRock; btn.disabled = true; }
         else { btn = costBtn(`${T.startRes}（${d.months}${T.months}）`, d.cost, () => { startResearch(id); renderPanel('skillPanel'); updateUI(); }); if (S.research) btn.disabled = true; }
         box.append(rowEl(title2, d.desc, btn));
       }
@@ -2727,7 +2790,7 @@ function updateUI() {
   const ct = $('curTool');
   ct.hidden = !curName;
   if (curName) {
-    const cost = tool === 'machine' ? MACHINES[machSel].cost : COST[tool];
+    const cost = buildCost(toolId());
     const arrow = dirTool ? ' ' + ARROW[dir] : '';
     ct.textContent = `${curName}${arrow}${cost ? '　' + cost : ''}`;
   }
@@ -2752,7 +2815,7 @@ function layoutFloats() {
   syncDash();
 }
 let msgTimer = 0;
-function say(t) { $('msg').textContent = t; clearTimeout(msgTimer); msgTimer = setTimeout(() => { $('msg').textContent = ''; }, 2000); }
+function say(t, ms = 2000) { $('msg').textContent = t; clearTimeout(msgTimer); msgTimer = setTimeout(() => { $('msg').textContent = ''; }, ms); }
 
 function setupText() {
   const T = tx();
@@ -2976,6 +3039,7 @@ resetCam();
 window.__game = { // 動作確認用
   get S() { return S; }, TUNE, row, canPlaceAt, officeUp, buyFork, finishResearch, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
   setTool: t => setTool(t), setDir: d => { dir = d; }, pause: () => { running = false; },
+  checkStage, resAvail, buildCost, allResIds, resDef,
 };
 requestAnimationFrame(frame);
 })();
