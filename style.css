@@ -248,19 +248,21 @@ html[lang=en] #dash .dtab i { display: none; }
 body.dash #subMenu, body.dash .panel.bottom {
   left: 0; right: 0; width: auto; max-width: none; border-radius: 0;
   background: var(--paper2); border: none; border-top: 1px solid var(--line2);
-  box-shadow: none; padding: 10px 12px; transform-origin: bottom;
-  animation: drawerUp .2s ease-out;
+  box-shadow: none; padding: 10px 12px;
+  animation: drawerUp .24s ease-out;   /* タブの後ろから上へせり出す */
 }
 body.dash #subMenu { align-items: flex-start; }
 body.dash .panel.bottom { max-height: calc(100% - var(--hdr) - var(--dash) - 40px); }
-@keyframes drawerUp { from { transform: scaleY(.15); opacity: .3; } to { transform: none; opacity: 1; } }
+@keyframes drawerUp { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes handleUp { from { transform: translateY(var(--dh, 100px)); } to { transform: none; } }   /* 取っ手も引き出しと同じ距離・同じ速さで動く */
 #dHandle {
   position: fixed; z-index: 21; height: 22px; padding: 0 12px 0 10px;
   display: flex; align-items: baseline; gap: 8px; line-height: 22px;
   background: var(--paper2); border: 1px solid var(--line2); border-bottom: none; border-radius: 4px 4px 0 0;
-  animation: drawerUp .2s ease-out; pointer-events: none;
+  pointer-events: none;
 }
 #dHandle[hidden] { display: none; }
+#dHandle.go { animation: handleUp .24s ease-out; }
 #dHandle b { font-size: 12px; font-weight: 600; letter-spacing: .08em; }
 #dHandle i { font-style: normal; font-size: 8px; letter-spacing: .24em; color: var(--sub); }
 html[lang=en] #dHandle i { display: none; }

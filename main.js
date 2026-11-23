@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.23（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.24（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.23';
+const VERSION = '0.24';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -1402,7 +1402,7 @@ function metrics() {
   cw = cv.clientWidth; ch = cv.clientHeight;
   hdrH = $('hdr').offsetHeight || 44;
   const base = Math.min(cw / COLS, 46);
-  cam.z = clamp(cam.z, 0.5, 3);
+  cam.z = clamp(cam.z, Math.min(3, cw / (COLS * base)), 3);   // 縮小は、左右に空きが出ないところまで
   cp = base * cam.z;
   const worldW = COLS * cp;
   if (worldW <= cw) { offX = (cw - worldW) / 2; cam.x = 0; }
@@ -2591,7 +2591,14 @@ function syncDash() {
   });
   // 取っ手：開いている引き出しの左上に、タブの名前を付ける
   const drawer = open && (open.dataset.open.endsWith('Panel') ? $(open.dataset.open) : $('subMenu'));
+  const was = !hd.hidden && hd.dataset.k;
   hd.hidden = !drawer || drawer.hidden;
+  if (!hd.hidden && was !== open.dataset.open) {   // 開いたとき・別のタブに替えたとき：引き出しと一緒にせり上がる
+    hd.dataset.k = open.dataset.open;
+    hd.style.setProperty('--dh', drawer.offsetHeight + 'px');
+    hd.classList.remove('go'); void hd.offsetWidth; hd.classList.add('go');
+  }
+  if (hd.hidden) hd.dataset.k = '';
   if (!hd.hidden) {
     hd.querySelector('b').textContent = open.querySelector('b').textContent;
     hd.querySelector('i').textContent = open.querySelector('i').textContent;
