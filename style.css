@@ -233,7 +233,7 @@ body.dash #curTool { bottom: calc(var(--dash) + var(--edge) + 4px); }
   transition: background .12s, transform .15s;
 }
 #dash .dtab::before {   /* 取っ手 */
-  content: ""; position: absolute; left: -1px; top: -8px; width: 46%; height: 8px;
+  content: ""; position: absolute; left: -1px; top: -9px; width: 46%; height: 8px; box-sizing: border-box;   /* タブの上の線は消さない（取っ手は線の上に乗る） */
   background: inherit; border: 1px solid var(--line2); border-bottom: none; border-radius: 3px 3px 0 0;
 }
 #dash .dtab[hidden] { display: none; }
