@@ -1,11 +1,11 @@
-// 採掘ゲーム v0.09
+// ほりほり工場 / Dig Factory Tycoon v0.10（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.09';
+const VERSION = '0.10';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：自分のPC（localhost）で開いた時だけ出る。公開サーバーでは自動で消える（?dev を付ければ出る）
 const DEV = ['localhost', '127.0.0.1', ''].includes(location.hostname) || new URLSearchParams(location.search).has('dev');
@@ -87,7 +87,7 @@ const SPEEDS = DEV ? [1, 2, 4, 16] : [1, 2, 4];   // ×16 はテスト用
 // ---- 言葉（ひらがな／漢字／英語） ----
 const TXT = {
   kanji: {
-    title: '採掘ゲーム', money: '資金', date: (y, m) => `${y}年${m}月`, depthM: n => `${n}m`,
+    title: 'ほりほり工場', money: '資金', date: (y, m) => `${y}年${m}月`, depthM: n => `${n}m`,
     pan: '移動', drill: 'ドリル', dig: '掘削', conv: 'コンベア', sort: '仕分け', machine: '機械', remove: '撤去', power: '強化',
     menu: 'メニュー', info: '情報', admin: '管理', map: '地図',
     play: '▶︎ 再生', pause: '❚❚ 停止', top: '地上', dir: '向き',
@@ -138,7 +138,7 @@ const TXT = {
     author: 'キノメノ', kofi: '☞ko-fiで支援', tip: '☞noteでチップ',
   },
   hira: {
-    title: 'さいくつゲーム', money: 'おかね', date: (y, m) => `${y}ねん${m}がつ`, depthM: n => `${n}m`,
+    title: 'ほりほりこうじょう', money: 'おかね', date: (y, m) => `${y}ねん${m}がつ`, depthM: n => `${n}m`,
     pan: 'うごかす', drill: 'ドリル', dig: 'あなほり', conv: 'コンベア', sort: 'しわけ', machine: 'きかい', remove: 'とりのぞく', power: 'パワーアップ',
     menu: 'メニュー', info: 'じょうほう', admin: 'かんり', map: 'ちず',
     play: '▶︎ うごかす', pause: '❚❚ とめる', top: 'ちじょう', dir: 'むき',
@@ -189,7 +189,7 @@ const TXT = {
     author: 'キノメノ', kofi: '☞ko-fiで おうえん', tip: '☞noteで チップ',
   },
   en: {
-    title: 'Mining Game', money: 'Money', date: (y, m) => `Y${y} M${m}`, depthM: n => `${n}m`,
+    title: 'Dig Factory', money: 'Money', date: (y, m) => `Y${y} M${m}`, depthM: n => `${n}m`,
     pan: 'Move', drill: 'Drill', dig: 'Dig', conv: 'Conveyor', sort: 'Sorter', machine: 'Machines', remove: 'Remove', power: 'Upgrade',
     menu: 'Menu', info: 'Info', admin: 'Admin', map: 'Map',
     play: '▶︎ Play', pause: '❚❚ Pause', top: 'Top', dir: 'Dir',
