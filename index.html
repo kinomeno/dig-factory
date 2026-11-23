@@ -18,7 +18,7 @@
 <meta property="og:locale" content="ja_JP">
 <meta property="og:site_name" content="ほりほり工場 / Dig Factory Tycoon">
 <meta name="twitter:card" content="summary">
-<link rel="stylesheet" href="style.css?v=0.13">
+<link rel="stylesheet" href="style.css?v=0.14">
 </head>
 <body>
 <canvas id="cv"></canvas>
@@ -79,16 +79,25 @@
   <button class="cat" data-cat="machine" data-t="machine">機械</button>
   <button class="cat tool" data-tool="remove" data-t="remove">撤去</button>
   <button id="powerBtn" data-t="power">強化</button>
+  <button id="skillBtn" data-t="skill">スキル</button>
   <button id="menuClose" class="x">✕</button>
 </div>
 <button id="menuBtn" class="float"><span data-t="menu">メニュー</span><span id="menuCur"></span></button>
 
 <p id="msg" class="msg"></p>
+<!-- 選択中の道具（左下） -->
+<div id="curTool" class="float" hidden></div>
 
 <!-- 強化 -->
 <div id="powerPanel" class="float panel bottom" hidden>
   <div class="head"><b data-t="power">強化</b><button class="x" data-close="powerPanel">✕</button></div>
   <div id="powerItems"></div>
+</div>
+
+<!-- スキル（研究） -->
+<div id="skillPanel" class="float panel bottom" hidden>
+  <div class="head"><b data-t="skill">スキル</b><button class="x" data-close="skillPanel">✕</button></div>
+  <div id="skillBody"></div>
 </div>
 
 <!-- 事務所 -->
@@ -122,6 +131,7 @@
       <button data-lang="hira">ひらがな</button><button data-lang="kanji">漢字</button><button data-lang="en">English</button>
     </span>
   </div>
+  <div id="setExtra"></div>
   <button id="resetBtn" class="wide" data-t="reset">最初から</button>
   <div class="credit"></div>
 </div>
@@ -160,6 +170,6 @@
   </div>
 </div>
 
-<script src="main.js?v=0.13"></script>
+<script src="main.js?v=0.14"></script>
 </body>
 </html>
