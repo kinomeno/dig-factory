@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.33（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.34（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.33';
+const VERSION = '0.34';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -39,7 +39,7 @@ const TUNE_DEF = [
   { k: 'yield',      ja: '1マスから出る資源の数',     en: 'Items per cell ×',        min: 0.5, max: 3,    step: 0.1,  def: 1 },
   { k: 'deepHard',   ja: '深いほど硬くなる強さ',      en: 'Hardness growth ×',       min: 0,   max: 3,    step: 0.1,  def: 1 },
   { k: 'costGrow',   ja: '同じ物を建てるごとの値上がり', en: 'Price growth per unit',  min: 1,   max: 3,    step: 0.1,  def: 2 },
-  { k: 'rockSlow',   ja: 'レベル不足で岩盤を掘る速さ', en: 'Bedrock speed w/o level', min: 0.01, max: 0.3, step: 0.01, def: 0.05 },
+  { k: 'rockSlow',   ja: 'レベル不足で岩盤を掘る速さ', en: 'Bedrock speed w/o level', min: 0.005, max: 0.3, step: 0.005, def: 0.015 },
 ];
 const TUNE = {};
 for (const d of TUNE_DEF) TUNE[d.k] = d.def;
@@ -68,8 +68,8 @@ const LV = {
 
 // 資源と製品（v＝1個の売値）
 const ITEMS = {
-  soil:     { v: 0,   c: ['#b08456', '#5e4026'], s: 'circle' },
-  stone:    { v: 1,   c: ['#9a958d', '#4f4b46'], s: 'circle' },
+  soil:     { v: 1,   c: ['#b08456', '#5e4026'], s: 'circle' },
+  stone:    { v: 2,   c: ['#9a958d', '#4f4b46'], s: 'circle' },
   iron:     { v: 8,   c: ['#aeb8c6', '#4c5664'], s: 'circle' },
   gold:     { v: 25,  c: ['#ffd34d', '#7a5a00'], s: 'circle' },
   dia:      { v: 60,  c: ['#bfe9ff', '#3d7896'], s: 'circle' },
@@ -958,7 +958,7 @@ function moveDrill(k, s, nk) {
   // スキル「コンベア自動設置」：空いた後ろのマスに、後ろ向き（↓に掘るなら↑）のコンベアを置く
   if (S.opts.autoConv) {
     const c = cOf(k), r = rOf(k);
-    if (r >= SKY && isOpen(c, r) && S.money >= COST.conv) {
+    if (r >= SKY && isOpen(c, r) && S.money - COST.conv >= -100) {   // お金が尽きても少しは置く（コンベアが途切れて売上が止まる詰みを防ぐ）
       spend(COST.conv, c + 0.5, r + 0.3);
       S.st.set(k, { type: 'conv', dir: OPP[came || s.dir], lv: 0 });
     }
