@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.65（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.66（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.65';
+const VERSION = '0.66';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -625,7 +625,7 @@ const TXT_ADD = {
     aiTruck: n => `トラックをレベル${n}に`, aiForkBuy: 'フォークリフトを買った', aiFork: 'フォークリフトを強化', aiDrill: 'ドリルを増やした',
     aiDrillUp: 'ドリルを強化', aiTurn: '止まったドリルを横に向けた', aiMach: n => `${n}を振り分けで設置`, aiMachUp: '機械を強化',
     aiPrice: n => `${n}の売値アップ`, aiPipe: '湧き口をパイプでつないだ', aiFac: n => `${n}を建てた`,
-    aiRemove: '掘れないドリルを撤去した', aiRebuild: '使わなくなった機械を撤去した', aiUnsort: 'もっと良い使い道があるので、仕分けを外した', forkSpd: '走る速さ', valueUp: '作った物の売値', beltCapT: '1マスに乗る数', tutHello: 'ほるぞ！', tutTired: 'つらすぎる…', tutGanbaru: 'がんばるぞ！', tutTap: '（タップ）',
+    aiRemove: '掘れないドリルを撤去した', aiRebuild: '使わなくなった機械を撤去した', aiUnsort: 'もっと良い使い道があるので、仕分けを外した', forkSpd: '走る速さ', valueUp: '作った物の売値', beltCapT: '1マスに乗る数', tutHello: 'ほるぞ！', tutTired: 'つらすぎる…', tutGanbaru: 'がんばるぞ！', 
     tutPick: 'どこを掘りますか？（光っているマスをタップ）', tutBuy: 'ドリルを買ってみましょう！（「設置」→ドリル）', tutEasy: 'これで楽になりましたね。',
     tutDone: 'ドリルやコンベアを置いて、土を出荷しましょう', tutSkipB: 'スキップ', adReady: '広告を見ると、特典がもらえます', adWatch: '広告を見る', adCancel: 'やめる', adSkip: '最後まで見なかったので、特典はありません', brandUp: (n, p) => `会社レベル${n}！ブランド力が上がりました（売値 +${p}%）`, resOnly: '未取得のみ', resAllB: 'すべて',
     yardT: 'トラックヤード', yardDesc: 'トラックが止まり、資源を置く場所（マップに1つ）。撤去でたたみ、工事の「トラックヤード」で別の所に置けます。', yardNone: 'トラックヤードがありません（工事から置いてください）',
@@ -732,7 +732,7 @@ const TXT_ADD = {
     aiTruck: n => `Truck to level ${n}`, aiForkBuy: 'Bought a forklift', aiFork: 'Upgraded a forklift', aiDrill: 'Added a drill',
     aiDrillUp: 'Upgraded drills', aiTurn: 'Turned a stuck drill', aiMach: n => `Placed ${n} with a sorter`, aiMachUp: 'Upgraded machines',
     aiPrice: n => `${n} price up`, aiPipe: 'Piped a source', aiFac: n => `Built ${n}`,
-    aiRemove: 'Removed a drill that could not dig', aiRebuild: 'Removed an unused machine', aiUnsort: 'Removed a sorter (found a better use)', forkSpd: 'Speed', valueUp: 'Product value', beltCapT: 'Items per cell', tutHello: "Let's dig!", tutTired: 'This is too hard...', tutGanbaru: "Let's do this!", tutTap: '(tap)',
+    aiRemove: 'Removed a drill that could not dig', aiRebuild: 'Removed an unused machine', aiUnsort: 'Removed a sorter (found a better use)', forkSpd: 'Speed', valueUp: 'Product value', beltCapT: 'Items per cell', tutHello: "Let's dig!", tutTired: 'This is too hard...', tutGanbaru: "Let's do this!", 
     tutPick: 'Where do you want to dig? (tap a glowing cell)', tutBuy: 'Try buying a drill! (Build → Drill)', tutEasy: 'That makes it easier.',
     tutDone: 'Place drills and conveyors, and ship the soil', tutSkipB: 'Skip', adReady: 'Watch an ad to get the reward', adWatch: 'Watch ad', adCancel: 'Cancel', adSkip: 'The ad was skipped, so no reward this time', brandUp: (n, p) => `Company level ${n}! Brand power up (prices +${p}%)`, resOnly: 'Not yet', resAllB: 'All',
     yardT: 'Truck yard', yardDesc: 'Where the truck parks and items pile up (one per map). Remove it, then place it elsewhere from Works.', yardNone: 'No truck yard (place one from Works)',
@@ -1394,8 +1394,29 @@ function tutShow() {
   document.querySelectorAll('[data-open="build"], #catBar [data-cat="build"]').forEach(el => el.classList.toggle('tutPulse', st === 'buy'));
   tutBubble = st === 'hello' ? T.tutHello : st === 'tired' ? T.tutTired : st === 'ganbaru' ? T.tutGanbaru : null; tutBubbleT = 0;
   const msg = st === 'pick' ? T.tutPick : st === 'buy' ? T.tutBuy : st === 'easy' ? T.tutEasy : '';
-  $('tutMsg').hidden = !st || st === 'ganbaru'; $('tutText').textContent = msg; $('tutText').hidden = !msg;   // 社長が動いている間は「スキップ」だけ出す
-  if (st === 'hello' || st === 'tired' || st === 'easy') $('tutText').textContent = msg + (msg ? '　' : '') + T.tutTap, $('tutText').hidden = false;
+  $('tutMsg').hidden = !msg; $('tutText').textContent = msg;
+  $('tutNext').hidden = st !== 'easy';   // タップ待ちのメッセージは、端に小さな▼
+  $('tutSkip').hidden = !st;             // スキップは、はじめの手順の間ずっと（メッセージの外に）
+  if (!st) $('tutArrow').setAttribute('hidden', '');
+}
+// 「ドリルを買ってみましょう」：今押すべき所（設置 → ドリル → ドリル50）まで、メッセージから矢印を伸ばす
+function tutTarget() {
+  if (!S.tut || S.tut.step !== 'buy' || isDrillTool(tool) || (popTarget && popTarget.type === 'pend')) return null;
+  const vis = el => el && el.offsetParent !== null;
+  const tb = [...document.querySelectorAll('#subMenu .si')].find(b => b.dataset.tool === 'drill');
+  if (vis(tb)) return tb;
+  const gb = [...document.querySelectorAll('#subMenu .grp')].find(b => b.dataset.grp === 'drill');
+  if (vis(gb)) return gb;
+  return [...document.querySelectorAll('[data-open="build"], #catBar [data-cat="build"]')].find(vis) || null;
+}
+function tutArrow() {
+  const svg = $('tutArrow'), tg = tutTarget(), m = $('tutMsg');
+  if (!tg || m.hidden) { svg.setAttribute('hidden', ''); return; }   // SVG は .hidden が効かないので、属性で切りかえる
+  const a = m.getBoundingClientRect(), b = tg.getBoundingClientRect();
+  const x1 = a.left + a.width / 2, y1 = a.bottom + 4, x2 = b.left + b.width / 2, y2 = b.top - 4;
+  svg.removeAttribute('hidden');
+  svg.innerHTML = `<defs><marker id="tah" markerWidth="10" markerHeight="10" refX="6" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#d0661f"/></marker></defs>`
+    + `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#d0661f" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#tah)"/>`;
 }
 const tutWait = () => S.tut && (S.tut.step === 'hello' || S.tut.step === 'tired' || S.tut.step === 'easy');
 function tutNext() {   // タップ待ちの段で押した
@@ -1449,14 +1470,20 @@ function drawTutBoss() {
     ctx.strokeStyle = '#7a5a3a'; ctx.lineWidth = Math.max(1.5, cell * 0.04); ctx.beginPath(); ctx.moveTo(0, -cell * 0.18); ctx.lineTo(0, cell * 0.12); ctx.stroke();
     ctx.fillStyle = '#9aa0a8'; ctx.fillRect(-cell * 0.05, cell * 0.12, cell * 0.1, cell * 0.08); ctx.restore();
   }
-  if (b.carry) { for (let i = 0; i < b.carry; i++) drawItemShape({ k: 'soil' }, x - cell * 0.06 + i * cell * 0.12, y - cell * 0.42, 0.45); }   // 頭の上に土
+  if (b.carry) { for (let i = 0; i < b.carry; i++) drawItemShape({ k: 'soil' }, x + cell * 0.17, y + cell * (0.3 - i * 0.1), 0.34); }   // 手に抱えた土（体の前に）
   if (tutBubble) {
     ctx.save(); ctx.font = `bold ${Math.max(10, Math.round(cell * 0.22))}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     const w = ctx.measureText(tutBubble).width + cell * 0.24, h = cell * 0.34, bx = x - w / 2, by = y - cell * 0.95;
     ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#2b2b2e'; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx, by, w, h, 6) : ctx.rect(bx, by, w, h); ctx.fill(); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(x - cell * 0.06, by + h); ctx.lineTo(x, by + h + cell * 0.1); ctx.lineTo(x + cell * 0.06, by + h); ctx.fill();
-    ctx.fillStyle = '#2b2b2e'; ctx.fillText(tutBubble, x, by + h / 2 + 1); ctx.restore();
+    ctx.fillStyle = '#2b2b2e'; ctx.fillText(tutBubble, x, by + h / 2 + 1);
+    if (tutWait()) {   // タップ待ち：吹き出しの右下に小さな▼（ゆっくり明るさが変わる。小さいので点滅の刺激はない）
+      ctx.globalAlpha = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(performance.now() / 300));
+      const tx4 = bx + w - cell * 0.08, ty4 = by + h - cell * 0.07, a4 = cell * 0.05;
+      ctx.beginPath(); ctx.moveTo(tx4 - a4, ty4 - a4 * 0.6); ctx.lineTo(tx4 + a4, ty4 - a4 * 0.6); ctx.lineTo(tx4, ty4 + a4 * 0.6); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
   }
 }
 // 掘る所を選ぶ間：掘れるマスを薄く示す
@@ -2754,6 +2781,7 @@ function toolBtn(id) {
   b.append(lab);
   if (id.startsWith('m:')) { const def = MACHINES[id.slice(2)]; const rc = document.createElement('span'); rc.className = 'rec'; rc.textContent = def.bag ? T.bagRule : def.src ? T.aditRule : def.recipes.map(x => `${recIn(x)}→${T.items[x.out]}`).join(' / '); b.append(rc); }
   b.classList.toggle('active', toolId() === id);
+  b.dataset.tool = id; b.classList.toggle('tutPulse', !!(S.tut && S.tut.step === 'buy' && id === 'drill'));   // はじめの手順：「ドリル50」も光らせる
   b.addEventListener('click', () => {
     if (toolId() === id) tool = 'none'; else setTool(id);   // もう一度押すと解除
     openCat = null; renderSub(); closePop(); updateUI();
@@ -2772,6 +2800,7 @@ function renderSub() {
       const lb = document.createElement('button'); lb.className = 'grp'; lb.textContent = T.grpName[g];
       lb.classList.toggle('active', grpOfTool() === g);
       lb.classList.toggle('hasNew', grpList(g).some(isNewTool));   // 中に使ったことの無い物があれば●
+      lb.dataset.grp = g; lb.classList.toggle('tutPulse', !!(S.tut && S.tut.step === 'buy' && g === 'drill'));   // はじめの手順：「ドリル」を光らせる
       lb.classList.toggle('open', openGrp === g);
       lb.addEventListener('click', () => { openGrp = openGrp === g ? null : g; renderSub(); updateUI(); });
       rowD.append(lb);
@@ -4422,7 +4451,7 @@ function jumpTo(at) {
   cam.x = at.c + 0.5 - cw / cp / 2; cam.y = at.r + 0.5 - ch / cp / 2; metrics();
   if (at.open) at.open();
 }
-$('tutMsg').addEventListener('pointerup', e => { if (e.target.id === 'tutSkip') return; if (tutWait()) { tutNext(); updateUI(); } });
+$('tutMsg').addEventListener('pointerup', () => { if (tutWait()) { tutNext(); updateUI(); } });
 $('tutSkip').addEventListener('click', () => {   // はじめの手順をとばす（ドリルを1台もらって、ふつうに始める）
   if (!S.tut) return;
   if (![...S.st.values()].some(x => x.type === 'drill')) { const c = OFFICE_C - 1; row(SKY)[c] = null; S.digVer++; S.st.set(key(c, SKY), { type: 'drill', tid: 'drill', dir: 'down', lv: 0, t: 0, hit: -99, op: null, no: 1 }); S.stVer++; }
@@ -4480,6 +4509,7 @@ function updateUI() {
   cv.classList.toggle('grabbing', !!(gesture && gesture.type === 'pan'));
   cv.classList.toggle('place', tool !== 'pan' && tool !== 'none');
   layoutFloats();
+  if (S.tut) tutArrow();
 }
 // 浮いているボタン類の位置（実際の大きさを見て、重ならないように）
 // 右下：メニュー（またはメニューを開いた列）→ その上に種類 → その上に向き
