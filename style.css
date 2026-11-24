@@ -417,3 +417,14 @@ body.title #fpsHud { display: none; }
 /* v0.56 メッセージ：関係する所があればタップできる */
 .msg.jump { pointer-events: auto; cursor: pointer; }
 .msg.jump .mtext { text-decoration: underline dotted; text-underline-offset: 3px; }
+/* v0.59 new の印・タブの●・遊び方の一覧とおねがい */
+.newtag { display: inline-block; margin-left: 4px; font-size: 9px; font-weight: 700; color: #d0661f; letter-spacing: .04em; vertical-align: top; }
+.hasNew { position: relative; }
+.hasNew::after { content: ''; position: absolute; top: 3px; right: 3px; width: 6px; height: 6px; border-radius: 50%; background: #d0661f; }
+#helpBody .hlist h4 { margin: 12px 0 4px; font-size: 13px; }
+#helpBody .hrow2 { display: flex; gap: 8px; align-items: flex-start; padding: 4px 0; border-top: 1px solid rgba(0,0,0,.06); }
+#helpBody .hrow2 canvas { width: 32px; height: 32px; flex: none; image-rendering: pixelated; }
+#helpBody .hrow2 b { font-size: 12.5px; }
+#helpBody .pleaseBtns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+#helpBody .btnLink { display: inline-block; padding: 6px 12px; border: 1px solid rgba(0,0,0,.25); border-radius: 4px; background: #fff; color: #2b2b2e; text-decoration: none; font-size: 12.5px; }
+#helpBody { overflow-y: auto; }

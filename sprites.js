@@ -278,6 +278,24 @@ window.DF_SPRITES = {
    "SnnsSSSSSSSSsnnS",
    "SSSSSSSSSSSSSSSS"
   ],
+  "museum": [
+   "................",
+   "......kkkk......",
+   "....kkssSSkk....",
+   "..kksssyysssSk..",
+   ".kkkkkkkkkkkkkk.",
+   ".kSSSSSSSSSSSSk.",
+   "..ws.ws..ws.ws..",
+   "..ws.ws..ws.ws..",
+   "..ws.ws..ws.ws..",
+   "..ws.ws..ws.ws..",
+   "..ws.ws..ws.ws..",
+   "..ws.ws..ws.ws..",
+   ".kSSSSSSSSSSSSk.",
+   "kSSSSSSSSSSSSSSk",
+   "kkkkkkkkkkkkkkkk",
+   "................"
+  ],
   "drawer": [
    "................",
    "..kkkk....kkkk..",
