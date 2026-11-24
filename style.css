@@ -414,3 +414,6 @@ body.title #fpsHud { display: none; }
 #balPanel .balRow input[type=number] { width: 100%; font: inherit; padding: 2px 4px; }
 #balPanel .balRow input[type=range] { width: 100%; }
 @media (max-width: 520px) { #balPanel .balRow { grid-template-columns: minmax(0, 1fr) 70px auto; } #balPanel .balRow input[type=range] { display: none; } }
+/* v0.56 メッセージ：関係する所があればタップできる */
+.msg.jump { pointer-events: auto; cursor: pointer; }
+.msg.jump .mtext { text-decoration: underline dotted; text-underline-offset: 3px; }
