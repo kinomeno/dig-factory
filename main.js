@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.49（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.50（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.49';
+const VERSION = '0.50';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -1000,7 +1000,7 @@ function updateMachines(dt) {
       }
     }
     if (m.cur) {
-      m.prog = Math.min(def.time, m.prog + dt * valOf(m) * workFactor(m));
+      m.prog = Math.min(def.time, m.prog + dt * valOf(m) * workFactor(m) * (def.src ? Math.pow(0.5, (m.lv || 0) / ADIT_MAX) : 1));   // 横穴：最大レベルの速さは、今までの半分（途中のレベルはなめらかに）
       if (m.prog >= def.time && emitFront(k, m)) m.cur = null;
     }
   }
@@ -2950,7 +2950,7 @@ function draw() {
     if (s.type === 'pipe') { drawPipe(x, y, c, r, false); continue; }
     if (s.type === 'well') { ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(sprite(s.kind === 'oil' ? 'oilwell' : 'spring'), x, y, cell, cell); ctx.restore(); continue; }
     drawBeltCell(x, y, s, valOf(s) * TUNE.belt, false, c, r);
-    drawLevel(x, y, s.lv);
+    drawBeltLv(x, y, s);
   }
 
   drawLand(g0, r1);
@@ -3256,6 +3256,13 @@ function drawLvPix(x, y, w, lv) {   // x,y＝並べ始め、w＝本体の幅
   const d = Math.max(1 / (window.devicePixelRatio || 1), cp / 48), n = Math.min(lv, Math.floor(w / (d * 3)));   // 小さい時はモニターの1ドット、拡大すると車体に合わせて大きく
   ctx.fillStyle = THEME.level;
   for (let i = 0; i < n; i++) ctx.fillRect(x + i * d * 3, y, d, d);
+}
+// コンベアのレベル：小さな四角を、縦のコンベアなら縦に、横なら横に並べる（左上の端に沿って）
+function drawBeltLv(x, y, s) {
+  if (!s.lv) return;
+  const d = Math.max(1.5, cp * 0.05), g = d * 1.8, vert = s.dir === 'up' || s.dir === 'down';
+  ctx.fillStyle = THEME.level;
+  for (let i = 0; i < s.lv; i++) ctx.fillRect(x + cp * 0.06 + (vert ? 0 : i * g), y + cp * 0.06 + (vert ? i * g : 0), d, d);
 }
 function drawLevel(x, y, lv) {
   if (!lv) return;
