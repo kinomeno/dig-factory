@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.61（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.62（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.61';
+const VERSION = '0.62';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -17,8 +17,10 @@ const COLS = 14;
 const SKY = 4;                 // 上から4行が空（地上）
 const YARD_R = SKY - 1;        // 地上の建物の行（地面のすぐ上）
 const OFFICE_C = Math.floor(COLS / 2) - 1;   // 事務所（地上の中央の2マス）
-const YARD_C = OFFICE_C + 3;   // ヤード（資源置き場）1マス。トラックもここに直接止まる（荷台からはみ出た山と重なる）
-const BED = YARD_C, CAB = YARD_C;   // トラックの止まる列（1マス）
+const YARD_C0 = OFFICE_C + 3;
+let YARD_C = YARD_C0;   // ヤード（資源置き場）1マス。トラックもここに直接止まる（荷台からはみ出た山と重なる）
+let BED = YARD_C, CAB = YARD_C;
+const setYard = c => { YARD_C = BED = CAB = c; if (S) S.yardC = c; };   // ヤードの列（-1＝無い）   // トラックの止まる列（1マス）
 // 釣り合いの数字（その他）：単独の数字や、式の中の数字。管理メニュー「釣り合い調整」で全部変えられる
 const BAL = {
   tankCap: 300, facSlow: 0.1, drillHit: 0.6, grav: 14, loadRate: 10, walkH: 2.2, walkV: 1.2, restSec: 12,
@@ -27,10 +29,10 @@ const BAL = {
   digCost0: 250, digCostG: 2.8, digMon0: 10, digMonG: 3, landCost0: 1500, landCostG: 4, awayCost0: 300, awayCostG: 1.25,
   priceUpMul: 1.15, priceCostG: 1.6,
   ironP5: 0.12, ironP10: 0.24, goldP10: 0.05, goldP30: 0.13, diaP30: 0.03, diaP50: 0.08, oilP: 0.012, hotP: 0.03,
-  labAlone: 0.25, beltManned: 1.5, elevSpeed: 6, rareP: 0.006, museumFee: 60, truckAdd0: 8000, truckAddG: 2.5,
+  offCostG: 3, offCapG: 1.3, brandMul: 1.1, labAlone: 0.25, beltManned: 1.5, elevSpeed: 6, rareP: 0.006, museumFee: 60, truckAdd0: 8000, truckAddG: 2.5,
   bossFatPer: 0.13, bossFatRate: 0.0001, beltSlowPow: 3, beltSlowMin: 0.02, truckWait: 15, gift: 1000,
 };
-const COST = { drill: 50, fdrill: 120, adrill: 150, conv: 5, sort: 20, tee: 15, cross: 15, lab: 200, pipe: 8, spa: 800, power: 1000, refinery: 1500, museum: 20000, elev: 30 };
+const COST = { drill: 50, fdrill: 120, adrill: 150, conv: 5, sort: 20, tee: 15, cross: 15, lab: 200, pipe: 8, spa: 800, power: 1000, refinery: 1500, museum: 20000, elev: 30, yard: 500 };
 // 地上の施設（研究で増える。作業員がいないととても遅い）と、液体（石油・お湯）
 const FAC_IDS = ['spa', 'power', 'refinery', 'museum'];
 const isFacTool = t => FAC_IDS.includes(t);
@@ -182,6 +184,16 @@ const SKILLS = {
   truck2:   { max: 99, cost: k => Math.round(BAL.truckAdd0 * Math.pow(BAL.truckAddG, k) / 100) * 100, months: k => 3 + k },   // トラック増車（何台でも。1台ごとに高くなる）
   speeding: { max: 1, cost: [2000], months: [2] },
   beltMax:  { max: 2, cost: [2500, 6000], months: [2, 3] },
+  autoHire: { max: 1, cost: [2000], months: [2] },       // 人事部：人が足りない時、自動で雇う（事務所でオン・オフ）
+  autoUpg:  { max: 1, cost: [5000], months: [3] },       // 技術部：お金に余裕がある時、自動で強化（気まぐれ。頼りすぎない）
+  autoPrice: { max: 1, cost: [4000], months: [3] },      // 市場調査：自動で売値アップ（事務所でオン・オフ）
+  goldUp:   { max: 10, cost: k => Math.round(2000 * Math.pow(1.6, k) / 100) * 100, months: k => 2 + k },   // 金の匂い：金が出やすい
+  diaUp:    { max: 10, cost: k => Math.round(4000 * Math.pow(1.6, k) / 100) * 100, months: k => 2 + k },   // 暗闇の光：ダイヤが出やすい
+  newTech:  { max: 10, cost: k => Math.round(3000 * Math.pow(1.7, k) / 100) * 100, months: k => 2 + k },   // 新技術導入：加工機械が速い
+  bored:    { max: 3, cost: [1000, 3000, 8000], months: [1, 2, 3] },                                       // 飽き性：暇な作業員がすぐ移る
+  treasure: { max: 3, cost: [5000, 20000, 60000], months: [3, 4, 6] },                                     // 人間国宝見学：作業員のレベルの上限+2
+  statue:   { max: 1, cost: [50000], months: [4] },      // 社長像（見た目）
+  garden:   { max: 1, cost: [15000], months: [3] },      // 屋上庭園：休憩が少し速い（見た目も）
   vein:     { max: 10, cost: k => Math.round(3000 * Math.pow(1.8, k) / 100) * 100, months: k => 2 + k },   // 鉱脈探知：珍しい物が出やすくなる（1段ごとに+25%）
   labRoom:  { max: 3, cost: [3000, 12000, 40000], months: [3, 5, 8] },   // 研究室の増室（最大4室）
   yardPlus: { max: 1, cost: [1500], months: [2] },
@@ -613,12 +625,13 @@ const TXT_ADD = {
     aiTruck: n => `トラックをレベル${n}に`, aiForkBuy: 'フォークリフトを買った', aiFork: 'フォークリフトを強化', aiDrill: 'ドリルを増やした',
     aiDrillUp: 'ドリルを強化', aiTurn: '止まったドリルを横に向けた', aiMach: n => `${n}を振り分けで設置`, aiMachUp: '機械を強化',
     aiPrice: n => `${n}の売値アップ`, aiPipe: '湧き口をパイプでつないだ', aiFac: n => `${n}を建てた`,
-    aiRemove: '掘れないドリルを撤去した', aiRebuild: '使わなくなった機械を撤去した', aiUnsort: 'もっと良い使い道があるので、仕分けを外した', forkSpd: '走る速さ', valueUp: '作った物の売値', beltCapT: '1マスに乗る数',
+    aiRemove: '掘れないドリルを撤去した', aiRebuild: '使わなくなった機械を撤去した', aiUnsort: 'もっと良い使い道があるので、仕分けを外した', forkSpd: '走る速さ', valueUp: '作った物の売値', beltCapT: '1マスに乗る数', brandUp: (n, p) => `会社レベル${n}！ブランド力が上がりました（売値 +${p}%）`, resOnly: '未取得のみ', resAllB: 'すべて',
+    yardT: 'トラックヤード', yardDesc: 'トラックが止まり、資源を置く場所（マップに1つ）。撤去でたたみ、工事の「トラックヤード」で別の所に置けます。', yardNone: 'トラックヤードがありません（工事から置いてください）',
     hBasic: '基本操作', hDig: '掘る・運ぶ', hMake: '加工と売る', hLevel: 'レベルアップと研究', hItems: '施設・設置物・資源', pleaseT: 'おねがい',
     levelHelp: '強化（下のタブ）：お金で、ドリル・機械・コンベア・トラック・フォークリフトのレベルや、資源の売値を上げます。置いた物をタップしても強化できます。\n研究（研究所）：時間をかけて、深く掘る力（掘削レベル）・高級な機械・地上の施設・会社の力（スキル）を手に入れます。研究員がいると速く進みます。\n機械や道具の多くは、段階が上がると自動で使えるようになります（研究はいりません）。',
     please: 'ご意見・ご感想をお待ちしています（Xやnoteへどうぞ）。いただいた声で、このゲームは育っています。\nこのゲームは無料で遊べます。気に入っていただけたら、応援（寄付）していただけるとうれしいです。開発を続ける力になります。',
     feedbackX: 'ご意見・ご感想（X）', feedbackNote: 'ご意見・ご感想（note）',
-    elevPut: 'エレベーターを置く', seeBelow: '下の物を見る', truckAddT: 'トラック増車', truckAddN: n => `今 ${n}台（交代で出発。何台でも増やせます）`, truckAddB: '1台増やす', truckAdded: n => `トラックを増車（${n}台）`,
+    yard: 'トラックヤード', elevPut: 'エレベーターを置く', seeBelow: '下の物を見る', truckAddT: 'トラック増車', truckAddN: n => `今 ${n}台（交代で出発。何台でも増やせます）`, truckAddB: '1台増やす', truckAdded: n => `トラックを増車（${n}台）`,
     hFacs: '地上の施設', hTools: '設置物', hMachs: '機械', hRes: '資源・製品（今手に入る物）', labDesc: '研究をする建物です（会社レベル2で建てられます）。研究室を増やすと、同時に研究できます。',
     toolDesc: { drill: '地面を掘り進みます。掘った資源は後ろに出ます。', fdrill: '速く掘るドリル。', adrill: 'ふさがると自分で向きを変えるドリル。', conv: '資源を運びます。なぞって続けて置けます。',
       sort: '選んだ資源だけを横へ出します。', tee: '真ん中で左右に振り分けます。', cross: '2つの流れを交差させます。', pipe: '湧き口と地上のタンクをつなぎます。', elev: '作業員が上り下りする時、とても速くなります（ほかの物の上にも置けます）。' },
@@ -657,7 +670,13 @@ const TXT_ADD = {
     needDig: n => (n === 0 ? '岩盤Lv0：会社レベルを2にすると破れます' : `岩盤Lv${n}：研究「掘削レベル」が必要です`),
     rockHint: n => (n === 0 ? '岩盤Lv0：会社レベルを2にすると破れます（それまでは土が半分の速さで出続けます）' : `硬い岩盤Lv${n}：研究「掘削レベル」が無いと破れません（資源は半分の速さで出続けます）`),
     help1: ['掘る', 'ドリルは地下に置きます（地上とつながった穴の隣なら、土を上書きして置けます）。置く所をタップして、掘る向きを選んで「設置する」。掘った資源はドリルの後ろに出て、空中の資源は下に落ちます。\n5mに岩盤Lv0、その後は10mごとに硬い岩盤があります。岩盤Lv0は会社レベルを2にすると、Lv1から先は研究所で「掘削レベル」を研究すると破れます。破れない間もドリルは止まらず、資源が半分の速さで出続けます。岩盤を掘り抜くと、新しい研究ができるようになります。5mより上は土しか出ません。ドリルはタップで止めたり動かしたりできます。'],
-    sk: { vein: ['鉱脈探知', '珍しい物（化石・埴輪など）が出やすくなります（1段ごとに+25%）。'], labRoom: ['研究室の増室', '研究室が1つ増え、同時に研究できる数が増えます（最大4室）。研究所にいる研究員の数だけ、並んで進みます。'], land: ['土地買収', '自分の土地が左右に1マスずつ広がります（研究するごとに高くなる）。'], digLv: ['掘削レベル', '硬い岩盤（10mにLv1、その後は10mごと）を1段ずつ破れるようになります（Lv0は会社レベル2で破れる）。'] },
+    sk: { autoHire: ['人事部', '持ち場に対して人が足りない時、自動で雇います（事務所でオン・オフ）。'],
+      autoUpg: ['技術部', 'お金にかなり余裕がある時、ときどき強化します。どれを強化するかは気まぐれです（事務所でオン・オフ）。'],
+      autoPrice: ['市場調査', 'お金に余裕がある時、いちばん安い売値アップを自動で買います（事務所でオン・オフ）。'],
+      goldUp: ['金の匂い', '金が出やすくなります（1段ごとに+10%。これから掘る所から）。'], diaUp: ['暗闇の光', 'ダイヤが出やすくなります（1段ごとに+10%。これから掘る所から）。'],
+      newTech: ['新技術導入', '加工機械が速くなります（1段ごとに+5%）。'], bored: ['飽き性', '仕事の無い作業員が、早くほかの持ち場へ移ります（8秒 → 5秒 → 3秒 → 1秒）。'],
+      treasure: ['人間国宝見学', '作業員のレベルの上限が2つ上がります。'], statue: ['社長像', '事務所の前に、社長の銅像が建ちます。'], garden: ['屋上庭園', '事務所の屋上が森に。休憩が少し速くなります。'],
+      vein: ['鉱脈探知', '珍しい物（化石・埴輪など）が出やすくなります（1段ごとに+25%）。'], labRoom: ['研究室の増室', '研究室が1つ増え、同時に研究できる数が増えます（最大4室）。研究所にいる研究員の数だけ、並んで進みます。'], land: ['土地買収', '自分の土地が左右に1マスずつ広がります（研究するごとに高くなる）。'], digLv: ['掘削レベル', '硬い岩盤（10mにLv1、その後は10mごと）を1段ずつ破れるようになります（Lv0は会社レベル2で破れる）。'] },
     deal: { land: ['地上げ', '土地買収のレベルが1つ上がります（左右に1マスずつ広がる）。', '地上げ'] },
     dealMax: '上限です',
     help0: ['操作', '画面は指（マウス）でなぞると動きます。画面の端（▲▼◀▶）を押しても動きます。2本指・Ctrl＋ホイール・＋－で拡大縮小、「地図」で全体を見られます。\n下のタブを押すと引き出しが開き、道具を選べます。ドリル・機械などは1つ置くと選択が外れます。コンベアなどは続けて置けて、左下の「×」かタブを押すと外れます。ドリルは、置く所をタップしてから掘る向きを選んで「設置する」。置いた物をタップすると、向きの変更やレベルアップができます。'],
@@ -711,12 +730,13 @@ const TXT_ADD = {
     aiTruck: n => `Truck to level ${n}`, aiForkBuy: 'Bought a forklift', aiFork: 'Upgraded a forklift', aiDrill: 'Added a drill',
     aiDrillUp: 'Upgraded drills', aiTurn: 'Turned a stuck drill', aiMach: n => `Placed ${n} with a sorter`, aiMachUp: 'Upgraded machines',
     aiPrice: n => `${n} price up`, aiPipe: 'Piped a source', aiFac: n => `Built ${n}`,
-    aiRemove: 'Removed a drill that could not dig', aiRebuild: 'Removed an unused machine', aiUnsort: 'Removed a sorter (found a better use)', forkSpd: 'Speed', valueUp: 'Product value', beltCapT: 'Items per cell',
+    aiRemove: 'Removed a drill that could not dig', aiRebuild: 'Removed an unused machine', aiUnsort: 'Removed a sorter (found a better use)', forkSpd: 'Speed', valueUp: 'Product value', beltCapT: 'Items per cell', brandUp: (n, p) => `Company level ${n}! Brand power up (prices +${p}%)`, resOnly: 'Not yet', resAllB: 'All',
+    yardT: 'Truck yard', yardDesc: 'Where the truck parks and items pile up (one per map). Remove it, then place it elsewhere from Works.', yardNone: 'No truck yard (place one from Works)',
     hBasic: 'Basics', hDig: 'Dig & carry', hMake: 'Make & sell', hLevel: 'Upgrades & research', hItems: 'Buildings & items', pleaseT: 'A request',
     levelHelp: 'Upgrades (bottom tab): spend money to level up drills, machines, conveyors, the truck and forklifts, and raise prices. You can also tap a building to upgrade it.\nResearch (Lab): takes time; gives Dig level, advanced machines, surface facilities and company skills. Faster with a researcher.\nMost machines and tools unlock by themselves as you reach new stages.',
     please: 'Your thoughts and feedback help this game grow.\nThe game is free to play. If you enjoy it, a small tip would mean a lot and keeps development going.',
     feedbackX: 'Feedback (X)', feedbackNote: 'Feedback (note)',
-    elevPut: 'Place elevator', seeBelow: 'Open the one below', truckAddT: 'Extra truck', truckAddN: n => `${n} now (they take turns; add as many as you like)`, truckAddB: 'Add one', truckAdded: n => `Added a truck (${n})`,
+    yard: 'Truck yard', elevPut: 'Place elevator', seeBelow: 'Open the one below', truckAddT: 'Extra truck', truckAddN: n => `${n} now (they take turns; add as many as you like)`, truckAddB: 'Add one', truckAdded: n => `Added a truck (${n})`,
     hFacs: 'Surface facilities', hTools: 'Placeables', hMachs: 'Machines', hRes: 'Resources & products (available now)', labDesc: 'Where research happens (build at company level 2). More rooms = more research at once.',
     toolDesc: { drill: 'Digs forward; mined items come out behind.', fdrill: 'A faster drill.', adrill: 'Turns by itself when blocked.', conv: 'Carries items. Drag to lay many.',
       sort: 'Sends only the chosen item to the side.', tee: 'Splits left and right.', cross: 'Lets two flows cross.', pipe: 'Connects wells to the surface tanks.', elev: 'Workers climb much faster here (can sit over other things).' },
@@ -755,7 +775,13 @@ const TXT_ADD = {
     needDig: n => (n === 0 ? 'Bedrock Lv0: raise the company to level 2 to break it' : `Bedrock Lv${n}: research Dig level first`),
     rockHint: n => (n === 0 ? 'Bedrock Lv0: raise the company to level 2 to break it (soil keeps coming at half speed)' : `Hard bedrock Lv${n}: cannot break it without Dig level (resources keep coming at half speed)`),
     help1: ['Digging', 'Tap a spot, pick a direction and Place to put a drill. Mined items come out behind the drill and fall through the air.\nBedrock Lv0 is at 5m (break it at company level 2), then every 10m (research Dig level). Until then drills keep running and give resources at half speed. Above 5m there is only soil. Tap a drill to stop or start it.'],
-    sk: { vein: ['Vein finder', 'Rare finds (fossils, haniwa...) appear more often (+25% per level).'], labRoom: ['Extra lab room', 'Adds a lab room so more research can run at once (up to 4). Each research needs its own researcher in the Lab.'], land: ['Land purchase', 'Your land grows by 1 cell on each side (each purchase costs more).'], digLv: ['Dig level', 'Break hard bedrock (Lv1 at 10m, then every 10m), one layer per level (Lv0 breaks at company level 2).'] },
+    sk: { autoHire: ['HR department', 'Hires automatically when posts outnumber staff (toggle in the office).'],
+      autoUpg: ['Tech department', 'Sometimes upgrades something when money is plentiful. It picks on a whim (toggle in the office).'],
+      autoPrice: ['Market research', 'Buys the cheapest price-up when you can afford it (toggle in the office).'],
+      goldUp: ['Nose for gold', 'More gold (+10% per level, in cells dug from now on).'], diaUp: ['Light in the dark', 'More diamonds (+10% per level, in cells dug from now on).'],
+      newTech: ['New technology', 'Machines run faster (+5% per level).'], bored: ['Easily bored', 'Idle workers move on sooner (8s → 5s → 3s → 1s).'],
+      treasure: ['Master craftsman tour', 'Raises the worker level cap by 2.'], statue: ['Boss statue', 'A bronze statue of the boss stands at the entrance.'], garden: ['Rooftop garden', 'A forest on the office roof. Rest is a little faster.'],
+      vein: ['Vein finder', 'Rare finds (fossils, haniwa...) appear more often (+25% per level).'], labRoom: ['Extra lab room', 'Adds a lab room so more research can run at once (up to 4). Each research needs its own researcher in the Lab.'], land: ['Land purchase', 'Your land grows by 1 cell on each side (each purchase costs more).'], digLv: ['Dig level', 'Break hard bedrock (Lv1 at 10m, then every 10m), one layer per level (Lv0 breaks at company level 2).'] },
     deal: { land: ['Land deal', 'Raises Land purchase by one level (1 cell wider on each side).', 'Land'] },
     dealMax: 'Maxed',
     help0: ['Controls', 'Swipe the screen to scroll (or press the screen edges). Pinch, Ctrl+wheel or +/- to zoom; "Map" shows everything.\nPick tools from the tabs at the bottom. Drills and machines are deselected after placing one; conveyors stay selected until you press the "x" (bottom left) or a tab. For a drill, tap the spot, pick a direction, then Place.'],
@@ -818,7 +844,7 @@ const PRICE_BASE = { soil: 120, stone: 160, iron: 350, gold: 900, dia: 2200, fue
 const priceLv = r => (S.priceLv && S.priceLv[r]) || 0;
 const priceMul = r => Math.pow(BAL.priceUpMul, priceLv(r));                                         // 1回ごとに1.15倍
 const priceCost = r => Math.round(PRICE_BASE[r] * Math.pow(BAL.priceCostG, priceLv(r)) * TUNE.resCost / 10) * 10;
-const itemVal = it => Math.round((it.v !== undefined ? it.v : ITEMS[it.k].v) * TUNE.price * priceMul(rootOf(it)));   // 売値（調整の倍率・売値アップつき）
+const itemVal = it => Math.round((it.v !== undefined ? it.v : ITEMS[it.k].v) * TUNE.price * priceMul(rootOf(it)) * brandMul());   // 売値（調整の倍率・売値アップつき）
 function priceUp(r) {
   const c = priceCost(r);
   if (S.money < c) { say(tx().noMoney); return; }
@@ -834,7 +860,14 @@ const beltCap = s => BELT_CAP[Math.min(s.lv || 0, BELT_CAP.length - 1)];
 // 時間の速さ：最初は×1だけ。スキルで増える（管理メニューの×16はテスト用）
 function speeds() { const a = autoLive ? [1, 2, 4, 8] : [1, 2, 4, 8].slice(0, 1 + sk('speed')); if (S.adminFast || autoLive) a.push(16); return a; }   // 自動プレイ（見る）の間は16倍まで
 const drainMul = () => [1, 0.75, 0.5][sk('welfare')];                         // 福利厚生：疲れにくい
-const restMul = () => [1, 1.5, 2][sk('welfare')] * OFFICE_LV.rest[S.office.lv]; // 休憩の速さ
+// 会社レベル：表の先も上限なし。値段はインフレ（3倍ずつ）、定員は1.3倍ずつ、フォークリフトは1台ずつ、休憩は0.25ずつ
+const offLast = a => a[a.length - 1];
+const offCost = lv => (lv < OFFICE_LV.cost.length ? OFFICE_LV.cost[lv] : Math.round(offLast(OFFICE_LV.cost) * Math.pow(BAL.offCostG, lv - OFFICE_LV.cost.length + 1) / 1000) * 1000);
+const offCap = lv => (lv < OFFICE_LV.cap.length ? OFFICE_LV.cap[lv] : Math.round(offLast(OFFICE_LV.cap) * Math.pow(BAL.offCapG, lv - OFFICE_LV.cap.length + 1)));
+const offForks = lv => (lv < OFFICE_LV.forks.length ? OFFICE_LV.forks[lv] : offLast(OFFICE_LV.forks) + (lv - OFFICE_LV.forks.length + 1));
+const offRest = lv => (lv < OFFICE_LV.rest.length ? OFFICE_LV.rest[lv] : offLast(OFFICE_LV.rest) + 0.25 * (lv - OFFICE_LV.rest.length + 1));
+const brandMul = () => Math.pow(BAL.brandMul, Math.floor((S.office.lv + 1) / 10));   // 会社レベル10・20…ごとに、売値が上がる（ブランド力）
+const restMul = () => [1, 1.5, 2][sk('welfare')] * offRest(S.office.lv) * (sk('garden') ? 1.2 : 1); // 休憩の速さ（屋上庭園で少し速い）
 const newTruck = phase => ({ type: 'truck', op: null, load: 0, value: 0, phase, t: 0, acc: 0 });
 
 // ■をつくる（中身は見えない）
@@ -849,8 +882,8 @@ function makeBlock(r) {
   const x = Math.random(), O = TUNE.ore;
   // 段階1(〜10m)：鉄が少し／段階2(10〜30m)：鉄が多く・金が少し／段階3(30〜50m)：金が多く・ダイヤが少し／段階4(50m〜)：ダイヤが多く
   const ironP = (d < 5 ? 0 : d < 10 ? BAL.ironP5 : BAL.ironP10) * O;
-  const goldP = (d < 10 ? 0 : d < 30 ? BAL.goldP10 : BAL.goldP30) * O;
-  const diaP = (d < 30 ? 0 : d < 50 ? BAL.diaP30 : BAL.diaP50) * O;
+  const goldP = (d < 10 ? 0 : d < 30 ? BAL.goldP10 : BAL.goldP30) * O * (1 + 0.1 * sk('goldUp'));   // 金の匂い
+  const diaP = (d < 30 ? 0 : d < 50 ? BAL.diaP30 : BAL.diaP50) * O * (1 + 0.1 * sk('diaUp'));      // 暗闇の光
   const ore = x < diaP ? 'dia' : x < diaP + goldP ? 'gold' : x < diaP + goldP + ironP ? 'iron' : null;
   const yieldN = Math.round(Math.min(30, 14 + Math.floor(d / 4)) * TUNE.yield);   // 1マスから出る数（たくさん出て、コンベアがにぎやかに）
   const h = hardAt(d) * (stone ? 1.6 : 1);
@@ -889,15 +922,18 @@ function addWorker(lv) {
 // 社長：特別な作業員（雇える人数に数えない・辞めない・給料0）。会社が大きくなると、じわじわ太る
 function addBoss() { const w = addWorker(0); w.boss = true; S.bossWork = true; S.bossFat = 0; return w; }
 const bossOf = () => S.workers.find(w => w.boss);
-const bossFatTarget = () => BAL.bossFatPer * S.office.lv;                  // 会社レベルごとに13%ずつ横に（目標）
+const bossFatTarget = () => Math.min(1.2, BAL.bossFatPer * S.office.lv);                  // 会社レベルごとに13%ずつ横に（目標）
 function updateBoss(dt) {
   const t = bossFatTarget();
   S.bossFat = (S.bossFat || 0) + Math.sign(t - (S.bossFat || 0)) * Math.min(Math.abs(t - (S.bossFat || 0)), dt * BAL.bossFatRate);   // 1分で0.6%ずつ（あれ？太ってない？）
 }
+// 作業員のレベルの上限：8（人間国宝見学で+2ずつ）。8の先に要る経験は1.3倍ずつ
+const maxWorkerLv = () => LV_EXP.length + 2 * sk('treasure');
+const expNeed = lv => (lv < LV_EXP.length ? LV_EXP[lv] : Math.round(LV_EXP[LV_EXP.length - 1] * Math.pow(1.3, lv - LV_EXP.length + 1)));
 const hireLv = () => Math.min(2, sk('hr'));   // 雇う人のレベル（人事力で上がる）
 function gainExp(w, dt) {
   w.exp += dt * (sk('veteran') ? 2 : 1);
-  if (w.lv < LV_EXP.length && w.exp >= LV_EXP[w.lv]) { w.lv++; w.stamina = Math.min(w.stamina + 10, maxStamina(w)); pop(tx().lvUpW(w.lv), w.x, w.y - 0.5, 'sale'); }
+  if (w.lv < maxWorkerLv() && w.exp >= expNeed(w.lv)) { w.lv++; w.stamina = Math.min(w.stamina + 10, maxStamina(w)); pop(tx().lvUpW(w.lv), w.x, w.y - 0.5, 'sale'); }
 }
 
 function newGame() {
@@ -940,13 +976,14 @@ function newGame() {
   S.drillNo = 1;
   addHist(tx().hStart);
   grantCheck(true);
+  setYard(YARD_C0);
   resetCam();
 }
 
 // 設備を置けるマス
 const isOpen = (c, r) => inB(c, r) && r >= SKY && blk(c, r) === null && !S.st.has(key(c, r));   // 地下の空いたマス
 // 設置する道具を選んでいるか／そのマスに置けるか（ドリルは地上にも、コンベア・機械は地下だけ）
-const isBuildTool = () => isDrillTool(tool) || tool === 'elev' || tool === 'conv' || tool === 'sort' || tool === 'tee' || tool === 'cross' || tool === 'machine' || tool === 'lab' || tool === 'pipe' || isFacTool(tool);
+const isBuildTool = () => isDrillTool(tool) || tool === 'elev' || tool === 'yard' || tool === 'conv' || tool === 'sort' || tool === 'tee' || tool === 'cross' || tool === 'machine' || tool === 'lab' || tool === 'pipe' || isFacTool(tool);
 // そのマスに置けるか
 // ・研究所：地上の段、施設の無いマス
 // ・ドリル：地下1段目より下。空いたマス、または地上とつながった穴の隣の土・石（上書きして置く）
@@ -994,6 +1031,7 @@ const RES_STAGE = { 'f:museum': 6, 't:elev': 3, 'm:adit': 2, 'sk:away': 2, 'sk:l
   'sk:truck2': 6, 'sk:black': 6, 'sk:speeding': 6,
   'm:washer': 5, 'm:cutter': 5, 't:adrill': 7, 'sk:veteran': 7, 'f:refinery': 7, 'm:polisher': 7, 'm:drawer': 4, 'm:atelier': 8 };   // v0.51：ダイヤが出たら加工できるように・段階8を埋める
 const SK_STAGE_VEIN = 5;   // 鉱脈探知は段階5から
+const SK_NEW_STAGE = { autoHire: 2, autoUpg: 3, autoPrice: 3, goldUp: 3, diaUp: 5, newTech: 4, bored: 2, treasure: 4, statue: 3, garden: 3 };   // 新しい研究が出る段階
 const SK_STAGE = { speed: [3, 7, 9], welfare: [3, 7], hr: [4, 7], beltMax: [8, 9], labRoom: [3, 5, 7] };   // 段ごとに出てくる段階
 function resAvail(id) {
   if (isGrant(id)) return false;   // 付与される物は研究に出さない
@@ -1002,6 +1040,7 @@ function resAvail(id) {
   if (id === 'sk:beltMax') return false;   // v0.49：コンベアはLv5まで（この研究は無くなった）
   if (id === 'sk:dragPlus') return false;   // v0.61：基本機能になった
   if (id === 'sk:vein') return S.stage >= SK_STAGE_VEIN;
+  if (SK_NEW_STAGE[id.slice(3)] !== undefined && id.startsWith('sk:')) return S.stage >= SK_NEW_STAGE[id.slice(3)];
   if (id.startsWith('sk:')) { const k2 = id.slice(3), a = SK_STAGE[k2]; if (a) return S.stage >= a[Math.min(sk(k2), a.length - 1)]; }
   return S.stage >= (RES_STAGE[id] || 1);
 }
@@ -1099,7 +1138,7 @@ function updateMachines(dt) {
       }
     }
     if (m.cur) {
-      m.prog = Math.min(def.time, m.prog + dt * valOf(m) * workFactor(m) * (def.src ? Math.pow(BAL.aditMaxSpeed, (m.lv || 0) / BAL.aditMax) : 1));   // 横穴：最大レベルの速さは、今までの半分（途中のレベルはなめらかに）
+      m.prog = Math.min(def.time, m.prog + dt * valOf(m) * workFactor(m) * (def.src ? 1 : 1 + 0.05 * sk('newTech')) * (def.src ? Math.pow(BAL.aditMaxSpeed, (m.lv || 0) / BAL.aditMax) : 1));   // 横穴：最大レベルの速さは、今までの半分（途中のレベルはなめらかに）
       if (m.prog >= def.time && emitFront(k, m)) m.cur = null;
     }
   }
@@ -1219,7 +1258,7 @@ function updateForks(dt) {
       }
       continue;
     }
-    if (f.state === 'toYard') { if (move(YARD_C + 0.5)) { f.state = 'unloading'; f.acc = 0; } continue; }
+    if (f.state === 'toYard') { if (YARD_C < 0) continue; if (move(YARD_C + 0.5)) { f.state = 'unloading'; f.acc = 0; } continue; }   // ヤードが無い間は、積んだまま待つ
     if (f.state === 'unloading') {
       f.acc += dt * FORK.rate * 1.5;
       while (f.acc >= 1 && f.load.length) { const it = f.load.shift(); S.yard.push({ ...it, rx: Math.random(), ry: Math.random() }); f.acc--; }
@@ -1313,6 +1352,23 @@ function updateFacs(dt) {
 }
 
 // 最初の資金ショート：1000のプレゼント（返さなくてよい。1回だけ）
+// 人事部・技術部・市場調査（研究して、事務所でオン・オフ）
+function autoDepts() {
+  const o = S.opts || {};
+  if (sk('autoHire') && o.autoHire !== false) {   // 人事部：持ち場（コンベア以外）が人より多い時だけ、余裕があれば雇う
+    const posts = [...S.st.values()].filter(x => x.type === 'drill' || x.type === 'machine').length + S.fac.length + (S.lab.built ? 1 : 0) + S.forks.length;
+    if (staffN() < Math.min(offCap(S.office.lv), posts) && S.money > HIRE_FEE(hireLv()) * 3) hire();
+  }
+  if (sk('autoUpg') && o.autoUpg !== false && Math.random() < 0.3) {   // 技術部：気まぐれ。たまに、適当に選んだ物を、お金がかなりある時だけ強化
+    const ts = [...S.st.values()].filter(x => x.type === 'drill' || x.type === 'machine' || isBelt(x));
+    const t = ts[Math.floor(Math.random() * ts.length)], c = t ? nextCost(t) : null;
+    if (c !== null && S.money > c * 8) levelUp(t);
+  }
+  if (sk('autoPrice') && o.autoPrice !== false) {   // 市場調査：売ったことのある資源のうち、いちばん安い売値アップを、余裕があれば
+    const rs = ROOT_ORDER.filter(r => S.sold['@' + r]).sort((a, b) => priceCost(a) - priceCost(b));
+    if (rs.length && S.money > priceCost(rs[0]) * 4) priceUp(rs[0]);
+  }
+}
 function giftFirst() {
   S.loan1 = true; S.money += BAL.gift;
   addHist(tx().giftHist); S.notice = tx().giftMsg(fmt(BAL.gift));
@@ -1333,6 +1389,7 @@ function sim(sec) {
     updateLiquids(dt);
     updateFacs(dt);
     updateBoss(dt);
+    S.mgT = (S.mgT || 0) + dt; if (S.mgT >= 5) { S.mgT = 0; autoDepts(); }
     updateMonth();
     if (!S.loan1 && S.money < 30 && S.time > 10) giftFirst();   // 最初の資金ショート：プレゼント（1回だけ）
     if (S.boost.priceT > 0) S.boost.priceT = Math.max(0, S.boost.priceT - dt);
@@ -1651,14 +1708,14 @@ function updateResearch(dt) {
 // 事務所のレベルアップ（レベル2で研究所が建つ）
 function officeUp() {
   const ol = S.office.lv;
-  if (ol >= OFFICE_LV.cost.length) return;
-  if (S.money < OFFICE_LV.cost[ol]) { say(tx().noMoney); return; }
-  spend(OFFICE_LV.cost[ol], OFFICE_C + 1, YARD_R); S.office.lv++; addHist(tx().hOffice(S.office.lv + 1));
+  if (S.money < offCost(ol)) { say(tx().noMoney); return; }
+  spend(offCost(ol), OFFICE_C + 1, YARD_R); S.office.lv++; addHist(tx().hOffice(S.office.lv + 1));
+  if ((S.office.lv + 1) % 10 === 0) { const msg = tx().brandUp(S.office.lv + 1, Math.round((brandMul() - 1) * 100)); say(msg, 6000, 'good'); addHist(msg); }   // 区切り
   if (S.office.lv >= 1 && sk('digLv') < 1) { S.skills.digLv = 1; say(tx().lv0Open, 5000, 'good'); }   // 会社レベル2：岩盤Lv0を破れる
   if (S.office.lv === 1 && !S.lab.built) say(tx().labUnlocked);   // 研究所を建てられるようになった（メニュー「施設」）
 }
 // フォークリフトを買う（台数の上限は事務所のレベル）
-const forkMax = () => OFFICE_LV.forks[S.office.lv];
+const forkMax = () => offForks(S.office.lv);
 const truckAddCost = () => Math.round(BAL.truckAdd0 * Math.pow(BAL.truckAddG, S.fleet.length - 1) / 100) * 100;
 function addTruck() {
   const c = truckAddCost();
@@ -1713,6 +1770,9 @@ function deserialize(json) {
   }
   if (d.bossWork === undefined) d.bossWork = true;
   d.elev = d.elev || {}; d.museum = d.museum || {};
+  if (d.yardC === undefined) d.yardC = YARD_C0;
+  YARD_C = BED = CAB = d.yardC;   // 読み込んだヤードの列
+  d.opts = d.opts || {};
   if (d.skills && d.skills.away > 23) d.skills.away = 23;   // v0.61：放置時間は1時間ごと（最大23段）
   if (!d.seen) {   // v0.59：前からのセーブは、今ある物はもう見たことにする（印だらけにならないよう）
     d.seen = {}; for (const m of MACHINE_ORDER) if (d.unlock && d.unlock[m]) d.seen['m:' + m] = 1;
@@ -1967,7 +2027,7 @@ function updateWorkers(dt) {
         // 暇な持ち場（材料が無い機械・止まったドリル・液体の無い施設）に8秒いたら、仕事のある空いた持ち場へ移る
         if (w.target.type !== 'lab') {
           w.idleT = workNeed(w.target) <= 0 ? (w.idleT || 0) + dt : 0;
-          if (w.idleT > 8) { w.idleT = 0; if (betterPost(w)) leavePost(w); }
+          if (w.idleT > [8, 5, 3, 1][sk('bored')]) { w.idleT = 0; if (betterPost(w)) leavePost(w); }
         }
         break;
       }
@@ -2029,7 +2089,7 @@ function goRest(w) {
 }
 // 雇う：選ばずに「Lv0（人事力でLv1・Lv2）を増員」
 function hire() {
-  if (staffN() >= OFFICE_LV.cap[S.office.lv]) { say(tx().full); return; }
+  if (staffN() >= offCap(S.office.lv)) { say(tx().full); return; }
   const lv = hireLv(), fee = HIRE_FEE(lv);
   if (S.money < fee) { say(tx().noMoney); return; }
   spend(fee, OFFICE_C + 1, YARD_R);
@@ -2115,7 +2175,14 @@ function apply(c, r, dragging) {
   if (!inB(c, r) || tool === 'pan' || tool === 'none') return;
   if (tool === 'dig') { if (!dragging) digAt(c, r); return; }
   const k = key(c, r), s = S.st.get(k);
-  if (tool === 'remove') { if (s) removeAt(k); else if (S.elev[k]) removeElev(k); else if (r === YARD_R && facAt(c)) removeFac(facAt(c)); return; }
+  if (tool === 'remove') { if (s) removeAt(k); else if (S.elev[k]) removeElev(k); else if (r === YARD_R && facAt(c)) removeFac(facAt(c)); else if (r === YARD_R && c === YARD_C && YARD_C >= 0) removeYard(); return; }
+  if (tool === 'yard') {   // トラックヤードを置く（マップに1つ）
+    if (YARD_C >= 0 || r !== YARD_R || !surfaceFree(c) || c === OFFICE_C || c === OFFICE_C + 1) { if (!dragging) say(tx().cantPlace); return; }
+    if (S.money < COST.yard) { say(tx().noMoney); return; }
+    spend(COST.yard, c + 0.5, YARD_R); setYard(c);
+    if (S.dock[c]) { for (const it of S.dock[c]) S.yard.push(it); delete S.dock[c]; }
+    tool = 'none'; S.digVer++; return;
+  }
   if (tool === 'elev') {   // エレベーター：ほかの物と別の層に置く（コンベアや機械の上にも置ける）
     if (r < SKY || S.elev[k] || (s && s.type === 'well')) return;
     if (s && !dragging) { openPop({ type: 'elevPlace', c, r }); return; }   // 物があるマス：エレベーターを置くか、下の物を見るか
@@ -2193,6 +2260,13 @@ function removeFac(f) {
   const back = Math.floor(buildCost(f.f, 1) / 2);
   S.money += back; pop('+' + back, f.c + 0.5, YARD_R, 'sale');
   S.fac.splice(S.fac.indexOf(f), 1);
+}
+// トラックヤードをたたむ：置いてあった資源は、その場の荷おろし場に戻る（フォークリフトが次のヤードへ運ぶ）
+function removeYard() {
+  const c = YARD_C; if (c < 0) return;
+  for (const it of S.yard) (S.dock[c] || (S.dock[c] = [])).push(it);
+  S.yard = []; setYard(-1); S.digVer++;
+  const back = Math.floor(COST.yard / 2); S.money += back; pop('+' + back, c + 0.5, YARD_R, 'sale'); say(tx().yardNone, 4000);
 }
 function removeElev(k) { if (!S.elev[k]) return; delete S.elev[k]; elevVer++; const back = Math.floor(COST.elev / 2); S.money += back; pop('+' + back, cOf(k) + 0.5, rOf(k) + 0.3, 'sale'); }
 function removeAt(k) {
@@ -2535,7 +2609,7 @@ const grpOfTool = () => BUILD_GRPS.find(g => grpList(g).includes(toolId())) || n
 function catOfTool() {
   if (grpOfTool()) return 'build';
   if (tool === 'dig' || tool === 'remove') return 'works';
-  if (tool === 'lab' || isFacTool(tool)) return 'works';
+  if (tool === 'lab' || isFacTool(tool) || tool === 'yard') return 'works';
   return null;
 }
 const NEW_BASIC = new Set(['drill', 'conv', 'sort', 'dig', 'remove', 'm:kiln']);   // 最初からある物は「new」にしない
@@ -2560,7 +2634,9 @@ function thumb(id) {
     else if (isFacTool(id)) { ctx.imageSmoothingEnabled = false; ctx.drawImage(sprite(id), 0, 0, 48, 48); }
     else if (id === 'pipe') drawPipe(0, 0, -9, -9, true);
     else if (id === 'elev') drawElev(0, 0);
+    else if (id === 'yard') { ctx.fillStyle = '#9aa0a8'; ctx.fillRect(2, 30, 44, 14); ctx.fillStyle = '#3f7cc4'; ctx.fillRect(8, 14, 22, 18); ctx.fillStyle = '#2b2b2e'; ctx.fillRect(30, 20, 12, 12); }
     else if (id === 'dig') { ctx.fillStyle = groundColor({ mat: 'soil' }, SKY); ctx.fillRect(4, 4, 40, 40); ctx.strokeStyle = '#2b2b2e'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(12, 36); ctx.lineTo(34, 14); ctx.moveTo(26, 12); ctx.lineTo(38, 20); ctx.stroke(); }
+    else if (id === 'yardX') {}
     else if (id === 'remove') { ctx.strokeStyle = '#2b2b2e'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(12, 12); ctx.lineTo(36, 36); ctx.moveTo(36, 12); ctx.lineTo(12, 36); ctx.stroke(); }
   } finally { [ctx, cp] = saved; }
   thumbCache.set(key2, c2);
@@ -2613,7 +2689,7 @@ function renderSub() {
   } else {
     const list = document.createElement('div'); list.className = 'types';
     const facs = S.office.lv >= 1 ? facTools() : [];
-    const ids = openCat === 'works' ? ['dig', 'remove', ...facs] : facs;   // 工事：掘削・撤去と、地上の施設（研究所・温泉など）
+    const ids = openCat === 'works' ? ['dig', 'remove', ...(YARD_C < 0 ? ['yard'] : []), ...facs] : facs;   // ヤードが無い時は「トラックヤード」を出す   // 工事：掘削・撤去と、地上の施設（研究所・温泉など）
     for (const id of ids) list.append(toolBtn(id));
     if (openCat === 'works' && S.office.lv >= 1 && S.lab.built && !FAC_IDS.some(f => S.unlock[f])) { const n = document.createElement('div'); n.className = 'sub'; n.textContent = T.facEmpty; list.append(n); }
     if (!ids.length) { const n = document.createElement('div'); n.className = 'sub'; n.textContent = T.facEmpty; list.append(n); }
@@ -2676,9 +2752,8 @@ function renderPanel(id) {
     {   // 会社レベル（事務所をタップした時と同じ）
       const ol = S.office.lv;
       let ob;
-      if (ol >= OFFICE_LV.cost.length) { ob = document.createElement('button'); ob.textContent = T.maxed; ob.disabled = true; }
-      else ob = costBtn(T.levelUp, OFFICE_LV.cost[ol], () => { officeUp(); renderPanel('powerPanel'); updateUI(); });
-      box.append(rowEl(`${T.companyLv}　${T.lv(ol + 1)}`, `${T.capP(OFFICE_LV.cap[ol])}・${T.forksMax(OFFICE_LV.forks[ol])}`, ob));
+      ob = costBtn(T.levelUp, offCost(ol), () => { officeUp(); renderPanel('powerPanel'); updateUI(); });
+      box.append(rowEl(`${T.companyLv}　${T.lv(ol + 1)}`, `${T.capP(offCap(ol))}・${T.forksMax(offForks(ol))}`, ob));
     }
     // フォークリフト購入（台数の上限は会社のレベル）
     const fn = S.forks.length, fm = forkMax();
@@ -2714,10 +2789,17 @@ function renderPanel(id) {
   } else if (id === 'office') {
     const box = $('officeBody'); box.innerHTML = '';
     const pay = Math.round(S.workers.reduce((a, w) => a + wageOf(w), 0) * (sk('black') ? 0.8 : 1) * TUNE.wage);
-    const ol = S.office.lv, cap = OFFICE_LV.cap[ol];
+    const ol = S.office.lv, cap = offCap(ol);
     const sum = document.createElement('div'); sum.className = 'sub';
     sum.textContent = `${T.workers} ${staffN()}/${cap}${T.unitP}　${T.payroll} ${pay}`;
     box.append(sum);
+    for (const [sid, key2] of [['autoHire', 'autoHire'], ['autoUpg', 'autoUpg'], ['autoPrice', 'autoPrice']]) {   // 自動の部署（研究したもの）
+      if (!sk(sid)) continue;
+      const on = (S.opts || {})[key2] !== false;
+      const b = document.createElement('button'); b.textContent = on ? T.on : T.off; b.classList.toggle('active', on);
+      b.addEventListener('click', () => { S.opts[key2] = !on; renderPanel('office'); });
+      box.append(rowEl(T.sk[sid][0], T.sk[sid][1], b));
+    }
     const bs = bossOf();
     if (bs) {   // 社長（自分）：会社レベル2から、作業するかどうかを選べる
       let bb;
@@ -2727,10 +2809,9 @@ function renderPanel(id) {
     }
     // 事務所のレベル（定員・休憩の速さ・フォークリフトの台数。レベル2で研究所）
     let olBtn;
-    if (ol >= OFFICE_LV.cost.length) { olBtn = document.createElement('button'); olBtn.textContent = T.maxed; olBtn.disabled = true; }
-    else olBtn = costBtn(T.levelUp, OFFICE_LV.cost[ol], () => { officeUp(); renderPanel('office'); updateUI(); });
-    const nx = ol < OFFICE_LV.cost.length ? ` → ${T.capP(OFFICE_LV.cap[ol + 1])}・${T.forksMax(OFFICE_LV.forks[ol + 1])}` : '';
-    box.append(rowEl(`${T.officeLv}　${T.lv(ol + 1)}`, `${T.capP(cap)}・${T.forksMax(OFFICE_LV.forks[ol])}・${T.restSp} ×${OFFICE_LV.rest[ol]}${nx}`, olBtn));
+    olBtn = costBtn(T.levelUp, offCost(ol), () => { officeUp(); renderPanel('office'); updateUI(); });
+    const nx = ` → ${T.capP(offCap(ol + 1))}・${T.forksMax(offForks(ol + 1))}`;
+    box.append(rowEl(`${T.officeLv}　${T.lv(ol + 1)}`, `${T.capP(cap)}・${T.forksMax(offForks(ol))}・${T.restSp} ×${offRest(ol)}${nx}`, olBtn));
     // 作業員：レベルごとの人数
     const h1 = document.createElement('div'); h1.className = 'secT'; h1.textContent = T.workers; box.append(h1);
     const note = document.createElement('div'); note.className = 'sub'; note.textContent = S.lab.built ? T.advNote : T.advNote0; box.append(note);
@@ -2763,8 +2844,14 @@ function renderPanel(id) {
       const fill = document.createElement('i'); fill.style.width = (100 * r.t / r.total) + '%'; bar.append(fill);
       box.append(el, bar);
     });
+    {   // 表示の切り替え：未取得のみ（標準）／すべて
+      const row = document.createElement('div'); row.className = 'prow labeled'; const opts2 = document.createElement('span'); opts2.className = 'opts';
+      for (const [v, lb] of [[false, T.resOnly], [true, T.resAllB]]) { const b = document.createElement('button'); b.textContent = lb; b.classList.toggle('active', !!S.opts.resAll === v); b.addEventListener('click', () => { S.opts.resAll = v; renderPanel('skillPanel'); }); opts2.append(b); }
+      row.append(opts2); box.append(row);
+    }
     const section = (title, ids) => {
-      const list = ids.filter(id => id.startsWith('sk:') ? resAvail(id) || sk(id.slice(3)) > 0 : !resDef(id).done && resAvail(id));
+      const list = ids.filter(id => S.opts.resAll ? (resAvail(id) || resDef(id).done || (id.startsWith('sk:') && sk(id.slice(3)) > 0)) && !isGrant(id) && id !== 'sk:dragPlus' && id !== 'sk:truck2'
+        : resAvail(id) && !resDef(id).done);
       if (!list.length) return;
       const h = document.createElement('div'); h.className = 'secT'; h.textContent = title; box.append(h);
       for (const id of list) {
@@ -3892,7 +3979,7 @@ function drawDrill(x, y, s) {
 function drawOffice() {
   const cell = cp, T2 = THEME.office, lv = S.office.lv;
   const x = OFFICE_C * cell, base = (YARD_R + 1) * cell;
-  const floors = [1, 1.6, 2, 2.6, 3.2][lv];                   // 高さ（マス）
+  const floors = lv < 5 ? [1, 1.6, 2, 2.6, 3.2][lv] : Math.min(6, 3.2 + 0.3 * (lv - 4));   // 高さ（マス）。レベル5の先も少しずつ高く
   const w = cell * 1.92, x0 = x + cell * 0.04;   // いつも2マス幅
   const h = cell * 0.72 * floors, top = base - h;
   ctx.fillStyle = T2.wall; ctx.fillRect(x0, top, w, h);
@@ -3912,6 +3999,15 @@ function drawOffice() {
     ctx.beginPath(); ctx.moveTo(x0 + w * 0.3, top - cell * 0.07); ctx.lineTo(x0 + w * 0.3, top - cell * 0.4); ctx.stroke();
   }
   drawLevel(x0 + cell * 0.02, top + cell * 0.02, lv);
+  if (sk('garden')) {   // 屋上庭園：屋上が森に
+    ctx.fillStyle = '#4f8a5b'; ctx.fillRect(x0, top - cell * 0.1, w, cell * 0.06);
+    for (let i = 0; i < 5; i++) { const tx3 = x0 + w * (0.08 + i * 0.21), r3 = cell * (0.09 + 0.03 * ((i * 7) % 3)); ctx.fillStyle = i % 2 ? '#8fc07a' : '#4f8a5b'; ctx.beginPath(); ctx.arc(tx3, top - cell * 0.1 - r3 * 0.7, r3, 0, Math.PI * 2); ctx.fill(); }
+  }
+  if (sk('statue')) {   // 社長像：玄関の前（台の上に、赤いヘルメットの社長）
+    const sx = x0 + w * 0.42, sb = base;
+    ctx.fillStyle = '#9a958d'; ctx.fillRect(sx - cell * 0.1, sb - cell * 0.12, cell * 0.2, cell * 0.12);
+    ctx.save(); ctx.imageSmoothingEnabled = false; ctx.globalAlpha = 0.95; ctx.drawImage(BOSS_FR[1], sx - cell * 0.13 * (1 + (S.bossFat || 0)), sb - cell * 0.12 - cell * 0.26, cell * 0.26 * (1 + (S.bossFat || 0)), cell * 0.26); ctx.restore();
+  }
   const boss = bossOf();
   if (boss && boss.state === 'off') {
     const ph = Math.floor(S.time / 25) % 3;   // 25秒ごとに：屋上（2回）か、窓
@@ -4851,12 +4947,12 @@ function autoStep(build = true) {
   const all = [...S.st.entries()];
   const drills = all.filter(([, x]) => x.type === 'drill'), machines = all.filter(([, x]) => x.type === 'machine');
   const posts = drills.length + machines.length + S.fac.length + (S.lab.built ? 1 : 0);
-  if (staffN() < Math.min(OFFICE_LV.cap[S.office.lv], posts + 1) && S.money > HIRE_FEE(hireLv()) + W.hire * R) hire();
-  if (S.office.lv < OFFICE_LV.cost.length && S.money > OFFICE_LV.cost[S.office.lv] * (S.office.lv ? W.office : W.office0) * R) officeUp();
+  if (staffN() < Math.min(offCap(S.office.lv), posts + 1) && S.money > HIRE_FEE(hireLv()) + W.hire * R) hire();
+  if (S.money > offCost(S.office.lv) * (S.office.lv ? W.office : W.office0) * R) officeUp();
   if (S.office.lv >= 1 && !S.lab.built && S.money > COST.lab + 50 * R) { const c = autoFreeCol(); if (c !== undefined) { spend(COST.lab, c + 0.5, YARD_R); S.lab.built = true; S.lab.c = c; addHist(tx().labBuilt); } }
   if (S.lab.built && S.researches.length < labRooms()) {
     const ids = allResIds().filter(id => resAvail(id) && !resDef(id).done && !AI_SKIP.has(id) && (id !== 'sk:digLv' || permitOk()) && !S.researches.some(r => r.id === id)).sort((a, b) => aiResRank(a) - aiResRank(b) || resDef(a).cost - resDef(b).cost);   // 掘削レベル → 横穴掘削口 → 安い順
-    for (const id of ids) if (S.money >= resDef(id).cost + (aiResRank(id) < 2 ? 0 : W.resPad * R + (S.office.lv < OFFICE_LV.cost.length ? OFFICE_LV.cost[S.office.lv] * W.save : 0))) { startResearch(id); break; }
+    for (const id of ids) if (S.money >= resDef(id).cost + (aiResRank(id) < 2 ? 0 : W.resPad * R + offCost(S.office.lv) * W.save)) { startResearch(id); break; }
   }
   // 止まったドリル：掘れる向きがあれば向きを変える（横を先に、次に下）。どこも掘れなければ撤去して、別の所に置き直す
   for (const [dk, d] of drills) {
@@ -4879,7 +4975,7 @@ function autoStep(build = true) {
   }
   if (S.yard.length > valOf('truck') * 4 && nextCost('truck') !== null && S.money < nextCost('truck') * 3) return;   // ヤードが山になっている → トラックのためにお金を残す
   // 会社レベル（目標）のためにためておく額。ほかの買い物は、これを割らない範囲で
-  const keep = S.office.lv < OFFICE_LV.cost.length ? OFFICE_LV.cost[S.office.lv] * W.save : 0;
+  const keep = offCost(S.office.lv) * W.save;
   const can = c => c !== null && S.money - c >= keep;
   const queue = m => Object.values(m.buf || {}).reduce((a, v) => a + v, 0) + Object.values(m.bags || {}).reduce((a, v) => a + v, 0);
   const flowOk = S.yard.length <= valOf('truck') * 2 && dockN <= 6 && S.items.length < 60;
@@ -5045,10 +5141,10 @@ $('live60').addEventListener('click', () => { if (!autoBusy) autoPlay(60); });
 function goalText() {
   const T = tx(), st = Math.min(S.stage, 9), theme = T.stageGoal[st - 1] || '';
   let next = '';
-  if (S.stage === 1 && S.office.lv < 1) next = T.gCompany(2, fmt(Math.max(0, OFFICE_LV.cost[0] - S.money)));
+  if (S.stage === 1 && S.office.lv < 1) next = T.gCompany(2, fmt(Math.max(0, offCost(0) - S.money)));
   else if (S.stage >= 9) next = '';
   else if (sk('digLv') >= S.stage) next = T.gBreak(rockLv(S.stage));                 // 研究は済んだ：掘り抜く
-  else if (!permitOk()) { const need = permitNeed(); next = T.gPermit(need, fmt(Math.max(0, (OFFICE_LV.cost[S.office.lv] || 0) - S.money))); }
+  else if (!permitOk()) { const need = permitNeed(); next = T.gPermit(need, fmt(Math.max(0, offCost(S.office.lv) - S.money))); }
   else if (S.researches.some(r => r.id === 'sk:digLv')) next = T.gResearching;
   else next = S.lab.built ? T.gDigRes(rockLv(S.stage)) : T.gLab;
   return T.gLine(st, theme, next);
