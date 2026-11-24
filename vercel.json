@@ -1,0 +1,10 @@
+{
+  "redirects": [
+    {
+      "source": "/:path((?!ads\\.txt$|privacy).*)",
+      "has": [{ "type": "host", "value": "www.kinomeno.com" }],
+      "destination": "https://horihori.kinomeno.com/:path",
+      "permanent": false
+    }
+  ]
+}

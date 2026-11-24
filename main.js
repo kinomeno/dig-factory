@@ -630,7 +630,7 @@ const TXT_ADD = {
     hBasic: '基本操作', hDig: '掘る・運ぶ', hMake: '加工と売る', hLevel: 'レベルアップと研究', hItems: '施設・設置物・資源', pleaseT: 'おねがい',
     levelHelp: '強化（下のタブ）：お金で、ドリル・機械・コンベア・トラック・フォークリフトのレベルや、資源の売値を上げます。置いた物をタップしても強化できます。\n研究（研究所）：時間をかけて、深く掘る力（掘削レベル）・高級な機械・地上の施設・会社の力（スキル）を手に入れます。研究員がいると速く進みます。\n機械や道具の多くは、段階が上がると自動で使えるようになります（研究はいりません）。',
     please: 'ご意見・ご感想をお待ちしています（Xやnoteへどうぞ）。いただいた声で、このゲームは育っています。\nこのゲームは無料で遊べます。気に入っていただけたら、応援（寄付）していただけるとうれしいです。開発を続ける力になります。',
-    feedbackX: 'ご意見・ご感想（X）', feedbackNote: 'ご意見・ご感想（note）',
+    privacy: 'プライバシーポリシー', feedbackX: 'ご意見・ご感想（X）', feedbackNote: 'ご意見・ご感想（note）',
     yard: 'トラックヤード', elevPut: 'エレベーターを置く', seeBelow: '下の物を見る', truckAddT: 'トラック増車', truckAddN: n => `今 ${n}台（交代で出発。何台でも増やせます）`, truckAddB: '1台増やす', truckAdded: n => `トラックを増車（${n}台）`,
     hFacs: '地上の施設', hTools: '設置物', hMachs: '機械', hRes: '資源・製品（今手に入る物）', labDesc: '研究をする建物です（会社レベル2で建てられます）。研究室を増やすと、同時に研究できます。',
     toolDesc: { drill: '地面を掘り進みます。掘った資源は後ろに出ます。', fdrill: '速く掘るドリル。', adrill: 'ふさがると自分で向きを変えるドリル。', conv: '資源を運びます。なぞって続けて置けます。',
@@ -735,7 +735,7 @@ const TXT_ADD = {
     hBasic: 'Basics', hDig: 'Dig & carry', hMake: 'Make & sell', hLevel: 'Upgrades & research', hItems: 'Buildings & items', pleaseT: 'A request',
     levelHelp: 'Upgrades (bottom tab): spend money to level up drills, machines, conveyors, the truck and forklifts, and raise prices. You can also tap a building to upgrade it.\nResearch (Lab): takes time; gives Dig level, advanced machines, surface facilities and company skills. Faster with a researcher.\nMost machines and tools unlock by themselves as you reach new stages.',
     please: 'Your thoughts and feedback help this game grow.\nThe game is free to play. If you enjoy it, a small tip would mean a lot and keeps development going.',
-    feedbackX: 'Feedback (X)', feedbackNote: 'Feedback (note)',
+    privacy: 'Privacy policy', feedbackX: 'Feedback (X)', feedbackNote: 'Feedback (note)',
     yard: 'Truck yard', elevPut: 'Place elevator', seeBelow: 'Open the one below', truckAddT: 'Extra truck', truckAddN: n => `${n} now (they take turns; add as many as you like)`, truckAddB: 'Add one', truckAdded: n => `Added a truck (${n})`,
     hFacs: 'Surface facilities', hTools: 'Placeables', hMachs: 'Machines', hRes: 'Resources & products (available now)', labDesc: 'Where research happens (build at company level 2). More rooms = more research at once.',
     toolDesc: { drill: 'Digs forward; mined items come out behind.', fdrill: 'A faster drill.', adrill: 'Turns by itself when blocked.', conv: 'Carries items. Drag to lay many.',
@@ -2942,7 +2942,7 @@ function renderPanel(id) {
         const link = (label, url) => { const a = document.createElement('a'); a.className = 'btnLink'; a.href = url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = label; row.append(a); };
         if (X_URL) link(T.feedbackX, X_URL);
         link(T.feedbackNote, NOTE_URL);
-        link(T.kofi, 'https://ko-fi.com/kinomeno'); link(T.tip, NOTE_URL);
+        link(T.kofi, 'https://ko-fi.com/kinomeno'); link(T.tip, NOTE_URL); link(T.privacy, 'privacy/');
         body.append(row); return;
       }
       const fg = helpFig(topics[i][2]); if (fg) body.append(fg);
