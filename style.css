@@ -442,10 +442,11 @@ body.tut #dash, body.tut #catBar, body.tut #menuBtn, body.tut #subMenu, body.tut
 .tutPulse { animation: tutPulse 2.4s ease-in-out infinite; }
 @keyframes tutPulse { 0%, 100% { box-shadow: 0 0 0 2px rgba(208,102,31,.25); } 50% { box-shadow: 0 0 0 4px rgba(208,102,31,.7); } }
 /* v0.66 はじめの手順：▼・スキップ・矢印 */
-#tutNext { font-size: 10px; color: #d0661f; animation: tutNext 1.2s ease-in-out infinite; }
+#tutNext { font-size: 10px; color: #d0661f; animation: tutNext .7s ease-in-out infinite; margin-left: 8px; }
 #tutNext[hidden] { display: none; }
 @keyframes tutNext { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
 #tutSkip { position: fixed; z-index: 41; right: 10px; top: calc(var(--hdr) + 26px); font: inherit; font-size: 11px; padding: 3px 10px; border: 1px solid rgba(0,0,0,.2); border-radius: 3px; background: rgba(255,255,255,.9); color: #6b6a70; cursor: pointer; }
 #tutSkip[hidden] { display: none; }
 #tutArrow { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 40; pointer-events: none; }
 #tutArrow[hidden] { display: none; }
+#tutText { white-space: pre-line; }

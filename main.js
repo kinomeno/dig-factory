@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.66（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.67（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.66';
+const VERSION = '0.67';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -626,7 +626,7 @@ const TXT_ADD = {
     aiDrillUp: 'ドリルを強化', aiTurn: '止まったドリルを横に向けた', aiMach: n => `${n}を振り分けで設置`, aiMachUp: '機械を強化',
     aiPrice: n => `${n}の売値アップ`, aiPipe: '湧き口をパイプでつないだ', aiFac: n => `${n}を建てた`,
     aiRemove: '掘れないドリルを撤去した', aiRebuild: '使わなくなった機械を撤去した', aiUnsort: 'もっと良い使い道があるので、仕分けを外した', forkSpd: '走る速さ', valueUp: '作った物の売値', beltCapT: '1マスに乗る数', tutHello: 'ほるぞ！', tutTired: 'つらすぎる…', tutGanbaru: 'がんばるぞ！', 
-    tutPick: 'どこを掘りますか？（光っているマスをタップ）', tutBuy: 'ドリルを買ってみましょう！（「設置」→ドリル）', tutEasy: 'これで楽になりましたね。',
+    tutPick: 'どこを掘りますか？（光っているマスをタップ）', tutBuy: 'ドリルを買ってみましょう！\n（「設置」→ドリル）', tutEasy: 'これで楽になりましたね。', tutYes: '・・・ですよね',
     tutDone: 'ドリルやコンベアを置いて、土を出荷しましょう', tutSkipB: 'スキップ', adReady: '広告を見ると、特典がもらえます', adWatch: '広告を見る', adCancel: 'やめる', adSkip: '最後まで見なかったので、特典はありません', brandUp: (n, p) => `会社レベル${n}！ブランド力が上がりました（売値 +${p}%）`, resOnly: '未取得のみ', resAllB: 'すべて',
     yardT: 'トラックヤード', yardDesc: 'トラックが止まり、資源を置く場所（マップに1つ）。撤去でたたみ、工事の「トラックヤード」で別の所に置けます。', yardNone: 'トラックヤードがありません（工事から置いてください）',
     hBasic: '基本操作', hDig: '掘る・運ぶ', hMake: '加工と売る', hLevel: 'レベルアップと研究', hItems: '施設・設置物・資源', pleaseT: 'おねがい',
@@ -733,7 +733,7 @@ const TXT_ADD = {
     aiDrillUp: 'Upgraded drills', aiTurn: 'Turned a stuck drill', aiMach: n => `Placed ${n} with a sorter`, aiMachUp: 'Upgraded machines',
     aiPrice: n => `${n} price up`, aiPipe: 'Piped a source', aiFac: n => `Built ${n}`,
     aiRemove: 'Removed a drill that could not dig', aiRebuild: 'Removed an unused machine', aiUnsort: 'Removed a sorter (found a better use)', forkSpd: 'Speed', valueUp: 'Product value', beltCapT: 'Items per cell', tutHello: "Let's dig!", tutTired: 'This is too hard...', tutGanbaru: "Let's do this!", 
-    tutPick: 'Where do you want to dig? (tap a glowing cell)', tutBuy: 'Try buying a drill! (Build → Drill)', tutEasy: 'That makes it easier.',
+    tutPick: 'Where do you want to dig? (tap a glowing cell)', tutBuy: 'Try buying a drill!\n(Build → Drill)', tutEasy: 'That makes it easier.', tutYes: '...I bet it is.',
     tutDone: 'Place drills and conveyors, and ship the soil', tutSkipB: 'Skip', adReady: 'Watch an ad to get the reward', adWatch: 'Watch ad', adCancel: 'Cancel', adSkip: 'The ad was skipped, so no reward this time', brandUp: (n, p) => `Company level ${n}! Brand power up (prices +${p}%)`, resOnly: 'Not yet', resAllB: 'All',
     yardT: 'Truck yard', yardDesc: 'Where the truck parks and items pile up (one per map). Remove it, then place it elsewhere from Works.', yardNone: 'No truck yard (place one from Works)',
     hBasic: 'Basics', hDig: 'Dig & carry', hMake: 'Make & sell', hLevel: 'Upgrades & research', hItems: 'Buildings & items', pleaseT: 'A request',
@@ -1393,9 +1393,9 @@ function tutShow() {
   document.body.classList.toggle('tut', !!st && !['buy', 'easy', 'ganbaru'].includes(st));   // ドリルを買うまではメニューを隠す
   document.querySelectorAll('[data-open="build"], #catBar [data-cat="build"]').forEach(el => el.classList.toggle('tutPulse', st === 'buy'));
   tutBubble = st === 'hello' ? T.tutHello : st === 'tired' ? T.tutTired : st === 'ganbaru' ? T.tutGanbaru : null; tutBubbleT = 0;
-  const msg = st === 'pick' ? T.tutPick : st === 'buy' ? T.tutBuy : st === 'easy' ? T.tutEasy : '';
+  const msg = st === 'pick' ? T.tutPick : st === 'yes' ? T.tutYes : st === 'buy' ? T.tutBuy : st === 'easy' ? T.tutEasy : '';
   $('tutMsg').hidden = !msg; $('tutText').textContent = msg;
-  $('tutNext').hidden = st !== 'easy';   // タップ待ちのメッセージは、端に小さな▼
+  $('tutNext').hidden = st !== 'easy' && st !== 'yes';   // タップ待ちのメッセージは、端に小さな▼
   $('tutSkip').hidden = !st;             // スキップは、はじめの手順の間ずっと（メッセージの外に）
   if (!st) $('tutArrow').setAttribute('hidden', '');
 }
@@ -1418,11 +1418,12 @@ function tutArrow() {
   svg.innerHTML = `<defs><marker id="tah" markerWidth="10" markerHeight="10" refX="6" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#d0661f"/></marker></defs>`
     + `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#d0661f" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#tah)"/>`;
 }
-const tutWait = () => S.tut && (S.tut.step === 'hello' || S.tut.step === 'tired' || S.tut.step === 'easy');
+const tutWait = () => S.tut && (S.tut.step === 'hello' || S.tut.step === 'tired' || S.tut.step === 'yes' || S.tut.step === 'easy');
 function tutNext() {   // タップ待ちの段で押した
   const st = S.tut.step;
   if (st === 'hello') tutSet('pick');
-  else if (st === 'tired') tutSet('buy');
+  else if (st === 'tired') tutSet('yes');
+  else if (st === 'yes') tutSet('buy');
   else if (st === 'easy') tutSet('ganbaru');
 }
 function tutEnd() {
@@ -1479,7 +1480,7 @@ function drawTutBoss() {
     ctx.beginPath(); ctx.moveTo(x - cell * 0.06, by + h); ctx.lineTo(x, by + h + cell * 0.1); ctx.lineTo(x + cell * 0.06, by + h); ctx.fill();
     ctx.fillStyle = '#2b2b2e'; ctx.fillText(tutBubble, x, by + h / 2 + 1);
     if (tutWait()) {   // タップ待ち：吹き出しの右下に小さな▼（ゆっくり明るさが変わる。小さいので点滅の刺激はない）
-      ctx.globalAlpha = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(performance.now() / 300));
+      ctx.globalAlpha = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(performance.now() / 110));
       const tx4 = bx + w - cell * 0.08, ty4 = by + h - cell * 0.07, a4 = cell * 0.05;
       ctx.beginPath(); ctx.moveTo(tx4 - a4, ty4 - a4 * 0.6); ctx.lineTo(tx4 + a4, ty4 - a4 * 0.6); ctx.lineTo(tx4, ty4 + a4 * 0.6); ctx.closePath(); ctx.fill();
     }
