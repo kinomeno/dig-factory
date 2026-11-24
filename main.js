@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.62（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.63（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.62';
+const VERSION = '0.63';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -29,7 +29,7 @@ const BAL = {
   digCost0: 250, digCostG: 2.8, digMon0: 10, digMonG: 3, landCost0: 1500, landCostG: 4, awayCost0: 300, awayCostG: 1.25,
   priceUpMul: 1.15, priceCostG: 1.6,
   ironP5: 0.12, ironP10: 0.24, goldP10: 0.05, goldP30: 0.13, diaP30: 0.03, diaP50: 0.08, oilP: 0.012, hotP: 0.03,
-  offCostG: 3, offCapG: 1.3, brandMul: 1.1, labAlone: 0.25, beltManned: 1.5, elevSpeed: 6, rareP: 0.006, museumFee: 60, truckAdd0: 8000, truckAddG: 2.5,
+  offCostG: 3, offCapG: 1.3, capMax: 200, brandMul: 1.1, labAlone: 0.25, beltManned: 1.5, elevSpeed: 6, rareP: 0.006, museumFee: 60, truckAdd0: 8000, truckAddG: 2.5,
   bossFatPer: 0.13, bossFatRate: 0.0001, beltSlowPow: 3, beltSlowMin: 0.02, truckWait: 15, gift: 1000,
 };
 const COST = { drill: 50, fdrill: 120, adrill: 150, conv: 5, sort: 20, tee: 15, cross: 15, lab: 200, pipe: 8, spa: 800, power: 1000, refinery: 1500, museum: 20000, elev: 30, yard: 500 };
@@ -625,7 +625,7 @@ const TXT_ADD = {
     aiTruck: n => `トラックをレベル${n}に`, aiForkBuy: 'フォークリフトを買った', aiFork: 'フォークリフトを強化', aiDrill: 'ドリルを増やした',
     aiDrillUp: 'ドリルを強化', aiTurn: '止まったドリルを横に向けた', aiMach: n => `${n}を振り分けで設置`, aiMachUp: '機械を強化',
     aiPrice: n => `${n}の売値アップ`, aiPipe: '湧き口をパイプでつないだ', aiFac: n => `${n}を建てた`,
-    aiRemove: '掘れないドリルを撤去した', aiRebuild: '使わなくなった機械を撤去した', aiUnsort: 'もっと良い使い道があるので、仕分けを外した', forkSpd: '走る速さ', valueUp: '作った物の売値', beltCapT: '1マスに乗る数', brandUp: (n, p) => `会社レベル${n}！ブランド力が上がりました（売値 +${p}%）`, resOnly: '未取得のみ', resAllB: 'すべて',
+    aiRemove: '掘れないドリルを撤去した', aiRebuild: '使わなくなった機械を撤去した', aiUnsort: 'もっと良い使い道があるので、仕分けを外した', forkSpd: '走る速さ', valueUp: '作った物の売値', beltCapT: '1マスに乗る数', adSkip: '最後まで見なかったので、特典はありません', brandUp: (n, p) => `会社レベル${n}！ブランド力が上がりました（売値 +${p}%）`, resOnly: '未取得のみ', resAllB: 'すべて',
     yardT: 'トラックヤード', yardDesc: 'トラックが止まり、資源を置く場所（マップに1つ）。撤去でたたみ、工事の「トラックヤード」で別の所に置けます。', yardNone: 'トラックヤードがありません（工事から置いてください）',
     hBasic: '基本操作', hDig: '掘る・運ぶ', hMake: '加工と売る', hLevel: 'レベルアップと研究', hItems: '施設・設置物・資源', pleaseT: 'おねがい',
     levelHelp: '強化（下のタブ）：お金で、ドリル・機械・コンベア・トラック・フォークリフトのレベルや、資源の売値を上げます。置いた物をタップしても強化できます。\n研究（研究所）：時間をかけて、深く掘る力（掘削レベル）・高級な機械・地上の施設・会社の力（スキル）を手に入れます。研究員がいると速く進みます。\n機械や道具の多くは、段階が上がると自動で使えるようになります（研究はいりません）。',
@@ -730,7 +730,7 @@ const TXT_ADD = {
     aiTruck: n => `Truck to level ${n}`, aiForkBuy: 'Bought a forklift', aiFork: 'Upgraded a forklift', aiDrill: 'Added a drill',
     aiDrillUp: 'Upgraded drills', aiTurn: 'Turned a stuck drill', aiMach: n => `Placed ${n} with a sorter`, aiMachUp: 'Upgraded machines',
     aiPrice: n => `${n} price up`, aiPipe: 'Piped a source', aiFac: n => `Built ${n}`,
-    aiRemove: 'Removed a drill that could not dig', aiRebuild: 'Removed an unused machine', aiUnsort: 'Removed a sorter (found a better use)', forkSpd: 'Speed', valueUp: 'Product value', beltCapT: 'Items per cell', brandUp: (n, p) => `Company level ${n}! Brand power up (prices +${p}%)`, resOnly: 'Not yet', resAllB: 'All',
+    aiRemove: 'Removed a drill that could not dig', aiRebuild: 'Removed an unused machine', aiUnsort: 'Removed a sorter (found a better use)', forkSpd: 'Speed', valueUp: 'Product value', beltCapT: 'Items per cell', adSkip: 'The ad was skipped, so no reward this time', brandUp: (n, p) => `Company level ${n}! Brand power up (prices +${p}%)`, resOnly: 'Not yet', resAllB: 'All',
     yardT: 'Truck yard', yardDesc: 'Where the truck parks and items pile up (one per map). Remove it, then place it elsewhere from Works.', yardNone: 'No truck yard (place one from Works)',
     hBasic: 'Basics', hDig: 'Dig & carry', hMake: 'Make & sell', hLevel: 'Upgrades & research', hItems: 'Buildings & items', pleaseT: 'A request',
     levelHelp: 'Upgrades (bottom tab): spend money to level up drills, machines, conveyors, the truck and forklifts, and raise prices. You can also tap a building to upgrade it.\nResearch (Lab): takes time; gives Dig level, advanced machines, surface facilities and company skills. Faster with a researcher.\nMost machines and tools unlock by themselves as you reach new stages.',
@@ -863,7 +863,7 @@ const drainMul = () => [1, 0.75, 0.5][sk('welfare')];                         //
 // 会社レベル：表の先も上限なし。値段はインフレ（3倍ずつ）、定員は1.3倍ずつ、フォークリフトは1台ずつ、休憩は0.25ずつ
 const offLast = a => a[a.length - 1];
 const offCost = lv => (lv < OFFICE_LV.cost.length ? OFFICE_LV.cost[lv] : Math.round(offLast(OFFICE_LV.cost) * Math.pow(BAL.offCostG, lv - OFFICE_LV.cost.length + 1) / 1000) * 1000);
-const offCap = lv => (lv < OFFICE_LV.cap.length ? OFFICE_LV.cap[lv] : Math.round(offLast(OFFICE_LV.cap) * Math.pow(BAL.offCapG, lv - OFFICE_LV.cap.length + 1)));
+const offCap = lv => Math.min(BAL.capMax, lv < OFFICE_LV.cap.length ? OFFICE_LV.cap[lv] : Math.round(offLast(OFFICE_LV.cap) * Math.pow(BAL.offCapG, lv - OFFICE_LV.cap.length + 1)));   // 定員は200人まで（重くならないように）
 const offForks = lv => (lv < OFFICE_LV.forks.length ? OFFICE_LV.forks[lv] : offLast(OFFICE_LV.forks) + (lv - OFFICE_LV.forks.length + 1));
 const offRest = lv => (lv < OFFICE_LV.rest.length ? OFFICE_LV.rest[lv] : offLast(OFFICE_LV.rest) + 0.25 * (lv - OFFICE_LV.rest.length + 1));
 const brandMul = () => Math.pow(BAL.brandMul, Math.floor((S.office.lv + 1) / 10));   // 会社レベル10・20…ごとに、売値が上がる（ブランド力）
@@ -4938,7 +4938,7 @@ function autoAdit(drills) {
 }
 // AIのお金の使い方（試走で「24・60・120か月後の資金」が大きくなるように調整する重み）
 // 数字＝「値段の何倍のお金があったら買うか」。大きいほど慎重
-const AI_W = { belt: 1.5, hire: 100, office: 1.6, office0: 1.2, drill: 2, mach: 3, price: 3, resPad: 300, truck: 1.3, fork: 1.3,
+const AI_W = { belt: 1.5, hire: 100, office: 1.6, office0: 1.05, drill: 2, mach: 3, price: 3, resPad: 300, truck: 1.3, fork: 1.3,
   save: 0.5, gate: 1, mq: 1 };   // mq＝機械を強化する時の、順番待ちの数の下限   // save＝次の会社レベルの値段の何割を残しておくか／gate＝1なら、効く時だけ強化（機械は順番待ちがたまっている・ドリルは運ぶ所が空いている）
 const AI_SKIP = new Set(['sk:speed', 'sk:dragPlus', 'sk:away']);   // 稼ぎに関係しない研究（画面の速さ・操作・放置時間）はAIは買わない
 const aiResRank = id => (id === 'sk:digLv' ? 0 : id === 'm:adit' ? 1 : id === 'sk:labRoom' ? 1 : 2);
@@ -5071,7 +5071,31 @@ const DEALS = [
   { id: 'land', run: () => { if (sk('land') < LAND_MAX) gainSkill('land'); } },                                   // 地上げ：土地買収のレベルが1つ上がる
 ];
 let adBusy = false;
-function showAd(done) {   // CM（仮）：5秒待つ
+// ---- 広告：本物の広告サービスが読み込まれていれば、それを使う。無ければ今までどおり「CM（仮）」で5秒待つ ----
+// 本物にする時：index.html の広告スクリプト（Google の H5 ゲーム広告＝adBreak など）を有効にし、AD_ON を true にする（広告の準備.txt を参照）
+const AD_ON = false;   // 広告サービスの用意ができたら true
+let adLastAt = 0;      // 前に広告を見た時刻（短い間に何度も出さない）
+function showAd(done) {
+  if (adBusy) return;
+  if (AD_ON && typeof window.adBreak === 'function') {   // 本物の広告（報酬つき）
+    adBusy = true; let got = false;
+    window.adBreak({
+      type: 'reward', name: 'deal',
+      beforeReward: showAdFn => showAdFn(),          // 「見る」を押したので、すぐ広告を出す
+      adViewed: () => { got = true; },               // 最後まで見た → 特典
+      adDismissed: () => { got = false; },           // 途中でやめた → 特典なし
+      adBreakDone: info => {
+        adBusy = false; adLastAt = Date.now();
+        if (got) done();
+        else if (info && info.breakStatus !== 'viewed' && info.breakStatus !== 'dismissed') fakeAd(done);   // 広告が無かった時は、仮のCMで特典（遊ぶ人が損をしない）
+        else say(tx().adSkip, 3000);
+      },
+    });
+    return;
+  }
+  fakeAd(done);
+}
+function fakeAd(done) {   // CM（仮）：5秒待つ
   if (adBusy) return; adBusy = true;
   const box = $('adBox'), T = tx(), len = 5;
   box.hidden = false; let t = 0;
@@ -5215,7 +5239,7 @@ function balSet(path, v) {
   o[last] = v;
 }
 // キノメノが「釣り合い調整」で決めた数字（2026-11-24）。標準として先に入れる
-const BAL_PRESET = {"ITEMS.iron.v": 15, "ITEMS.gold.v": 50, "ITEMS.dia.v": 100, "ITEMS.gravel.v": 5, "ITEMS.brick.v": 7, "ITEMS.ironbar.v": 200, "ITEMS.goldbar.v": 800, "ITEMS.tool.v": 300, "ITEMS.jewel.v": 1000, "ITEMS.diaClean.v": 800, "ITEMS.diaCut.v": 1200, "ITEMS.gem.v": 500, "ITEMS.tile.v": 8, "ITEMS.glossTile.v": 16, "ITEMS.wire.v": 300, "ITEMS.goldleaf.v": 950, "ITEMS.decoIron.v": 3200, "ITEMS.decoGold.v": 7000, "LV.belt.cost.1": 50, "LV.belt.cost.2": 500, "LV.fork.cost.2": 500, "LV.fork.cost.3": 900, "LV.fork.cost.4": 1800, "LV.fork.cost.5": 4000, "COST.fdrill": 1200, "COST.adrill": 1500, "OFFICE_LV.cap.0": 5, "OFFICE_LV.cap.1": 10, "OFFICE_LV.cap.2": 20, "OFFICE_LV.cap.3": 50, "OFFICE_LV.cap.4": 100, "OFFICE_LV.forks.2": 4, "OFFICE_LV.forks.3": 6, "OFFICE_LV.forks.4": 10, "RESEARCH_TOOL.pipe.0": 200, "RESEARCH_TOOL.pipe.1": 1, "RESEARCH_BATCH.0": 10000, "RESEARCH_BATCH.1": 6, "SKILLS.speed.cost.2": 10000, "SKILLS.dragPlus.months.0": 1, "SKILLS.welfare.cost.0": 4000, "SKILLS.welfare.cost.1": 8000, "SKILLS.black.cost.0": 5000, "SKILLS.labRoom.cost.0": 1000, "SKILLS.labRoom.cost.1": 4000, "SKILLS.labRoom.cost.2": 8000, "RES_STAGE.m:bagger": 2, "RES_STAGE.sk:yardPlus": 3, "RES_STAGE.t:cross": 4, "RES_STAGE.t:pipe": 4, "RES_STAGE.sk:truck2": 4, "SK_STAGE.speed.0": 2, "SK_STAGE.labRoom.0": 2, "BELT_CAP.0": 5, "BELT_CAP.1": 10, "BELT_CAP.2": 20, "BELT_CAP.3": 40, "LV.truck.cap": 10, "OFFICE_LV.cost.0": 600, "OFFICE_LV.cost.1": 5000, "OFFICE_LV.cost.2": 56000, "OFFICE_LV.cost.3": 164000, "RES_STAGE.sk:land": 4, "RES_STAGE.batch": 3, "RES_STAGE.sk:veteran": 3, "RES_STAGE.f:refinery": 5, "SK_STAGE.labRoom.1": 3, "SK_STAGE.labRoom.2": 4, "BAL.priceUpMul": 1.2, "BAL.priceCostG": 2, "BAL.hotP": 0.033, "BAL.beltSlowMin": 0.03};
+const BAL_PRESET = {"ITEMS.iron.v": 15, "ITEMS.gold.v": 50, "ITEMS.dia.v": 100, "ITEMS.gravel.v": 5, "ITEMS.brick.v": 7, "ITEMS.ironbar.v": 200, "ITEMS.goldbar.v": 800, "ITEMS.tool.v": 300, "ITEMS.jewel.v": 1000, "ITEMS.diaClean.v": 800, "ITEMS.diaCut.v": 1200, "ITEMS.gem.v": 500, "ITEMS.tile.v": 8, "ITEMS.glossTile.v": 16, "ITEMS.wire.v": 300, "ITEMS.goldleaf.v": 950, "ITEMS.decoIron.v": 3200, "ITEMS.decoGold.v": 7000, "LV.belt.cost.1": 50, "LV.belt.cost.2": 500, "LV.fork.cost.2": 500, "LV.fork.cost.3": 900, "LV.fork.cost.4": 1800, "LV.fork.cost.5": 4000, "COST.fdrill": 1200, "COST.adrill": 1500, "OFFICE_LV.cap.0": 5, "OFFICE_LV.cap.1": 10, "OFFICE_LV.cap.2": 20, "OFFICE_LV.cap.3": 50, "OFFICE_LV.cap.4": 100, "OFFICE_LV.forks.2": 4, "OFFICE_LV.forks.3": 6, "OFFICE_LV.forks.4": 10, "RESEARCH_TOOL.pipe.0": 200, "RESEARCH_TOOL.pipe.1": 1, "RESEARCH_BATCH.0": 10000, "RESEARCH_BATCH.1": 6, "SKILLS.speed.cost.2": 10000, "SKILLS.dragPlus.months.0": 1, "SKILLS.welfare.cost.0": 4000, "SKILLS.welfare.cost.1": 8000, "SKILLS.black.cost.0": 5000, "SKILLS.labRoom.cost.0": 1000, "SKILLS.labRoom.cost.1": 4000, "SKILLS.labRoom.cost.2": 8000, "RES_STAGE.m:bagger": 2, "RES_STAGE.sk:yardPlus": 3, "RES_STAGE.t:cross": 4, "RES_STAGE.t:pipe": 4, "RES_STAGE.sk:truck2": 4, "SK_STAGE.speed.0": 2, "SK_STAGE.labRoom.0": 2, "BELT_CAP.0": 5, "BELT_CAP.1": 10, "BELT_CAP.2": 20, "BELT_CAP.3": 40, "LV.truck.cap": 10, "OFFICE_LV.cost.0": 1200, "OFFICE_LV.cost.1": 5000, "OFFICE_LV.cost.2": 56000, "OFFICE_LV.cost.3": 164000, "RES_STAGE.sk:land": 4, "RES_STAGE.batch": 3, "RES_STAGE.sk:veteran": 3, "RES_STAGE.f:refinery": 5, "SK_STAGE.labRoom.1": 3, "SK_STAGE.labRoom.2": 4, "BAL.priceUpMul": 1.2, "BAL.priceCostG": 2, "BAL.hotP": 0.033, "BAL.beltSlowMin": 0.03};
 for (const [p2, v] of Object.entries(BAL_PRESET)) balSet(p2, v);
 const BAL_DEF = new Map(balLeaves().map(p2 => [p2, balGet(p2)]));   // 標準の数字（変えた所を見分ける）
 for (const d of TUNE_DEF) if (BAL_DEF.has('TUNE.' + d.k)) BAL_DEF.set('TUNE.' + d.k, d.def);   // 「調整」は保存済みの値が先に入っているので、標準は表の値
