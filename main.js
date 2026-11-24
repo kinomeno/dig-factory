@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.51（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.52（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.51';
+const VERSION = '0.52';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -151,7 +151,8 @@ const OFFICE_LV = { rest: [1, 1.5, 2, 3, 4], cap: [3, 5, 8, 12, 16], forks: [1, 
 const ADV_LV = 2;                // 地上・上級勤務（フォークリフト・トラック・研究所）に必要なレベル
 const LV_EXP = [60, 180, 400, 750, 1300, 2100, 3200, 4600];   // 働いた時間（秒）の合計でレベルアップ
 const HIRE_FEE = lv => 40 + 30 * lv;                           // 雇うときの契約金
-const wageOf = w => 10 + 6 * w.lv;                             // 給料（月）
+const wageOf = w => (w.boss ? 0 : 10 + 6 * w.lv);              // 給料（月）。社長は0
+const staffN = () => S.workers.filter(w => !w.boss).length;     // 雇っている人数（社長は数えない）
 const forkSpeed = lv => Math.min(6, 1.2 * Math.pow(1.2, lv));   // フォークリフトの速さ（最初はゆっくり）
 const FORK_BUY = n => 400 + 200 * (n - 1);                     // n台目のフォークリフトの値段
 // 研究所で研究して使えるようになる機械 [費用, 月数]。レンガ焼成機・クラッシャーは最初から
@@ -172,6 +173,7 @@ const SKILLS = {
   truck2:   { max: 1, cost: [3000], months: [3] },
   speeding: { max: 1, cost: [2000], months: [2] },
   beltMax:  { max: 2, cost: [2500, 6000], months: [2, 3] },
+  labRoom:  { max: 3, cost: [3000, 12000, 40000], months: [3, 5, 8] },   // 研究室の増室（最大4室）
   yardPlus: { max: 1, cost: [1500], months: [2] },
   land:     { max: LAND_MAX, cost: k => Math.round(1500 * Math.pow(4, k) / 100) * 100, months: k => 2 + k },   // 土地買収：左右に1マスずつ広がる（研究ごとにどんどん高い）
   away:     { max: 47, cost: k => Math.round(300 * Math.pow(1.25, k) / 10) * 10, months: k => 1 + Math.floor(k / 8) },   // 放置できる時間 +30分ずつ（最大1日）
@@ -602,6 +604,9 @@ const TXT_ADD = {
     aiDrillUp: 'ドリルを強化', aiTurn: '止まったドリルを横に向けた', aiMach: n => `${n}を振り分けで設置`, aiMachUp: '機械を強化',
     aiPrice: n => `${n}の売値アップ`, aiPipe: '湧き口をパイプでつないだ', aiFac: n => `${n}を建てた`,
     aiRemove: '掘れないドリルを撤去した', aiUnsort: 'もっと良い使い道があるので、仕分けを外した', forkSpd: '走る速さ', valueUp: '作った物の売値', beltCapT: '1マスに乗る数',
+    bossName: lv => `社長（あなた）　Lv${lv}`, bossDesc: '給料0。雇える人数には数えません。会社が大きくなると…少しずつ貫禄が出ます。',
+    bossOn: '現場で作業中（押すと事務所へ）', bossOff: '事務所にいる（押すと現場へ）', bossLock: '会社レベル2で選べます',
+    labRoomsInfo: (n, r, st) => `研究室 ${n}室・研究中 ${r}・研究員 ${st}人（研究員の数だけ同時に進みます）`, resStop: '研究員なし（止まっています）',
     stageGoal: ['レンガを作る・トラックとフォークリフトを強化', '石と鉄を掘る・横穴掘削口を置く', '鉄を延べ棒にする', '延べ棒を加工する', 'ダイヤを加工する・温泉をつなぐ', 'トラックを2台にする・発電所', '石油と製油所・宝石を作る', '高級装飾品を作る', '深さの記録を伸ばす'],
     gLine: (st, theme, next) => `段階${st}：${theme}` + (next ? `\n次へ：${next}` : ''),
     gCompany: (n, left) => `会社レベル${n}（あと ${left}）`, gPermit: (n, left) => `会社レベル${n}（行政の許可）（あと ${left}）`,
@@ -629,7 +634,7 @@ const TXT_ADD = {
     needDig: n => (n === 0 ? '岩盤Lv0：会社レベルを2にすると破れます' : `岩盤Lv${n}：研究「掘削レベル」が必要です`),
     rockHint: n => (n === 0 ? '岩盤Lv0：会社レベルを2にすると破れます（それまでは土が半分の速さで出続けます）' : `硬い岩盤Lv${n}：研究「掘削レベル」が無いと破れません（資源は半分の速さで出続けます）`),
     help1: ['掘る', 'ドリルは地下に置きます（地上とつながった穴の隣なら、土を上書きして置けます）。置く所をタップして、掘る向きを選んで「設置する」。掘った資源はドリルの後ろに出て、空中の資源は下に落ちます。\n5mに岩盤Lv0、その後は10mごとに硬い岩盤があります。岩盤Lv0は会社レベルを2にすると、Lv1から先は研究所で「掘削レベル」を研究すると破れます。破れない間もドリルは止まらず、資源が半分の速さで出続けます。岩盤を掘り抜くと、新しい研究ができるようになります。5mより上は土しか出ません。ドリルはタップで止めたり動かしたりできます。'],
-    sk: { land: ['土地買収', '自分の土地が左右に1マスずつ広がります（研究するごとに高くなる）。'], digLv: ['掘削レベル', '硬い岩盤（10mにLv1、その後は10mごと）を1段ずつ破れるようになります（Lv0は会社レベル2で破れる）。'] },
+    sk: { labRoom: ['研究室の増室', '研究室が1つ増え、同時に研究できる数が増えます（最大4室）。研究所にいる研究員の数だけ、並んで進みます。'], land: ['土地買収', '自分の土地が左右に1マスずつ広がります（研究するごとに高くなる）。'], digLv: ['掘削レベル', '硬い岩盤（10mにLv1、その後は10mごと）を1段ずつ破れるようになります（Lv0は会社レベル2で破れる）。'] },
     deal: { land: ['地上げ', '土地買収のレベルが1つ上がります（左右に1マスずつ広がる）。', '地上げ'] },
     dealMax: '上限です',
     help0: ['操作', '画面は指（マウス）でなぞると動きます。画面の端（▲▼◀▶）を押しても動きます。2本指・Ctrl＋ホイール・＋－で拡大縮小、「地図」で全体を見られます。\n下のタブを押すと引き出しが開き、道具を選べます。ドリル・機械などは1つ置くと選択が外れます。コンベアなどは続けて置けて、左下の「×」かタブを押すと外れます。ドリルは、置く所をタップしてから掘る向きを選んで「設置する」。置いた物をタップすると、向きの変更やレベルアップができます。'],
@@ -682,6 +687,9 @@ const TXT_ADD = {
     aiDrillUp: 'Upgraded drills', aiTurn: 'Turned a stuck drill', aiMach: n => `Placed ${n} with a sorter`, aiMachUp: 'Upgraded machines',
     aiPrice: n => `${n} price up`, aiPipe: 'Piped a source', aiFac: n => `Built ${n}`,
     aiRemove: 'Removed a drill that could not dig', aiUnsort: 'Removed a sorter (found a better use)', forkSpd: 'Speed', valueUp: 'Product value', beltCapT: 'Items per cell',
+    bossName: lv => `The boss (you)  Lv${lv}`, bossDesc: 'No wage. Not counted in the staff limit. As the company grows... so does the boss.',
+    bossOn: 'Working on site (tap to stay in office)', bossOff: 'In the office (tap to go to work)', bossLock: 'Available at company level 2',
+    labRoomsInfo: (n, r, st) => `Labs ${n} / researching ${r} / researchers ${st} (one researcher runs one research)`, resStop: 'No researcher (stopped)',
     stageGoal: ['Make bricks; upgrade the truck and forklift', 'Mine stone and iron; place an adit', 'Smelt iron into bars', 'Process the bars', 'Process diamonds; pipe the hot spring', 'Get a second truck; power plant', 'Oil and refinery; make gems', 'Make luxury ornaments', 'Push your depth record'],
     gLine: (st, theme, next) => `Stage ${st}: ${theme}` + (next ? `\nNext: ${next}` : ''),
     gCompany: (n, left) => `Company level ${n} (${left} to go)`, gPermit: (n, left) => `Company level ${n} (government permit) (${left} to go)`,
@@ -709,7 +717,7 @@ const TXT_ADD = {
     needDig: n => (n === 0 ? 'Bedrock Lv0: raise the company to level 2 to break it' : `Bedrock Lv${n}: research Dig level first`),
     rockHint: n => (n === 0 ? 'Bedrock Lv0: raise the company to level 2 to break it (soil keeps coming at half speed)' : `Hard bedrock Lv${n}: cannot break it without Dig level (resources keep coming at half speed)`),
     help1: ['Digging', 'Tap a spot, pick a direction and Place to put a drill. Mined items come out behind the drill and fall through the air.\nBedrock Lv0 is at 5m (break it at company level 2), then every 10m (research Dig level). Until then drills keep running and give resources at half speed. Above 5m there is only soil. Tap a drill to stop or start it.'],
-    sk: { land: ['Land purchase', 'Your land grows by 1 cell on each side (each purchase costs more).'], digLv: ['Dig level', 'Break hard bedrock (Lv1 at 10m, then every 10m), one layer per level (Lv0 breaks at company level 2).'] },
+    sk: { labRoom: ['Extra lab room', 'Adds a lab room so more research can run at once (up to 4). Each research needs its own researcher in the Lab.'], land: ['Land purchase', 'Your land grows by 1 cell on each side (each purchase costs more).'], digLv: ['Dig level', 'Break hard bedrock (Lv1 at 10m, then every 10m), one layer per level (Lv0 breaks at company level 2).'] },
     deal: { land: ['Land deal', 'Raises Land purchase by one level (1 cell wider on each side).', 'Land'] },
     dealMax: 'Maxed',
     help0: ['Controls', 'Swipe the screen to scroll (or press the screen edges). Pinch, Ctrl+wheel or +/- to zoom; "Map" shows everything.\nPick tools from the tabs at the bottom. Drills and machines are deselected after placing one; conveyors stay selected until you press the "x" (bottom left) or a tab. For a drill, tap the spot, pick a direction, then Place.'],
@@ -728,6 +736,11 @@ for (const l of Object.keys(TXT_ADD)) {
   }
 }
 for (const l of ['hira', 'en']) for (const k of Object.keys(TXT.kanji)) if (TXT[l][k] === undefined) TXT[l][k] = TXT.kanji[k];
+// 中の言葉（研究の名前・管理メニューなど）も、足りない物は漢字の言葉で補う
+for (const l of ['hira', 'en']) for (const k of Object.keys(TXT.kanji)) {
+  const v = TXT.kanji[k];
+  if (v && typeof v === 'object' && !Array.isArray(v) && TXT[l][k] !== v) for (const k2 of Object.keys(v)) if (TXT[l][k][k2] === undefined) TXT[l][k][k2] = v[k2];
+}
 
 function loadLang() {
   try { const v = localStorage.getItem('saikutsu.lang'); if (TXT[v]) return v; } catch (e) { /* 保存できない環境 */ }
@@ -834,6 +847,14 @@ function addWorker(lv) {
   S.workers.push(w);
   return w;
 }
+// 社長：特別な作業員（雇える人数に数えない・辞めない・給料0）。会社が大きくなると、じわじわ太る
+function addBoss() { const w = addWorker(0); w.boss = true; S.bossWork = true; S.bossFat = 0; return w; }
+const bossOf = () => S.workers.find(w => w.boss);
+const bossFatTarget = () => 0.13 * S.office.lv;                  // 会社レベルごとに13%ずつ横に（目標）
+function updateBoss(dt) {
+  const t = bossFatTarget();
+  S.bossFat = (S.bossFat || 0) + Math.sign(t - (S.bossFat || 0)) * Math.min(Math.abs(t - (S.bossFat || 0)), dt * 0.0001);   // 1分で0.6%ずつ（あれ？太ってない？）
+}
 const hireLv = () => Math.min(2, sk('hr'));   // 雇う人のレベル（人事力で上がる）
 function gainExp(w, dt) {
   w.exp += dt * (sk('veteran') ? 2 : 1);
@@ -848,7 +869,7 @@ function newGame() {
     yard: [],           // ヤードに溜まった資源：{k, v?, of?, rx, ry}
     money: TUNE.startMoney,
     truck: { lv: 0 }, fleet: [newTruck('here')],   // トラック（レベルは共通）
-    skills: {}, research: null, opts: { autoConv: true }, office: { lv: 0 }, adminFast: false,
+    skills: {}, researches: [], opts: { autoConv: true }, office: { lv: 0 }, adminFast: false,
     workers: [], wid: 0, month: 0,
     lab: { type: 'lab', built: false, op: null },   // 研究所
     unlock: { kiln: true },                         // 研究で使えるようになった物（クラッシャーは岩盤Lv0を抜けると）
@@ -872,7 +893,8 @@ function newGame() {
     landL: LAND0[0], landR: LAND0[1],   // 持っている土地（列の左端・右端）
     stVer: 0,           // 設備が変わった回数（パイプのつながりの再計算用）
   };
-  // 最初は作業員0人（自分ひとりでやっている設定）。事務所で雇う
+  // 最初は社長ひとり（自分）。給料0・赤いヘルメット。ほかの作業員は事務所で雇う
+  addBoss();
   S.forks.push(Object.assign(newFork(), { x: PARK_X }));
   row(SKY)[OFFICE_C - 1] = null;   // 最初からドリルが1つ置いてある（左から2マス目の地下1段目）
   S.st.set(key(OFFICE_C - 1, SKY), { type: 'drill', tid: 'drill', dir: 'down', lv: 0, t: 0, hit: -99, op: null, no: 1 });
@@ -929,7 +951,7 @@ const RES_STAGE = { 'sk:away': 2, 'sk:land': 2, 'm:smelter': 3, 't:tee': 3, 'sk:
   'm:factory': 4, 't:cross': 5, 't:fdrill': 5, batch: 5, 't:pipe': 5, 'f:spa': 5, 'f:power': 5,
   'sk:truck2': 6, 'sk:black': 6, 'sk:speeding': 6,
   'm:washer': 5, 'm:cutter': 5, 't:adrill': 7, 'sk:veteran': 7, 'f:refinery': 7, 'm:polisher': 7, 'm:drawer': 4, 'm:atelier': 8 };   // v0.51：ダイヤが出たら加工できるように・段階8を埋める
-const SK_STAGE = { speed: [3, 7, 9], welfare: [3, 7], hr: [4, 7], beltMax: [8, 9] };   // 段ごとに出てくる段階
+const SK_STAGE = { speed: [3, 7, 9], welfare: [3, 7], hr: [4, 7], beltMax: [8, 9], labRoom: [3, 5, 7] };   // 段ごとに出てくる段階
 function resAvail(id) {
   if (id === 'sk:digLv') return sk('digLv') < S.stage;   // 次の岩盤のぶんだけ研究できる
   if (id === 'sk:beltMax') return false;   // v0.49：コンベアはLv5まで（この研究は無くなった）
@@ -1236,6 +1258,7 @@ function sim(sec) {
     updateResearch(dt);
     updateLiquids(dt);
     updateFacs(dt);
+    updateBoss(dt);
     updateMonth();
     if (!S.loan1 && S.money < 30 && S.time > 10) giftFirst();   // 最初の資金ショート：プレゼント（1回だけ）
     if (S.boost.priceT > 0) S.boost.priceT = Math.max(0, S.boost.priceT - dt);
@@ -1256,8 +1279,9 @@ function updateMonth() {
     if (S.money >= total) spend(total, OFFICE_C + 1, YARD_R, tx().payPop);
     else {
       // 払えない月：給料は払わず、いちばん給料の高い作業員が1人やめる（借金が雪だるまにならないように）
-      const w = S.workers.reduce((a, b) => (wageOf(b) > wageOf(a) ? b : a));
-      fireWorker(w.id);
+      const staff = S.workers.filter(x => !x.boss);   // 社長は辞めない
+      const w = staff.length ? staff.reduce((a, b) => (wageOf(b) > wageOf(a) ? b : a)) : null;
+      if (w) fireWorker(w.id);
       say(tx().quit); pop(tx().quit, OFFICE_C + 1, YARD_R - 0.4, 'cost'); addHist(tx().quit);
     }
   }
@@ -1505,17 +1529,22 @@ function resDef(id) {
   const sid = id.slice(3), lv = sk(sid), def = SKILLS[sid];
   return { name: tx().sk[sid][0], desc: tx().sk[sid][1], cost: skCost(sid, lv), months: skMonths(sid, lv), done: lv >= def.max, lv, max: def.max };
 }
-const labRate = () => { const w = opOf(S.lab); return w ? techFactor(w) : 0.25; };   // 研究員がいないととても遅い
+// 研究：研究室の数（最大4）まで並べて始められる。研究所にいる研究員の数だけ同時に進む（足りない分は止まる）
+// 進む速さ＝研究員の技術（レベルが高いほど速い。Lv8なら約2.2倍＝本来の半分くらいの時間）
+const labRooms = () => 1 + sk('labRoom');
+const labStaff = () => S.workers.filter(w => w.target === S.lab && w.state === 'work').sort((a, b) => techFactor(b) - techFactor(a));
+const labSeats = () => S.researches.length;   // 研究の数だけ席がある
 function startResearch(id) {
   if (SKILLS[id]) id = 'sk:' + id;             // 古い呼び方にも対応
   if (!S.lab.built) { say(tx().needLab); return; }
   const d = resDef(id);
   if (d.done || !resAvail(id)) return;
-  if (S.research) { say(tx().busy); return; }
+  if (S.researches.length >= labRooms()) { say(tx().busy); return; }
+  if (S.researches.some(r => r.id === id)) return;   // 同じ研究は1つずつ
   if (id === 'sk:digLv' && !permitOk()) { say(tx().permitMsg(permitNeed())); return; }   // 行政の許可がまだ
   if (S.money < d.cost) { say(tx().noMoney); return; }
   spend(d.cost, labC() + 0.5, YARD_R);
-  S.research = { id, t: 0, total: d.months * TUNE.month };
+  S.researches.push({ id, t: 0, total: d.months * TUNE.month });
 }
 function gainSkill(id) {
   S.skills[id] = sk(id) + 1;
@@ -1530,15 +1559,16 @@ function finishResearch(id) {
   else gainSkill(id.slice(3));
 }
 function updateResearch(dt) {
-  const r = S.research;
-  if (!r) return;
-  r.t += dt * labRate();
-  if (r.t < r.total) return;
-  S.research = null;
-  const name = resDef(r.id).name;
-  finishResearch(r.id);
-  const msg = tx().researchDone(name);
-  pop(msg, labC() + 0.5, YARD_R - 0.4, 'sale'); say(msg, 3500, 'good'); addHist(msg);
+  if (!S.researches.length) return;
+  const ws = labStaff();
+  S.researches.forEach((r, i) => { r.on = !!ws[i]; if (ws[i]) r.t += dt * techFactor(ws[i]); });   // 研究員がいない研究は止まる
+  for (const r of S.researches.filter(x => x.t >= x.total)) {
+    S.researches.splice(S.researches.indexOf(r), 1);
+    const name = resDef(r.id).name;
+    finishResearch(r.id);
+    const msg = tx().researchDone(name);
+    pop(msg, labC() + 0.5, YARD_R - 0.4, 'sale'); say(msg, 3500, 'good'); addHist(msg);
+  }
 }
 // 事務所のレベルアップ（レベル2で研究所が建つ）
 function officeUp() {
@@ -1593,6 +1623,12 @@ function deserialize(json) {
   }
   // 古いセーブへの対応
   d.lab = d.lab || { type: 'lab', built: false, op: null };
+  if (!d.workers.some(w => w.boss)) {   // v0.52：社長がいない古いセーブには、社長を足す
+    const w = { id: ++d.wid, lv: 0, exp: 0, vs: 1, vt: 1, stamina: 100, state: 'idle', x: OFFICE_C + 1.5, y: YARD_R + 0.5, path: [], target: null, boss: true };
+    d.workers.push(w); d.bossWork = true; d.bossFat = 0;
+  }
+  if (d.bossWork === undefined) d.bossWork = true;
+  d.researches = d.researches || (d.research ? [d.research] : []); delete d.research;   // v0.52：研究は並べて進む
   if (d.office && d.office.lv >= 1) { d.skills = d.skills || {}; d.skills.digLv = Math.max(d.skills.digLv || 0, 1); }
   for (const s2 of d.st.values()) {   // v0.49：レベルの上限が変わった（機械5・横穴3・コンベア4＝Lv5）
     if (s2.type === 'machine') s2.lv = Math.min(s2.lv || 0, MACHINES[s2.m] && MACHINES[s2.m].src ? ADIT_MAX : LV.machine.cap);
@@ -1753,8 +1789,16 @@ function updateWorkers(dt) {
   const busyW = S.workers.filter(w => w.target && (w.state === 'toWork' || w.state === 'work' || w.state === 'drive'));
   const taken = new Set(busyW.map(w => w.target));
   const facN = new Map(); for (const w of busyW) if (w.target.type === 'fac') facN.set(w.target, (facN.get(w.target) || 0) + 1);   // 地上施設は数人まで
+  let labN = busyW.filter(w => w.target === S.lab).length;
+  taken.delete(S.lab);
   for (const w of S.workers) {
     const maxS = maxStamina(w);
+    if (w.boss && !S.bossWork) {   // 社長が作業しない：事務所（屋上・窓）にいる
+      if (w.target) { if (w.target.op === w.id) w.target.op = null; w.target = null; }
+      w.state = 'off'; w.path = []; w.stamina = maxS; w.x = OFFICE_C + 1; w.y = YARD_R + 0.5;
+      continue;
+    }
+    if (w.boss && w.state === 'off') { w.state = 'idle'; w.lastLook = -9; }
     // 持ち場が無くなった → 戻る
     if (w.target && !postAlive(w.target)) {
       if (w.target.op === w.id) w.target.op = null;
@@ -1770,10 +1814,10 @@ function updateWorkers(dt) {
         // Lv2以上は、地上・上級勤務（研究所・フォークリフト・トラック）を先に
         if (w.lv >= ADV_LV) {
           const adv = [];
-          if (S.lab.built) adv.push(S.lab);
+          if (S.lab.built && labN < labSeats()) adv.push(S.lab);   // 研究所：研究の数だけ席
           for (const f of S.forks) adv.push(f);
           for (const t of S.fleet) if (t.phase === 'here') adv.push(t);
-          for (const p of adv) { if (taken.has(p) || p.type === 'fork' && p.state === 'idle' && !p.load.length && pickDock(p) === null) continue; const d = dist.get(postKey(p)); if (d !== undefined && d < bd) { bd = d; best = p; } }
+          for (const p of adv) { if (p !== S.lab && taken.has(p) || p.type === 'fork' && p.state === 'idle' && !p.load.length && pickDock(p) === null) continue; const d = dist.get(postKey(p)); if (d !== undefined && d < bd) { bd = d; best = p; } }
         }
         const advBest = best;
         if (!best) for (const [k, st] of S.st) {
@@ -1792,7 +1836,7 @@ function updateWorkers(dt) {
           if (sc < bd) { bd = sc; best = f; }
         }
         if (best) {
-          w.target = best; taken.add(best); if (best.type === 'fac') facN.set(best, (facN.get(best) || 0) + 1);
+          w.target = best; if (best !== S.lab) taken.add(best); else labN++; if (best.type === 'fac') facN.set(best, (facN.get(best) || 0) + 1);
           w.path = (wKey(w) === OFFICE_K ? pathFromOffice(postKey(best)) : pathBetween(wKey(w), postKey(best))) || [];   // 今いる所から
           w.state = 'toWork';
         }
@@ -1819,6 +1863,7 @@ function updateWorkers(dt) {
         w.stamina -= dt * drainMul();
         gainExp(w, dt);
         if (w.stamina <= 0) { w.stamina = 0; goRest(w); break; }
+        if (w.target === S.lab && S.workers.filter(o => o.target === S.lab && o.state === 'work').length > labSeats()) { leavePost(w); break; }   // 研究が減って席が余った
         // 暇な持ち場（材料が無い機械・止まったドリル・液体の無い施設）に8秒いたら、仕事のある空いた持ち場へ移る
         if (w.target.type !== 'lab') {
           w.idleT = workNeed(w.target) <= 0 ? (w.idleT || 0) + dt : 0;
@@ -1883,7 +1928,7 @@ function goRest(w) {
 }
 // 雇う：選ばずに「Lv0（人事力でLv1・Lv2）を増員」
 function hire() {
-  if (S.workers.length >= OFFICE_LV.cap[S.office.lv]) { say(tx().full); return; }
+  if (staffN() >= OFFICE_LV.cap[S.office.lv]) { say(tx().full); return; }
   const lv = hireLv(), fee = HIRE_FEE(lv);
   if (S.money < fee) { say(tx().noMoney); return; }
   spend(fee, OFFICE_C + 1, YARD_R);
@@ -1892,12 +1937,12 @@ function hire() {
 // その レベルの人を1人やめさせる（休んでいる人から）
 function fireLevel(lv) {
   const order = ['rest', 'idle', 'toIdle', 'toRest', 'toWork', 'work', 'drive'];
-  const ws = S.workers.filter(w => w.lv === lv).sort((a, b) => order.indexOf(a.state) - order.indexOf(b.state));
+  const ws = S.workers.filter(w => w.lv === lv && !w.boss).sort((a, b) => order.indexOf(a.state) - order.indexOf(b.state));
   if (ws.length) fireWorker(ws[0].id);
 }
 function fireWorker(id) {
   const w = S.workers.find(x => x.id === id);
-  if (!w) return;
+  if (!w || w.boss) return;   // 社長はやめない
   if (w.target && w.target.op === w.id) w.target.op = null;
   S.workers = S.workers.filter(x => x !== w);
 }
@@ -2466,8 +2511,15 @@ function renderPanel(id) {
     const pay = Math.round(S.workers.reduce((a, w) => a + wageOf(w), 0) * (sk('black') ? 0.8 : 1) * TUNE.wage);
     const ol = S.office.lv, cap = OFFICE_LV.cap[ol];
     const sum = document.createElement('div'); sum.className = 'sub';
-    sum.textContent = `${T.workers} ${S.workers.length}/${cap}${T.unitP}　${T.payroll} ${pay}`;
+    sum.textContent = `${T.workers} ${staffN()}/${cap}${T.unitP}　${T.payroll} ${pay}`;
     box.append(sum);
+    const bs = bossOf();
+    if (bs) {   // 社長（自分）：会社レベル2から、作業するかどうかを選べる
+      let bb;
+      if (S.office.lv >= 1) { bb = document.createElement('button'); bb.textContent = S.bossWork ? T.bossOn : T.bossOff; bb.classList.toggle('active', !!S.bossWork); bb.addEventListener('click', () => { S.bossWork = !S.bossWork; renderPanel('office'); updateUI(); }); }
+      else { bb = document.createElement('button'); bb.textContent = T.bossLock; bb.disabled = true; }
+      box.append(rowEl(T.bossName(bs.lv), T.bossDesc, bb));
+    }
     // 事務所のレベル（定員・休憩の速さ・フォークリフトの台数。レベル2で研究所）
     let olBtn;
     if (ol >= OFFICE_LV.cost.length) { olBtn = document.createElement('button'); olBtn.textContent = T.maxed; olBtn.disabled = true; }
@@ -2477,10 +2529,10 @@ function renderPanel(id) {
     // 作業員：レベルごとの人数
     const h1 = document.createElement('div'); h1.className = 'secT'; h1.textContent = T.workers; box.append(h1);
     const note = document.createElement('div'); note.className = 'sub'; note.textContent = S.lab.built ? T.advNote : T.advNote0; box.append(note);
-    if (!S.workers.length) { const n = document.createElement('div'); n.className = 'sub'; n.textContent = T.nobody; box.append(n); }
-    const lvs = [...new Set(S.workers.map(w => w.lv))].sort((a, b) => a - b);
+    if (!staffN()) { const n = document.createElement('div'); n.className = 'sub'; n.textContent = T.nobody; box.append(n); }
+    const lvs = [...new Set(S.workers.filter(w => !w.boss).map(w => w.lv))].sort((a, b) => a - b);
     for (const lv of lvs) {
-      const ws = S.workers.filter(w => w.lv === lv);
+      const ws = S.workers.filter(w => w.lv === lv && !w.boss);
       const cnt = st => ws.filter(w => st.includes(w.state)).length;
       const el = rowEl(T.wCount(lv, ws.length), T.wBreak(cnt(['work', 'drive']), cnt(['toWork', 'toRest', 'toIdle', 'idle']), cnt(['rest'])),
         costBtn(T.fireOne, undefined, () => { fireLevel(lv); renderPanel('office'); }));
@@ -2496,16 +2548,15 @@ function renderPanel(id) {
   } else if (id === 'skillPanel') {
     const box = $('skillBody'); box.innerHTML = '';
     if (!S.lab.built) { const n = document.createElement('div'); n.className = 'sub'; n.textContent = T.needLab; box.append(n); return; }
-    const rw = opOf(S.lab);
-    const info = document.createElement('div'); info.className = 'sub'; info.textContent = `${T.resInfo}\n${rw ? T.researcher(rw.lv) : T.noResearcher}`; info.style.whiteSpace = 'pre-line'; box.append(info);
-    if (S.research) {
-      const r = S.research;
+    const staff = labStaff();
+    const info = document.createElement('div'); info.className = 'sub'; info.textContent = `${T.resInfo}\n${T.labRoomsInfo(labRooms(), S.researches.length, staff.length)}`; info.style.whiteSpace = 'pre-line'; box.append(info);
+    S.researches.forEach((r, i) => {
       const el = document.createElement('div'); el.className = 'sub lvline';
-      el.textContent = `${T.researching}：${resDef(r.id).name}（${Math.round(100 * r.t / r.total)}%）`;
+      el.textContent = `${T.researching}：${resDef(r.id).name}（${Math.round(100 * r.t / r.total)}%）` + (staff[i] ? `　${T.researcher(staff[i].lv)}` : `　${T.resStop}`);
       const bar = document.createElement('div'); bar.className = 'bar';
       const fill = document.createElement('i'); fill.style.width = (100 * r.t / r.total) + '%'; bar.append(fill);
       box.append(el, bar);
-    }
+    });
     const section = (title, ids) => {
       const list = ids.filter(id => id.startsWith('sk:') ? resAvail(id) || sk(id.slice(3)) > 0 : !resDef(id).done && resAvail(id));
       if (!list.length) return;
@@ -2516,7 +2567,7 @@ function renderPanel(id) {
         let btn;
         if (d.done || !resAvail(id)) { btn = document.createElement('button'); btn.textContent = d.done ? T.got : T.nextRock; btn.disabled = true; }
         else if (id === 'sk:digLv' && !permitOk()) { btn = document.createElement('button'); btn.textContent = T.permitBtn(permitNeed()); btn.disabled = true; }
-        else { btn = costBtn(`${T.startRes}（${d.months}${T.months}）`, d.cost, () => { startResearch(id); renderPanel('skillPanel'); updateUI(); }); if (S.research) btn.disabled = true; }
+        else { btn = costBtn(`${T.startRes}（${d.months}${T.months}）`, d.cost, () => { startResearch(id); renderPanel('skillPanel'); updateUI(); }); if (S.researches.length >= labRooms() || S.researches.some(r => r.id === id)) btn.disabled = true; }
         box.append(rowEl(title2, d.desc, btn));
       }
     };
@@ -2570,7 +2621,7 @@ function renderPanel(id) {
     add(A.fast, () => { S.adminFast = true; speedIdx = speeds().length - 1; });
     add(A.clear, () => { S.reveal = !S.reveal; });
     add(A.allSk, () => { for (const sid of SKILL_ORDER) while (sk(sid) < Math.min(SKILLS[sid].max, 10)) gainSkill(sid); for (const m of MACHINE_ORDER) S.unlock[m] = true; S.unlock.batch = true; if (!S.lab.built) { S.office.lv = Math.max(1, S.office.lv); const c = [...Array(COLS).keys()].find(surfaceFree); S.lab.built = true; S.lab.c = c; } });
-    add(A.finRes, () => { if (S.research) S.research.t = S.research.total; });
+    add(A.finRes, () => { for (const r of S.researches) r.t = r.total; });
     add(A.tune, () => { togglePanel('tune'); });
     add(A.stageUp, () => {   // 段階ジャンプ：次の岩盤を突破したことにする（掘削レベルも追いつかせる）
       S.deepest = Math.max(S.deepest, SKY + layerDepth(S.stage)); S.skills.digLv = Math.max(sk('digLv'), S.stage); checkStage();
@@ -2865,6 +2916,7 @@ const THEME = {
   machBg: '#d6d6d3', machLine: '#6d6d70', machText: '#2b2b2e', machOut: '#2b2b2e', machProg: '#e0782f',
   drill: '#e0782f', drillStuck: '#9a9a9a', bit: '#4a4a4d',
   level: '#e0782f', levelLine: 'rgba(0,0,0,.35)', zBg: 'rgba(0,0,0,.6)', zText: '#ffffff',
+  labLit: '#ffd76a', labIdle: '#b9c0c6',
   office: { wall: '#f6f6f4', wall2: '#dcdcd9', roof: '#4a4a4d', win: '#9aa3a8', door: '#4a4a4d', text: '#2b2b2e' },
   lab: { wall: '#f6f6f4', roof: '#4a4a4d', win: '#9aa3a8', line: '#8d8f93' },
   labOn: '#e0782f', labOff: '#9a9a9a',
@@ -2969,7 +3021,7 @@ function draw() {
     if (s.type === 'machine') { drawMachine(x, y, s); drawLevel(x, y, s.lv); continue; }
     if (s.type === 'pipe') { drawPipe(x, y, c, r, false); continue; }
     if (s.type === 'well') { ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(sprite(s.kind === 'oil' ? 'oilwell' : 'spring'), x, y, cell, cell); ctx.restore(); continue; }
-    drawBeltCell(x, y, s, valOf(s) * TUNE.belt, false, c, r);
+    drawBeltCell(x, y, s, valOf(s) * TUNE.belt * beltSlow(s, k), false, c, r);   // あふれて遅いコンベアは、縞々もゆっくり
     drawBeltLv(x, y, s);
   }
 
@@ -3021,13 +3073,13 @@ function draw() {
   }
   // 作業員（i の形）
   for (const w of S.workers) {
-    if (w.state === 'idle' || w.state === 'rest') continue;      // 事務所の中
+    if (w.state === 'idle' || w.state === 'rest' || w.state === 'off') continue;      // 事務所の中（作業しない社長は事務所の絵で描く）
     if (w.target && w.target.type === 'lab' && w.state === 'work') continue;   // 研究所の中
     if (w.state === 'drive') continue;                            // 乗り物の絵の中に描く
     if (w.state === 'work' && w.target && w.target.type === 'fac') continue;   // 地上の施設の中
     if (w.state === 'work' && w.target && isStation(w.target)) {   // ドリル・機械で作業中は、そのマスの右上に頭だけ
       const k = stationKey(w.target);
-      if (k >= 0 && rOf(k) >= r0 && rOf(k) <= r1) { const st2 = S.st.get(k), [ox, oy] = st2 && st2.type === 'drill' ? drillShift(k, st2) : [0, 0]; drawWorkerHead((cOf(k) + ox) * cell, (rOf(k) + oy) * cell, st2); }
+      if (k >= 0 && rOf(k) >= r0 && rOf(k) <= r1) { const st2 = S.st.get(k), [ox, oy] = st2 && st2.type === 'drill' ? drillShift(k, st2) : [0, 0]; drawWorkerHead((cOf(k) + ox) * cell, (rOf(k) + oy) * cell, st2, w); }
       continue;
     }
     if (w.y < r0 || w.y > r1 + 1) continue;
@@ -3212,16 +3264,20 @@ function curveSide(c, r, s) {
   }
   return n === 1 ? side : null;
 }
+const beltPh = new WeakMap();   // コンベアごとの縞々の進み具合（保存しない）
+let drawDt = 0;                 // 前の画面からのゲームの時間（止めている間は0）
 function drawBeltCell(x, y, s, speed, ghost, c, r) {
   const cell = cp;
+  let ph = null;
+  if (!ghost) { ph = (beltPh.get(s) || 0) + drawDt * speed * 16; beltPh.set(s, ph % 4000); }
   const side = ghost ? null : curveSide(c, r, s);
   if (side) {
-    const f = Math.floor(S.time * speed * 16) % 4;
+    const f = Math.floor(ph !== null ? ph : S.time * speed * 16) % 4;
     ctx.save(); ctx.imageSmoothingEnabled = false;
     ctx.translate(x + cell / 2, y + cell / 2); ctx.rotate(CONV_ROT[s.dir]); if (side === 'left') ctx.scale(-1, 1);
     ctx.drawImage(CURVE_FRAMES[f], -cell / 2, -cell / 2, cell, cell);
     ctx.restore();
-  } else drawConvSprite(x, y, s.dir, speed);
+  } else drawConvSprite(x, y, s.dir, speed, ph);
   if (s.type === 'sort') {   // 振り分ける側へ流れる部分：真ん中を先にして、出す側の端に向かって広がる三角形に、横向きのコンベアを描く
     const sd = s.side === 'left' ? CCW[s.dir] : CW[s.dir], [sx, sy] = DIRS[sd], h = cell * 0.46, cx = x + cell / 2, cy = y + cell / 2;
     ctx.save(); ctx.beginPath();
@@ -3229,10 +3285,10 @@ function drawBeltCell(x, y, s, speed, ghost, c, r) {
     ctx.lineTo(cx + sx * cell / 2 - sy * h, cy + sy * cell / 2 - sx * h);         // 出す側の端
     ctx.lineTo(cx + sx * cell / 2 + sy * h, cy + sy * cell / 2 + sx * h);
     ctx.closePath(); ctx.clip();
-    drawConvSprite(x, y, sd, speed);
+    drawConvSprite(x, y, sd, speed, ph);
     ctx.restore();
   }
-  if (s.type === 'cross') { ctx.save(); ctx.globalAlpha = 0.7; drawConvSprite(x, y, CW[s.dir], speed); ctx.restore(); }
+  if (s.type === 'cross') { ctx.save(); ctx.globalAlpha = 0.7; drawConvSprite(x, y, CW[s.dir], speed, ph); ctx.restore(); }
   if (s.type === 'sort') { ctx.strokeStyle = THEME.sortLine; ctx.lineWidth = Math.max(1.5, cell * 0.05); ctx.strokeRect(x + 1.5, y + 1.5, cell - 3, cell - 3); }
   if (s.type === 'tee') { drawChevron(x, y, CCW[s.dir], THEME.arrow); drawChevron(x, y, CW[s.dir], THEME.arrow); }
   else if (!side) drawChevron(x, y, s.dir, THEME.arrow);
@@ -3241,8 +3297,8 @@ function drawBeltCell(x, y, s, speed, ghost, c, r) {
     drawItemShape({ k: s.filter }, x + cell / 2 + sx * cell * 0.3, y + cell / 2 + sy * cell * 0.3, 0.8);
   }
 }
-function drawConvSprite(x, y, d, speed) {
-  const cell = cp, f = Math.floor(S.time * speed * 16) % 4;   // 速さに合わせてコマを進める（1コマ＝1ドット）
+function drawConvSprite(x, y, d, speed, ph) {
+  const cell = cp, f = Math.floor(ph !== undefined && ph !== null ? ph : S.time * speed * 16) % 4;   // 速さに合わせてコマを進める（1コマ＝1ドット）
   ctx.save();
   ctx.imageSmoothingEnabled = false;
   ctx.translate(x + cell / 2, y + cell / 2); ctx.rotate(CONV_ROT[d]);
@@ -3299,19 +3355,24 @@ const WORKER_PIX = [
   ['...aa...', '...bb...', '....c...', '...ccc..', '...ccc..', '...bcb..', '....c...', '...dd...'],
 ];
 const WORKER_COL = { a: '#efff62', b: '#c9b57a', c: '#7ac5c9', d: '#000000' };
-const WORKER_FR = WORKER_PIX.map(rows => {
+const workerFrames = col => WORKER_PIX.map(rows => {
   const c2 = document.createElement('canvas'); c2.width = c2.height = 8;
   const g = c2.getContext('2d');
-  rows.forEach((rw, y) => [...rw].forEach((ch, x) => { if (WORKER_COL[ch]) { g.fillStyle = WORKER_COL[ch]; g.fillRect(x, y, 1, 1); } }));
+  rows.forEach((rw, y) => [...rw].forEach((ch, x) => { if (col[ch]) { g.fillStyle = col[ch]; g.fillRect(x, y, 1, 1); } }));
   return c2;
 });
-function drawWorkerSprite(cx, footY, size, frame, alpha) {
+const WORKER_FR = workerFrames(WORKER_COL);
+const BOSS_FR = workerFrames({ ...WORKER_COL, a: '#d8402c' });   // 社長：赤いヘルメット
+// 社長の横幅：画面の本当のドット単位で、じわじわ広がる
+const bossW = size => { const dpr = window.devicePixelRatio || 1; return Math.round(size * (1 + (S.bossFat || 0)) * dpr) / dpr; };
+function drawWorkerSprite(cx, footY, size, frame, alpha, boss) {
   ctx.save(); ctx.imageSmoothingEnabled = false; if (alpha < 1) ctx.globalAlpha = alpha;
-  ctx.drawImage(WORKER_FR[frame], Math.round(cx - size / 2), Math.round(footY - size), size, size);
+  const w = boss ? bossW(size) : size;
+  ctx.drawImage((boss ? BOSS_FR : WORKER_FR)[frame], cx - w / 2, Math.round(footY - size), w, size);
   ctx.restore();
 }
 // 作業中の印：作業員の頭（ヘルメットと顔）だけを、マスの中の右上に小さく
-function drawWorkerHead(x, y, st) {
+function drawWorkerHead(x, y, st, w2) {
   const s = Math.max(4, Math.round(cp * 0.14));
   // 基本はマスの右上。ドリルは刃の反対側（本体側）に来るよう、向きに合わせて回す（下向き＝右上）
   let lx = 0.42 - s / cp / 2, ly = -0.42 + s / cp / 2;          // マス中心からの位置（マス幅=1）
@@ -3321,14 +3382,14 @@ function drawWorkerHead(x, y, st) {
   }
   const hx = Math.round(x + cp * (0.5 + lx) - s / 2), hy = Math.round(y + cp * (0.5 + ly) - s / 2);
   ctx.save(); ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(WORKER_FR[1], 3, 0, 2, 2, hx, hy, s, s);   // 8×8の絵のうち、頭の2×2ドット
+  ctx.drawImage((w2 && w2.boss ? BOSS_FR : WORKER_FR)[1], 3, 0, 2, 2, hx, hy, s, s);   // 8×8の絵のうち、頭の2×2ドット
   ctx.restore();
 }
 function drawWorker(x, y, w) {   // x,y＝マスの中心（画面座標）。小さく表示
   const moving = w.path && w.path.length, working = w.state === 'work';
   const f = moving || working ? Math.floor(S.time / 0.17) % 2 : 1;
   const tired = w.stamina / maxStamina(w) < 0.25;
-  drawWorkerSprite(x, y + cp * 0.48, cp * 0.42, f, tired ? 0.6 : 1);
+  drawWorkerSprite(x, y + cp * 0.48, cp * 0.42, f, tired ? 0.6 : 1, w.boss);
 }
 // 資源・製品のドット絵（16×16）。形ごとの型に、資源の色（ふち・本体・光）を塗る
 const SPR_CACHE = new Map();
@@ -3504,6 +3565,17 @@ function drawOffice() {
     ctx.beginPath(); ctx.moveTo(x0 + w * 0.3, top - cell * 0.07); ctx.lineTo(x0 + w * 0.3, top - cell * 0.4); ctx.stroke();
   }
   drawLevel(x0 + cell * 0.02, top + cell * 0.02, lv);
+  const boss = bossOf();
+  if (boss && boss.state === 'off') {
+    const ph = Math.floor(S.time / 25) % 3;   // 25秒ごとに：屋上（2回）か、窓
+    if (ph < 2) {   // 屋上をうろうろ
+      const u = (Math.sin(S.time * 0.35 + ph) + 1) / 2, bx = x0 + w * (0.12 + u * 0.76);
+      drawWorkerSprite(bx, top - cell * 0.07, Math.round(cell * 0.4), Math.floor(S.time / 0.25) % 2, 1, true);
+    } else {        // 窓から顔を出す（いちばん上の段・まん中の窓）
+      const wy = top + cell * 0.12, wx = x0 + w * (0.1 + 0.27) + w * 0.08, s2 = Math.max(4, Math.round(cell * 0.16));
+      ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(BOSS_FR[1], 3, 0, 2, 2, Math.round(wx - s2 / 2), Math.round(wy + cell * 0.12 - s2), s2, s2); ctx.restore();
+    }
+  }
   const inside = S.workers.filter(wk => wk.state === 'idle' || wk.state === 'rest').length;
   if (inside) {
     ctx.fillStyle = T2.text; ctx.font = `600 ${Math.round(cell * 0.22)}px sans-serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
@@ -3591,11 +3663,20 @@ function drawLabAt(c, ghost) {
   ctx.strokeStyle = T2.line; ctx.lineWidth = 1; ctx.strokeRect(x0 + 0.5, top + 0.5, w - 1, h - 1);
   ctx.fillStyle = T2.roof; ctx.fillRect(x0 + w * 0.64, base - cell * 0.32, w * 0.2, cell * 0.32);   // 扉
   if (ghost) return;
-  const r = opOf(S.lab);
-  if (r || S.research) {   // 研究中の小さな印（点滅しない）
-    ctx.fillStyle = r ? THEME.labOn : THEME.labOff;
-    ctx.beginPath(); ctx.arc(x0 + w * 0.2, base - cell * 0.16, cell * 0.055, 0, Math.PI * 2); ctx.fill();
+  const rooms = labRooms(), staff = labStaff(), fh = cell * 0.42;
+  for (let i = 0; i < rooms; i++) {   // 研究室：1階（元の建物）から上へ積む
+    const ry = i === 0 ? top + cell * 0.2 : top - i * fh, r = S.researches[i];
+    if (i > 0) {   // 増室した階
+      ctx.fillStyle = T2.wall; ctx.fillRect(x0, ry, w, fh);
+      ctx.strokeStyle = T2.line; ctx.lineWidth = 1; ctx.strokeRect(x0 + 0.5, ry + 0.5, w - 1, fh - 1);
+      ctx.fillStyle = T2.roof; ctx.fillRect(x0, ry, w, cell * 0.05);
+    }
+    const wx = x0 + w * 0.12, wy = i === 0 ? top + cell * 0.24 : ry + cell * 0.1, ww = w * 0.76, wh = cell * 0.18;
+    ctx.fillStyle = r ? (r.on ? THEME.labLit : THEME.labIdle) : T2.win; ctx.fillRect(wx, wy, ww, wh);
+    if (r && staff[i]) { ctx.save(); ctx.imageSmoothingEnabled = false; const s2 = Math.max(3, Math.round(cell * 0.12)); ctx.drawImage((staff[i].boss ? BOSS_FR : WORKER_FR)[1], 3, 0, 2, 2, Math.round(wx + ww * 0.3), Math.round(wy + wh - s2), s2, s2); ctx.restore(); }
+    if (r) { ctx.fillStyle = THEME.gaugeBg; ctx.fillRect(wx, wy + wh + 1, ww, 2); ctx.fillStyle = THEME.labOn; ctx.fillRect(wx, wy + wh + 1, ww * r.t / r.total, 2); }
   }
+  if (rooms > 1) { ctx.fillStyle = T2.roof; ctx.fillRect(x0 - cell * 0.03, top - (rooms - 1) * fh - cell * 0.04, w + cell * 0.06, cell * 0.05); }
 }
 function drawYard() {   // ヤード（1マス）：トラックの後ろに山が積もる（荷台からはみ出た分がトラックと重なる）
   const cell = cp, x0 = YARD_C * cell, y = YARD_R * cell, n = S.yard.length;
@@ -4278,7 +4359,7 @@ function aiFailText() {
 // 自動プレイ（見る）：AIが何をしたかを、前後の様子を比べて短い文にする（資金の下に小さく出す）
 function autoSnap() {
   const sts = [...S.st.values()];
-  return { w: S.workers.length, ol: S.office.lv, lab: S.lab.built, res: S.research && S.research.id, tl: S.truck.lv, fn: S.forks.length,
+  return { w: S.workers.length, ol: S.office.lv, lab: S.lab.built, res: S.researches.map(r => r.id), tl: S.truck.lv, fn: S.forks.length,
     fl: S.forks.reduce((a, f2) => a + f2.lv, 0), dl: sts.filter(s => s.type === 'drill').reduce((a, s) => a + s.lv, 0),
     ml: sts.filter(s => s.type === 'machine').reduce((a, s) => a + s.lv, 0), pr: { ...(S.priceLv || {}) },
     dn: sts.filter(s => s.type === 'drill').length, ms: sts.filter(s => s.type === 'machine').map(s => s.m),
@@ -4291,7 +4372,7 @@ function autoDiff(a, b) {
   if (b.w > a.w) o.push(T.aiHire(b.w - a.w));
   if (b.ol > a.ol) o.push(T.aiCompany(b.ol + 1));
   if (b.lab && !a.lab) o.push(T.aiLab);
-  if (b.res && b.res !== a.res) o.push(T.aiRes(resDef(b.res).name));
+  for (const id of b.res) if (!a.res.includes(id)) o.push(T.aiRes(resDef(id).name));
   if (b.tl > a.tl) o.push(T.aiTruck(b.tl + 1));
   if (b.fn > a.fn) o.push(T.aiForkBuy); else if (b.fl > a.fl) o.push(T.aiFork);
   if (b.dn > a.dn) o.push(T.aiDrill); else if (b.dl > a.dl) o.push(T.aiDrillUp);
@@ -4367,17 +4448,17 @@ function autoAdit(drills) {
 const AI_W = { belt: 1.5, hire: 100, office: 1.6, office0: 1.2, drill: 2, mach: 3, price: 3, resPad: 300, truck: 1.3, fork: 1.3,
   save: 0.5, gate: 1, mq: 1 };   // mq＝機械を強化する時の、順番待ちの数の下限   // save＝次の会社レベルの値段の何割を残しておくか／gate＝1なら、効く時だけ強化（機械は順番待ちがたまっている・ドリルは運ぶ所が空いている）
 const AI_SKIP = new Set(['sk:speed', 'sk:dragPlus', 'sk:away']);   // 稼ぎに関係しない研究（画面の速さ・操作・放置時間）はAIは買わない
-const aiResRank = id => (id === 'sk:digLv' ? 0 : id === 'm:adit' ? 1 : 2);
+const aiResRank = id => (id === 'sk:digLv' ? 0 : id === 'm:adit' ? 1 : id === 'sk:labRoom' ? 1 : 2);
 function autoStep(build = true) {
   const R = aiR(), W = AI_W;
   const all = [...S.st.entries()];
   const drills = all.filter(([, x]) => x.type === 'drill'), machines = all.filter(([, x]) => x.type === 'machine');
   const posts = drills.length + machines.length + S.fac.length + (S.lab.built ? 1 : 0);
-  if (S.workers.length < Math.min(OFFICE_LV.cap[S.office.lv], posts + 1) && S.money > HIRE_FEE(hireLv()) + W.hire * R) hire();
+  if (staffN() < Math.min(OFFICE_LV.cap[S.office.lv], posts + 1) && S.money > HIRE_FEE(hireLv()) + W.hire * R) hire();
   if (S.office.lv < OFFICE_LV.cost.length && S.money > OFFICE_LV.cost[S.office.lv] * (S.office.lv ? W.office : W.office0) * R) officeUp();
   if (S.office.lv >= 1 && !S.lab.built && S.money > COST.lab + 50 * R) { const c = autoFreeCol(); if (c !== undefined) { spend(COST.lab, c + 0.5, YARD_R); S.lab.built = true; S.lab.c = c; addHist(tx().labBuilt); } }
-  if (S.lab.built && !S.research) {
-    const ids = allResIds().filter(id => resAvail(id) && !resDef(id).done && !AI_SKIP.has(id) && (id !== 'sk:digLv' || permitOk())).sort((a, b) => aiResRank(a) - aiResRank(b) || resDef(a).cost - resDef(b).cost);   // 掘削レベル → 横穴掘削口 → 安い順
+  if (S.lab.built && S.researches.length < labRooms()) {
+    const ids = allResIds().filter(id => resAvail(id) && !resDef(id).done && !AI_SKIP.has(id) && (id !== 'sk:digLv' || permitOk()) && !S.researches.some(r => r.id === id)).sort((a, b) => aiResRank(a) - aiResRank(b) || resDef(a).cost - resDef(b).cost);   // 掘削レベル → 横穴掘削口 → 安い順
     for (const id of ids) if (S.money >= resDef(id).cost + (aiResRank(id) < 2 ? 0 : W.resPad * R + (S.office.lv < OFFICE_LV.cost.length ? OFFICE_LV.cost[S.office.lv] * W.save : 0))) { startResearch(id); break; }
   }
   // 止まったドリル：掘れる向きがあれば向きを変える（横を先に、次に下）。どこも掘れなければ撤去して、別の所に置き直す
@@ -4565,7 +4646,7 @@ function goalText() {
   else if (S.stage >= 9) next = '';
   else if (sk('digLv') >= S.stage) next = T.gBreak(rockLv(S.stage));                 // 研究は済んだ：掘り抜く
   else if (!permitOk()) { const need = permitNeed(); next = T.gPermit(need, fmt(Math.max(0, (OFFICE_LV.cost[S.office.lv] || 0) - S.money))); }
-  else if (S.research && S.research.id === 'sk:digLv') next = T.gResearching;
+  else if (S.researches.some(r => r.id === 'sk:digLv')) next = T.gResearching;
   else next = S.lab.built ? T.gDigRes(rockLv(S.stage)) : T.gLab;
   return T.gLine(st, theme, next);
 }
@@ -4587,9 +4668,11 @@ function frame(now) {
   const sp = speeds(); if (speedIdx >= sp.length) speedIdx = sp.length - 1;
   if (running && !inTitle) {
     const gdt = dt * sp[speedIdx] * (Date.now() < S.boost.speedUntil ? 10 : 1);
+    drawDt = gdt;
     sim(gdt);
     if (autoLive) { liveT += gdt; if (liveT >= 3) { liveT = 0; autoLiveStep(); } }   // 自動プレイ（見る）：ゲームの3秒ごとにAIが考える
   }
+  if (!running || inTitle) drawDt = 0;
   applyMove(dt);
   updateUI();
   if (S.notice && !autoBusy) { showNotice(S.notice, 'good'); S.notice = null; }
