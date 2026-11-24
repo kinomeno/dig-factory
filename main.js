@@ -795,7 +795,7 @@ for (const l of Object.keys(TXT_ADD)) {
     else if (k === 'help0') TXT[l].helpTopics[0] = a[k];
     else if (k === 'help7') TXT[l].helpTopics[7] = a[k];
     else if (k === 'help1') TXT[l].helpTopics[1] = a[k];
-    else if (k === 'adm' || k === 'items' || k === 'mach' || k === 'glyph') Object.assign(TXT[l][k], a[k]);
+    else if (k === 'adm' || k === 'items' || k === 'mach' || k === 'glyph' || k === 'fac' || k === 'facDesc') Object.assign(TXT[l][k] || (TXT[l][k] = {}), a[k]);   // 中の言葉は足す（上書きしない）
     else TXT[l][k] = a[k];
   }
 }
