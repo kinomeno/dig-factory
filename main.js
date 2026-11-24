@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.53（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.54（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.53';
+const VERSION = '0.54';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -3036,13 +3036,26 @@ function draw() {
   drawYardCount();
 
   // 資源：マスごとに描く数を fpsCtl.cap までにする（重い時は減らす）。描かなかった分は「×数」で出す
+  // FPSが保てない時（cap が減っている時）だけ、あふれたマスは1個ずつ描かず「くっついた山の絵」1枚にする
+  const lite = fpsCtl.cap < 30, cnt = new Map(), kinds = new Map();
+  if (lite) for (const it of S.items) {
+    if (it.y < r0 || it.y > r1 + 1) continue;
+    const ck = key(Math.floor(it.x), Math.floor(it.y)); cnt.set(ck, (cnt.get(ck) || 0) + 1);
+    let km = kinds.get(ck); if (!km) kinds.set(ck, km = new Map()); km.set(it.k, (km.get(it.k) || 0) + 1);
+  }
   const drawn = new Map(), over = new Map();
   for (const it of S.items) {
     if (it.y < r0 || it.y > r1 + 1) continue;
     const ck = key(Math.floor(it.x), Math.floor(it.y)), n = (drawn.get(ck) || 0) + 1;
     drawn.set(ck, n);
+    if (lite && cnt.get(ck) > fpsCtl.cap) { over.set(ck, cnt.get(ck)); continue; }   // 山の絵にするマス
     if (n > fpsCtl.cap) { over.set(ck, n); continue; }
     drawItemShape(it, it.x * cell, it.y * cell, 1);
+  }
+  if (lite) for (const [ck, n] of over) {
+    if (cnt.get(ck) <= fpsCtl.cap) continue;
+    const km = kinds.get(ck); let top = null, tn = -1; for (const [k2, v] of km) if (v > tn) { tn = v; top = k2; }   // いちばん多い資源の山
+    ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(clumpSprite(top, n), cOf(ck) * cell, rOf(ck) * cell, cell, cell); ctx.restore();
   }
   if (over.size) {
     ctx.font = `bold ${Math.round(cell * 0.2)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -3433,6 +3446,23 @@ function itemSprite(k, of) {
   if (k === 'bag' && of) { g.fillStyle = ITEMS[of].c[0]; g.fillRect(6, 9, 4, 3); g.fillStyle = ITEMS[of].c[1]; g.fillRect(6, 12, 4, 1); }   // 中身の色
   if (k === 'bag') { g.fillStyle = line; g.fillRect(5, 5, 6, 1); }   // 袋のひも
   SPR_CACHE.set(id, c2);
+  return c2;
+}
+// くっついた山の絵（FPSが保てない時だけ使う）：資源の絵を重ねて作り、種類×大きさごとに1回だけ作って取っておく
+const CLUMP_CACHE = new Map();
+function clumpSprite(k, n) {
+  const b = n >= 100 ? 2 : n >= 30 ? 1 : 0, id = k + ':' + b;
+  if (CLUMP_CACHE.has(id)) return CLUMP_CACHE.get(id);
+  const c2 = document.createElement('canvas'); c2.width = c2.height = 48;
+  const g = c2.getContext('2d'); g.imageSmoothingEnabled = false;
+  const num = [10, 22, 40][b], hgt = [0.35, 0.6, 0.9][b], spr = itemSprite(k);
+  let seed = 7; const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+  for (let i = 0; i < num; i++) {   // 下から積む（山の形：上ほど細い）
+    const yv = Math.pow(rnd(), 1.4) * hgt, half = (1 - yv / Math.max(hgt, 0.01) * 0.7) * 0.42;
+    const px = 24 + (rnd() * 2 - 1) * half * 48, py = 44 - yv * 40;
+    g.drawImage(spr, Math.round(px - 8), Math.round(py - 8), 16, 16);
+  }
+  CLUMP_CACHE.set(id, c2);
   return c2;
 }
 function drawItemShape(it, x, y, scale) {
@@ -4755,7 +4785,7 @@ resize();
 resetCam();
 showTitle();
 window.__game = { // 動作確認用
-  get S() { return S; }, TUNE, OFFICE_LV, AI_W, BELT_CAP, row, canPlaceAt, officeUp, buyFork, finishResearch, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
+  get S() { return S; }, TUNE, OFFICE_LV, AI_W, BELT_CAP, fpsCtl, row, canPlaceAt, officeUp, buyFork, finishResearch, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
   setTool: t => setTool(t), setDir: d => { dir = d; }, pause: () => { running = false; },
   checkStage, resAvail, buildCost, allResIds, resDef, autoSave, catchUp, showTitle, leaveTitle, autoPlay, autoStep, workNeed,
   deserialize, serialize, newGame: () => newGame(), aiLearn, autoPlan, AUTO_LINES, autoDiagnose, setLive: v => { autoLive = v; showAiLog(); }, setAutoBuild: v => { autoBuild = v; }, fmt, itemVal, placePend, priceUp, lvVal, lvCost, catalogIds,
