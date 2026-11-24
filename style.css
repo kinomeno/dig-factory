@@ -450,3 +450,5 @@ body.tut #dash, body.tut #catBar, body.tut #menuBtn, body.tut #subMenu, body.tut
 #tutArrow { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 40; pointer-events: none; }
 #tutArrow[hidden] { display: none; }
 #tutText { white-space: pre-line; }
+/* v0.68 英語の時、下のタブの文字を少し小さく（Upgrade などが切れないように） */
+html[lang="en"] #dash .dtab b { font-size: 11.5px; letter-spacing: 0; padding-left: 2px; }
