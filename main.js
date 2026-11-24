@@ -3172,6 +3172,16 @@ function drawBeltCell(x, y, s, speed, ghost, c, r) {
     ctx.drawImage(CURVE_FRAMES[f], -cell / 2, -cell / 2, cell, cell);
     ctx.restore();
   } else drawConvSprite(x, y, s.dir, speed);
+  if (s.type === 'sort') {   // 振り分ける側へ流れる部分：真ん中を先にして、出す側の端に向かって広がる三角形に、横向きのコンベアを描く
+    const sd = s.side === 'left' ? CCW[s.dir] : CW[s.dir], [sx, sy] = DIRS[sd], h = cell * 0.46, cx = x + cell / 2, cy = y + cell / 2;
+    ctx.save(); ctx.beginPath();
+    ctx.moveTo(cx - sx * cell * 0.04, cy - sy * cell * 0.04);                    // 真ん中（先）
+    ctx.lineTo(cx + sx * cell / 2 - sy * h, cy + sy * cell / 2 - sx * h);         // 出す側の端
+    ctx.lineTo(cx + sx * cell / 2 + sy * h, cy + sy * cell / 2 + sx * h);
+    ctx.closePath(); ctx.clip();
+    drawConvSprite(x, y, sd, speed);
+    ctx.restore();
+  }
   if (s.type === 'cross') { ctx.save(); ctx.globalAlpha = 0.7; drawConvSprite(x, y, CW[s.dir], speed); ctx.restore(); }
   if (s.type === 'sort') { ctx.strokeStyle = THEME.sortLine; ctx.lineWidth = Math.max(1.5, cell * 0.05); ctx.strokeRect(x + 1.5, y + 1.5, cell - 3, cell - 3); }
   if (s.type === 'tee') { drawChevron(x, y, CCW[s.dir], THEME.arrow); drawChevron(x, y, CW[s.dir], THEME.arrow); }
