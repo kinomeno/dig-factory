@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.56（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.57（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.56';
+const VERSION = '0.57';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -2026,7 +2026,7 @@ function apply(c, r, dragging) {
   if (isDrillTool(tool) && !dragging) { openPop({ type: 'pend', c, r, dir: 'down', tid: tool }); return; }   // ドリル：仮置き → 向きを選んで「設置する」
   if (!dragging && (tool === 'machine' || tool === 'sort' || tool === 'tee' || tool === 'cross')) {   // 機械・仕分けなども：仮置き → 向き・選ぶ資源 → 「設置する」
     const pdir0 = s && s.dir && s.type !== 'drill' ? s.dir : dir;
-    openPop({ type: 'pend', c, r, dir: pdir0, tid: toolId(), filter: s && s.type === 'sort' ? s.filter : 'iron', side: s && s.type === 'sort' ? s.side : 'left' });
+    openPop({ type: 'pend', c, r, dir: pdir0, tid: toolId(), filter: s && s.type === 'sort' ? s.filter : (sortChoices('')[0] || 'soil'), side: s && s.type === 'sort' ? s.side : 'left' });
     return;
   }
   const pdir = s && s.dir && s.type !== 'drill' && !dragging ? s.dir : dir;   // 上書きは、下の物と同じ向きで置く
@@ -2203,7 +2203,7 @@ function buildPop() {
     $('popFilterRow').hidden = $('popSideRow').hidden = t.tid !== 'sort';
     if (t.tid === 'sort') {
       const box = $('popFilters'); box.innerHTML = '';
-      for (const k of ITEM_ORDER) { const b = document.createElement('button'); b.dataset.pf = k; b.textContent = T.items[k]; b.addEventListener('click', () => { if (popTarget) { popTarget.filter = k; updatePop(); } }); box.append(b); }
+      for (const k of sortChoices(t.filter)) { const b = document.createElement('button'); b.dataset.pf = k; b.textContent = T.items[k]; b.addEventListener('click', () => { if (popTarget) { popTarget.filter = k; updatePop(); } }); box.append(b); }
     }
     $('popDirs').hidden = false; $('popInfo').hidden = false; $('popInfo').innerText = drillP ? T.pendNote : T.pendNote2;
     document.querySelector('#pop [data-pdir=up]').hidden = drillP;
@@ -2235,7 +2235,7 @@ function buildPop() {
   $('popRemove').hidden = isTruck || isFork;
   if (!isTruck && t.type === 'sort') {
     const box = $('popFilters'); box.innerHTML = '';
-    for (const k of ITEM_ORDER) {
+    for (const k of sortChoices(t.filter)) {
       const b = document.createElement('button'); b.dataset.pf = k; b.textContent = T.items[k];
       b.addEventListener('click', () => { if (popTarget) { popTarget.filter = k; updatePop(); } });
       box.append(b);
@@ -2766,6 +2766,8 @@ function showInfoTab(id) {
 function openInfo(id) { openCat = null; renderSub(); closePanels(); closePop(); showInfoTab(id); $('info').hidden = false; renderInfo(); updateUI(); }
 document.querySelectorAll('[data-itab]').forEach(b => b.addEventListener('click', () => { showInfoTab(b.dataset.itab); updateUI(); }));
 // 商品カタログ：今つくれる・売れる物（原料は出る段階、製品は研究した機械）と、説明・今の売値
+// 仕分けで選べる資源：今手に入る物だけ（カタログと同じ）。今選んでいる物は残す
+const sortChoices = cur => { const ids = catalogIds(); return ITEM_ORDER.filter(k => ids.includes(k) || k === cur || (k === 'bag' && S.unlock.bagger)); };
 function catalogIds() {
   const have = new Set(['soil']);
   if (S.stage >= 2) { have.add('stone'); have.add('iron'); }
