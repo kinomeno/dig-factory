@@ -391,3 +391,6 @@ body.dash #info .itabs { display: none; }
 #awayMsg { white-space: pre-line; }
 #aiTime { display: block; width: 100%; font-size: 10px; line-height: 1.45; color: #4a4a50; letter-spacing: .02em; margin-top: 2px; }
 #aiTime:empty { display: none; }
+/* v0.49 FPS（右上に小さく） */
+#fpsHud { position: fixed; z-index: 12; top: calc(var(--hdr) + 6px); right: 10px; pointer-events: none; font-size: 10px; color: #4a4a50; text-shadow: 0 0 2px #fff, 0 0 2px #fff; font-variant-numeric: tabular-nums; }
+body.title #fpsHud { display: none; }

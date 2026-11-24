@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.48（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.49（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.48';
+const VERSION = '0.49';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -71,8 +71,8 @@ const HIRE_FEE_X = 2;          // 契約金＝給料×2
 // val/cost の表を使い切ったら、vg（力）・cg（値段）の倍率で伸び続ける。cap＝上限
 const LV = {
   drill:   { v0: 0.5, vg: 1.35, c0: 80, cg: 1.9, cap: 80 },                                   // 1回で削る力
-  belt:    { val: [0.8, 1.1, 1.5, 2, 2.6, 3.3, 4.2, 5.2], cost: [10, 25, 60, 150, 350, 800, 1800] }, // コンベアの速さ（マス/秒）。最後の2段はスキル「コンベア最高速アップ」で解禁
-  machine: { v0: 1, vg: 1.3, c0: 100, cg: 2.5, cap: 80 },   // 強化の値段は1レベルごとに2.5倍（作った物の売値は1.5倍ずつ上がるので、伸びすぎないように）                                    // 加工の速さ（倍）
+  belt:    { val: [0.8, 1.1, 1.5, 2.1, 3], cost: [10, 40, 200, 5000] },   // コンベアの速さ（マス/秒）。Lv1〜5。最後（Lv5＝乗る数が無制限）はとても高い
+  machine: { v0: 1, vg: 1.3, c0: 100, cg: 2.5, cap: 5 },   // レベルアップは5回まで（強化だけで解決しないように。効率化・施設を生かす余地を残す）   // 強化の値段は1レベルごとに2.5倍（作った物の売値は1.5倍ずつ上がるので、伸びすぎないように）                                    // 加工の速さ（倍）
   truck:   { val: [2, 4, 7, 12, 20, 32, 50, 80], vg: 1.5, cost: [30, 80, 200, 450, 1000, 2000, 4000], cg: 2.1, cap: 80 },   // 積める数（最初は2個だけ）
   fork:    { val: [1, 2, 4, 7, 11, 16, 24], vg: 1.45, cost: [40, 120, 300, 700, 1500, 3200], cg: 2.1, cap: 80 },          // フォークリフトの積める数（最初は1個・速さも上がる）
 };
@@ -601,7 +601,7 @@ const TXT_ADD = {
     aiTruck: n => `トラックをレベル${n}に`, aiForkBuy: 'フォークリフトを買った', aiFork: 'フォークリフトを強化', aiDrill: 'ドリルを増やした',
     aiDrillUp: 'ドリルを強化', aiTurn: '止まったドリルを横に向けた', aiMach: n => `${n}を振り分けで設置`, aiMachUp: '機械を強化',
     aiPrice: n => `${n}の売値アップ`, aiPipe: '湧き口をパイプでつないだ', aiFac: n => `${n}を建てた`,
-    aiRemove: '掘れないドリルを撤去した', aiUnsort: 'もっと良い使い道があるので、仕分けを外した', forkSpd: '走る速さ', valueUp: '作った物の売値',
+    aiRemove: '掘れないドリルを撤去した', aiUnsort: 'もっと良い使い道があるので、仕分けを外した', forkSpd: '走る速さ', valueUp: '作った物の売値', beltCapT: '1マスに乗る数', fpsCap: n => `資源はマスごとに${n}個まで描く`, beltInf: '無制限', beltN: n => `${n}個`,
     aiFail: c => `失敗：銀行の融資を受けた（${c}）`, aiFailRun: n => `融資を${n}回受けました（失敗）。管理メニュー「AIの失敗記録」に原因があります`,
     aiCause: { noDrill: 'ドリルが無い', drillStop: 'ドリルが全部止まっている', noWorker: '作業員がいない', yard: 'ヤードが山（トラック不足）', dock: '荷おろし場が山（フォークリフト不足）', jam: '地下で資源が詰まっている', noSale: '売上が無い', spend: 'お金の使いすぎ' },
     live10: '+10分', live60: '+60分',
@@ -675,7 +675,7 @@ const TXT_ADD = {
     aiTruck: n => `Truck to level ${n}`, aiForkBuy: 'Bought a forklift', aiFork: 'Upgraded a forklift', aiDrill: 'Added a drill',
     aiDrillUp: 'Upgraded drills', aiTurn: 'Turned a stuck drill', aiMach: n => `Placed ${n} with a sorter`, aiMachUp: 'Upgraded machines',
     aiPrice: n => `${n} price up`, aiPipe: 'Piped a source', aiFac: n => `Built ${n}`,
-    aiRemove: 'Removed a drill that could not dig', aiUnsort: 'Removed a sorter (found a better use)', forkSpd: 'Speed', valueUp: 'Product value',
+    aiRemove: 'Removed a drill that could not dig', aiUnsort: 'Removed a sorter (found a better use)', forkSpd: 'Speed', valueUp: 'Product value', beltCapT: 'Items per cell', fpsCap: n => `drawing up to ${n} items per cell`, beltInf: 'Unlimited', beltN: n => `${n}`,
     aiFail: c => `Failed: took a bank loan (${c})`, aiFailRun: n => `Took ${n} bank loan(s) (failure). See Admin > AI failure log`,
     aiCause: { noDrill: 'no drill', drillStop: 'all drills stopped', noWorker: 'no workers', yard: 'yard piled up (truck too small)', dock: 'docks piled up (forklifts)', jam: 'items jammed underground', noSale: 'no sales', spend: 'overspending' },
     live10: '+10 min', live60: '+60 min',
@@ -764,7 +764,9 @@ const grpOf = s => (s === 'truck' ? 'truck' : s.type === 'fork' ? 'fork' : s.typ
 const lvOf = s => (s === 'truck' ? S.truck.lv : s.lv);
 const valOf = s => lvVal(grpOf(s), lvOf(s));
 const sk = id => (S.skills[id] || 0);
-const lvCap = g => (g === 'belt' ? 5 + sk('beltMax') : LV[g].cap);   // レベルの上限
+const lvCap = g => (g === 'belt' ? BELT_CAP.length - 1 : LV[g].cap);   // レベルの上限
+const BELT_CAP = [1, 2, 5, 10, Infinity];   // コンベア1マスに同時に乗る数（レベルごと。最大レベルは無制限）
+const beltCap = s => BELT_CAP[Math.min(s.lv || 0, BELT_CAP.length - 1)];
 // 時間の速さ：最初は×1だけ。スキルで増える（管理メニューの×16はテスト用）
 function speeds() { const a = autoLive ? [1, 2, 4, 8] : [1, 2, 4, 8].slice(0, 1 + sk('speed')); if (S.adminFast || autoLive) a.push(16); return a; }   // 自動プレイ（見る）の間は16倍まで
 const drainMul = () => [1, 0.75, 0.5][sk('welfare')];                         // 福利厚生：疲れにくい
@@ -913,6 +915,7 @@ const RES_STAGE = { 'sk:away': 2, 'sk:land': 2, 'm:smelter': 3, 't:tee': 3, 'sk:
 const SK_STAGE = { speed: [3, 7, 9], welfare: [3, 7], hr: [4, 7], beltMax: [8, 9] };   // 段ごとに出てくる段階
 function resAvail(id) {
   if (id === 'sk:digLv') return sk('digLv') < S.stage;   // 次の岩盤のぶんだけ研究できる
+  if (id === 'sk:beltMax') return false;   // v0.49：コンベアはLv5まで（この研究は無くなった）
   if (id.startsWith('sk:')) { const k2 = id.slice(3), a = SK_STAGE[k2]; if (a) return S.stage >= a[Math.min(sk(k2), a.length - 1)]; }
   return S.stage >= (RES_STAGE[id] || 1);
 }
@@ -1006,7 +1009,16 @@ function updateMachines(dt) {
 // 機械の中を通り抜け中の数（混みすぎたら、それ以上は入れない）
 // 数は刻みごとに1回だけ数えて覚えておく（資源が多い時も重くならない）。入った分はその場で足す
 let thruMap = new Map();
-function countThru() { thruMap = new Map(); for (const it of S.items) if (it.thru) { const k = key(Math.floor(it.x), Math.floor(it.y)); thruMap.set(k, (thruMap.get(k) || 0) + 1); } }
+let beltN = new Map();   // コンベアのマスごとの、乗っている資源の数
+function countThru() {
+  thruMap = new Map(); beltN = new Map();
+  for (const it of S.items) {
+    const k = key(Math.floor(it.x), Math.floor(it.y));
+    if (it.thru) thruMap.set(k, (thruMap.get(k) || 0) + 1); else beltN.set(k, (beltN.get(k) || 0) + 1);
+  }
+}
+// あふれたコンベア：乗る数を超えた割合で、運ぶ速さがとても遅くなる（0にはしない）
+function beltSlow(s, k) { const cap = beltCap(s), n = beltN.get(k) || 0; return n <= cap ? 1 : Math.max(0.02, Math.pow(cap / n, 3)); }
 const thruIn = (c, r) => thruMap.get(key(c, r)) || 0;
 const thruAdd = (c, r) => thruMap.set(key(c, r), thruIn(c, r) + 1);
 const THRU_MAX_ = () => TUNE.thruMax;
@@ -1282,7 +1294,7 @@ function updateItems(dt) {
     }
     it.vy = 0;
     it.ps = valOf(s);
-    const v = valOf(s) * it.spd * dt * TUNE.belt;
+    const v = valOf(s) * it.spd * dt * TUNE.belt * beltSlow(s, k);
     let md = s.dir;
     if (s.type === 'cross') md = it.cd || s.dir;            // 交差：入ってきた向きのまま抜ける
     if (s.type === 'tee') {                                  // T字路：真ん中で左右どちらかへ（ランダム）
@@ -1563,7 +1575,11 @@ function deserialize(json) {
   }
   // 古いセーブへの対応
   d.lab = d.lab || { type: 'lab', built: false, op: null };
-  if (d.office && d.office.lv >= 1) { d.skills = d.skills || {}; d.skills.digLv = Math.max(d.skills.digLv || 0, 1); }   // v0.44：会社レベル2なら岩盤Lv0は破れる
+  if (d.office && d.office.lv >= 1) { d.skills = d.skills || {}; d.skills.digLv = Math.max(d.skills.digLv || 0, 1); }
+  for (const s2 of d.st.values()) {   // v0.49：レベルの上限が変わった（機械5・横穴3・コンベア4＝Lv5）
+    if (s2.type === 'machine') s2.lv = Math.min(s2.lv || 0, MACHINES[s2.m] && MACHINES[s2.m].src ? ADIT_MAX : LV.machine.cap);
+    if (isBelt(s2)) s2.lv = Math.min(s2.lv || 0, BELT_CAP.length - 1);
+  }   // v0.44：会社レベル2なら岩盤Lv0は破れる
   if (d.lab.built && d.lab.c === undefined) d.lab.c = OFFICE_C + 2;   // v0.17のセーブ（予定地に建っていた）
   d.unlock = d.unlock || Object.fromEntries(MACHINE_ORDER.map(m => [m, true]));
   for (const f of d.forks) { f.type = 'fork'; f.lv = f.lv || 0; f.op = f.op || null; }
@@ -2206,6 +2222,7 @@ function updatePop() {
   $('popInfo').innerText = info;
   const g = grpOf(t), lv = lvOf(t), cost = nextCost(t), unit = T.pwUnit[g];
   $('popLevel').textContent = `${T.lv(lv + 1)}　${T.pw[g]} ${unit(lvVal(g, lv))}` + (cost !== null ? ` → ${unit(lvVal(g, lv + 1))}` : '')
+    + (g === 'belt' ? `\n${T.beltCapT} ${capTxt(BELT_CAP[lv])}` + (cost !== null ? ` → ${capTxt(BELT_CAP[lv + 1])}` : '') : '')
     + (g === 'machine' && t.m && !MACHINES[t.m].src ? `\n${T.valueUp} ×${fmtMul(valueMul({ lv }))}` + (cost !== null ? ` → ×${fmtMul(valueMul({ lv: lv + 1 }))}` : '') : '')
     + (g === 'fork' ? `\n${T.forkSpd} ×${(forkSpeed(lv) / forkSpeed(0)).toFixed(2)}` + (cost !== null ? ` → ×${(forkSpeed(lv + 1) / forkSpeed(0)).toFixed(2)}` : '') : '');
   const btn = $('popLvUp'); btn.innerHTML = '';
@@ -2946,9 +2963,22 @@ function draw() {
   drawDock();
   drawYardCount();
 
+  // 資源：マスごとに描く数を fpsCtl.cap までにする（重い時は減らす）。描かなかった分は「×数」で出す
+  const drawn = new Map(), over = new Map();
   for (const it of S.items) {
     if (it.y < r0 || it.y > r1 + 1) continue;
+    const ck = key(Math.floor(it.x), Math.floor(it.y)), n = (drawn.get(ck) || 0) + 1;
+    drawn.set(ck, n);
+    if (n > fpsCtl.cap) { over.set(ck, n); continue; }
     drawItemShape(it, it.x * cell, it.y * cell, 1);
+  }
+  if (over.size) {
+    ctx.font = `bold ${Math.round(cell * 0.2)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const [ck, n] of over) {
+      const tx2 = cOf(ck) * cell + cell / 2, ty2 = rOf(ck) * cell + cell * 0.22;
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.strokeText('×' + n, tx2, ty2);
+      ctx.fillStyle = '#2b2b2e'; ctx.fillText('×' + n, tx2, ty2);
+    }
   }
 
   for (const [k, s] of S.st) {
@@ -4306,7 +4336,7 @@ function autoAdit(drills) {
 }
 // AIのお金の使い方（試走で「24・60・120か月後の資金」が大きくなるように調整する重み）
 // 数字＝「値段の何倍のお金があったら買うか」。大きいほど慎重
-const AI_W = { hire: 100, office: 1.6, office0: 1.2, drill: 2, mach: 3, price: 3, resPad: 300, truck: 1.3, fork: 1.3,
+const AI_W = { belt: 1.5, hire: 100, office: 1.6, office0: 1.2, drill: 2, mach: 3, price: 3, resPad: 300, truck: 1.3, fork: 1.3,
   save: 0.5, gate: 1, mq: 1 };   // mq＝機械を強化する時の、順番待ちの数の下限   // save＝次の会社レベルの値段の何割を残しておくか／gate＝1なら、効く時だけ強化（機械は順番待ちがたまっている・ドリルは運ぶ所が空いている）
 const AI_SKIP = new Set(['sk:speed', 'sk:dragPlus', 'sk:away']);   // 稼ぎに関係しない研究（画面の速さ・操作・放置時間）はAIは買わない
 const aiResRank = id => (id === 'sk:digLv' ? 0 : id === 'm:adit' ? 1 : 2);
@@ -4347,6 +4377,9 @@ function autoStep(build = true) {
   const can = c => c !== null && S.money - c >= keep;
   const queue = m => Object.values(m.buf || {}).reduce((a, v) => a + v, 0) + Object.values(m.bags || {}).reduce((a, v) => a + v, 0);
   const flowOk = S.yard.length <= valOf('truck') * 2 && dockN <= 6 && S.items.length < 60;
+  // あふれているコンベア（乗る数を超えている）を、混んでいる所から強化する
+  const jam = [...S.st.entries()].filter(([k2, b]) => isBelt(b) && (beltN.get(k2) || 0) > beltCap(b)).sort((a, b) => (beltN.get(b[0]) || 0) - (beltN.get(a[0]) || 0));
+  for (const [, b] of jam.slice(0, 6)) { const c = nextCost(b); if (c !== null && S.money > c * W.belt * R) levelUp(b); }
   for (const [, d] of drills) { const c = nextCost(d); if (c !== null && S.money > c * W.drill * R && can(c) && (!W.gate || flowOk)) levelUp(d); }
   for (const [, m] of machines) { const c = nextCost(m); if (c !== null && S.money > c * W.mach * R && can(c) && (MACHINES[m.m].src || !W.gate || queue(m) >= W.mq)) levelUp(m); }   // 横穴は順番待ちが無いので、いつでも
   for (const r of ROOT_ORDER) if (S.sold['@' + r] && S.money > priceCost(r) * W.price * R && can(priceCost(r))) priceUp(r);
@@ -4391,6 +4424,7 @@ function autoStep(build = true) {
 }
 let autoBusy = false, autoBuild = true, autoLive = false, liveT = 0;
 // 実際に遊ぶと何日何時間かかるか（ゲームの時間＝×1で遊んだ時間。研究の倍速なら、その分短い）
+const capTxt = n => (n === Infinity ? tx().beltInf : tx().beltN(n));
 const fmtMul = v => (v < 100 ? (Math.round(v * 100) / 100).toString() : fmt(Math.round(v)));
 function realDur(sec) {
   const T = tx(), m = Math.round(sec / 60), d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60), mm = m % 60;
@@ -4495,10 +4529,21 @@ function showNotice(text, mood) {
 }
 $('live10').addEventListener('click', () => { if (!autoBusy) autoPlay(10); });
 $('live60').addEventListener('click', () => { if (!autoBusy) autoPlay(60); });
+// ---- FPS：測って表示する。目標（50f/s）を下回ったら、マスごとに描く資源の数を減らす（計算は変えない） ----
+const fpsCtl = { fps: 60, cap: 30, t: 0 };
+function fpsTick(dt) {
+  if (dt > 0) fpsCtl.fps = fpsCtl.fps * 0.95 + (1 / dt) * 0.05;
+  fpsCtl.t += dt; if (fpsCtl.t < 0.5) return;
+  fpsCtl.t = 0;
+  if (fpsCtl.fps < 45) fpsCtl.cap = Math.max(3, Math.floor(fpsCtl.cap * 0.7));
+  else if (fpsCtl.fps > 55) fpsCtl.cap = Math.min(30, fpsCtl.cap + 1);
+  $('fpsHud').textContent = `${Math.round(fpsCtl.fps)} f/s` + (fpsCtl.cap < 30 ? ` ・${tx().fpsCap(fpsCtl.cap)}` : '');
+}
 // ---- ループ ----
 let last = performance.now(), panelTick = 0;
 function frame(now) {
   const dt = Math.min(now - last, 250) / 1000; last = now;
+  fpsTick(dt);
   const sp = speeds(); if (speedIdx >= sp.length) speedIdx = sp.length - 1;
   if (running && !inTitle) {
     const gdt = dt * sp[speedIdx] * (Date.now() < S.boost.speedUntil ? 10 : 1);
@@ -4530,7 +4575,7 @@ resize();
 resetCam();
 showTitle();
 window.__game = { // 動作確認用
-  get S() { return S; }, TUNE, OFFICE_LV, AI_W, row, canPlaceAt, officeUp, buyFork, finishResearch, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
+  get S() { return S; }, TUNE, OFFICE_LV, AI_W, BELT_CAP, row, canPlaceAt, officeUp, buyFork, finishResearch, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
   setTool: t => setTool(t), setDir: d => { dir = d; }, pause: () => { running = false; },
   checkStage, resAvail, buildCost, allResIds, resDef, autoSave, catchUp, showTitle, leaveTitle, autoPlay, autoStep, workNeed,
   deserialize, serialize, newGame: () => newGame(), aiLearn, autoPlan, AUTO_LINES, autoDiagnose, setLive: v => { autoLive = v; showAiLog(); }, setAutoBuild: v => { autoBuild = v; }, fmt, itemVal, placePend, priceUp, lvVal, lvCost, catalogIds,
