@@ -607,9 +607,9 @@ const TXT_ADD = {
     live10: '+10分', live60: '+60分',
     dur: (d, h, m) => (d ? `${d}日` : '') + (d || h ? `${h}時間` : '') + `${m}分`,
     playTime: (mo, x1, others) => `ここまで：ゲーム内${mo}か月＝実際に遊ぶと ×1で${x1}（${others}）`,
-    aditRule: 'その深さの資源が出続ける（岩盤と岩盤の間に1つ）', aiAdit: '横穴掘削口を置いた',
+    aditRule: 'その深さの資源が出続ける（岩盤と岩盤の間に1つ・レベルアップは3回まで）', aiAdit: '横穴掘削口を置いた',
     lv0Open: '会社レベル2：岩盤Lv0（5m）を破れるようになりました',
-    aditHelp: ['横穴掘削口', '研究所で研究すると置けます（段階2から）。置いた深さの資源（掘った時と同じ出方）が、前から出続けます。掘り進めない代わりに、ずっと出ます。\n岩盤と岩盤の間（5〜10m、10〜20m…）に1つずつ置けます。作業員がつくと速くなり、レベルも上げられます。掘削レベルが足りずにドリルが岩盤で止まっている間の稼ぎに。'],
+    aditHelp: ['横穴掘削口', '研究所で研究すると置けます（段階2から）。置いた深さの資源（掘った時と同じ出方）が、前から出続けます。掘り進めない代わりに、ずっと出ます。\n岩盤と岩盤の間（5〜10m、10〜20m…）に1つずつ置けます。作業員がつくと速くなり、レベルも3回まで上げられます。掘削レベルが足りずにドリルが岩盤で止まっている間の稼ぎに。'],
     items: { tile: 'タイル', glossTile: 'つやタイル', wire: 'ワイヤー', goldleaf: '金箔', decoIron: '高級装飾品（鉄）', decoGold: '高級装飾品（金）' },
     mach: { drawer: '伸線機', atelier: '装飾工房', adit: '横穴掘削口' }, glyph: { drawer: '伸', atelier: '飾', adit: '横' },
     adm: { diary: '制作日誌', failLog: 'AIの失敗記録', failNone: 'AIの失敗記録はまだありません（自動プレイで銀行の融資を受けると、ここに原因が残ります）',
@@ -2002,7 +2002,9 @@ function spillMachine(m, c, r) {
   }
   for (const k2 of out) spawnItem(k2, c + 0.5, r + 0.5, c, r);
 }
-function nextCost(t) { const g = grpOf(t), lv = lvOf(t); return lv < lvCap(g) ? lvCost(g, lv) : null; }
+const ADIT_MAX = 3;   // 横穴掘削口はレベルアップ3回まで
+const capOf = t => (t !== 'truck' && t.type === 'machine' && MACHINES[t.m].src ? ADIT_MAX : lvCap(grpOf(t)));
+function nextCost(t) { const g = grpOf(t), lv = lvOf(t); return lv < capOf(t) ? lvCost(g, lv) : null; }
 function posOf(t) { if (t === 'truck') return [BED + 0.5, YARD_R]; if (t.type === 'fork') return [t.x, YARD_R]; const k = findKey(t); return [cOf(k) + 0.5, rOf(k) + 0.3]; }
 function levelUp(t) {
   const cost = nextCost(t);
@@ -2525,7 +2527,7 @@ function renderPanel(id) {
     const add = (label, f) => { const b = document.createElement('button'); b.textContent = label; b.addEventListener('click', () => { f(); updateUI(); }); box.append(b); };
     add(A.m1, () => { S.money += 1000; });
     add(A.m10, () => { S.money += 10000; });
-    add(A.maxLv, () => { for (const s of S.st.values()) s.lv = Math.min(lvCap(grpOf(s)), s.lv + 5); S.truck.lv = Math.min(lvCap('truck'), S.truck.lv + 5); for (const f2 of S.forks) f2.lv += 5; });
+    add(A.maxLv, () => { for (const s of S.st.values()) s.lv = Math.min(capOf(s), s.lv + 5); S.truck.lv = Math.min(lvCap('truck'), S.truck.lv + 5); for (const f2 of S.forks) f2.lv += 5; });
     add(A.ace, () => { addWorker(5); });
     add(A.month, () => { S.time = (Math.floor(S.time / TUNE.month) + 1) * TUNE.month; updateMonth(); });
     add(A.fast, () => { S.adminFast = true; speedIdx = speeds().length - 1; });
