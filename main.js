@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.59（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.60（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.59';
+const VERSION = '0.60';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 const FEEDBACK_URL = '';   // ご意見フォーム（Googleフォームなど）。決まったらここに入れる。空の間は「準備中」
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -3571,6 +3571,18 @@ const workerFrames = col => WORKER_PIX.map(rows => {
 });
 const WORKER_FR = workerFrames(WORKER_COL);
 const BOSS_FR = workerFrames({ ...WORKER_COL, a: '#d8402c' });   // 社長：赤いヘルメット
+// お客さん：ヘルメットではなく髪。服と髪の色は人ごとにいろいろ（色の組み合わせごとに1回だけ作る）
+const GUEST_HAIR = ['#2b2420', '#5e4026', '#8a5a2a', '#c9a46e', '#9a9a9a', '#2a2a2a'];
+const GUEST_CLOTH = ['#d8543c', '#3f7cc4', '#e8c34a', '#5aa36a', '#9a7bd0', '#f08a3c', '#e86a8a', '#4a4a50', '#6fa9d6', '#eeeeea'];
+const GUEST_FR = new Map();
+function drawGuest(cx, footY, size, frame, car) {
+  if (car.gh === undefined) { car.gh = Math.floor(Math.random() * GUEST_HAIR.length); car.gc = Math.floor(Math.random() * GUEST_CLOTH.length); }
+  const id = car.gh + ':' + car.gc;
+  if (!GUEST_FR.has(id)) GUEST_FR.set(id, workerFrames({ ...WORKER_COL, a: GUEST_HAIR[car.gh], c: GUEST_CLOTH[car.gc] }));
+  ctx.save(); ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(GUEST_FR.get(id)[frame], Math.round(cx - size / 2), Math.round(footY - size), size, size);
+  ctx.restore();
+}
 // 社長の横幅：画面の本当のドット単位で、じわじわ広がる
 const bossW = size => { const dpr = window.devicePixelRatio || 1; return Math.round(size * (1 + (S.bossFat || 0)) * dpr) / dpr; };
 function drawWorkerSprite(cx, footY, size, frame, alpha, boss) {
@@ -3938,7 +3950,7 @@ function drawFacs() {
     ctx.fillStyle = '#2b2b2e'; ctx.fillRect(cx + w * 0.12, by - h * 0.42, w * 0.2, h * 0.42); ctx.fillRect(cx + w * 0.66, by - h * 0.42, w * 0.2, h * 0.42);
     if (car.st === 'walkIn' || car.st === 'walkOut') {   // 車と入口の間を歩く人
       const p = car.st === 'walkIn' ? car.t / 0.8 : 1 - car.t / 0.8, px = (car.x + 0.62 + (car.f + 0.55 - car.x - 0.62) * p) * cell;
-      drawWorkerSprite(px, (YARD_R + 0.95) * cell, Math.round(cell * 0.4), Math.floor(S.time * 6) % 2, 1);
+      drawGuest(px, (YARD_R + 0.95) * cell, Math.round(cell * 0.4), Math.floor(S.time * 6) % 2, car);   // お客さん（ヘルメットなし・服と髪はいろいろ）
     }
   }
 }
