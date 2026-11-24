@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.50（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.51（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.50';
+const VERSION = '0.51';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -601,7 +601,13 @@ const TXT_ADD = {
     aiTruck: n => `トラックをレベル${n}に`, aiForkBuy: 'フォークリフトを買った', aiFork: 'フォークリフトを強化', aiDrill: 'ドリルを増やした',
     aiDrillUp: 'ドリルを強化', aiTurn: '止まったドリルを横に向けた', aiMach: n => `${n}を振り分けで設置`, aiMachUp: '機械を強化',
     aiPrice: n => `${n}の売値アップ`, aiPipe: '湧き口をパイプでつないだ', aiFac: n => `${n}を建てた`,
-    aiRemove: '掘れないドリルを撤去した', aiUnsort: 'もっと良い使い道があるので、仕分けを外した', forkSpd: '走る速さ', valueUp: '作った物の売値', beltCapT: '1マスに乗る数', fpsCap: n => `資源はマスごとに${n}個まで描く`, beltInf: '無制限', beltN: n => `${n}個`,
+    aiRemove: '掘れないドリルを撤去した', aiUnsort: 'もっと良い使い道があるので、仕分けを外した', forkSpd: '走る速さ', valueUp: '作った物の売値', beltCapT: '1マスに乗る数',
+    stageGoal: ['レンガを作る・トラックとフォークリフトを強化', '石と鉄を掘る・横穴掘削口を置く', '鉄を延べ棒にする', '延べ棒を加工する', 'ダイヤを加工する・温泉をつなぐ', 'トラックを2台にする・発電所', '石油と製油所・宝石を作る', '高級装飾品を作る', '深さの記録を伸ばす'],
+    gLine: (st, theme, next) => `段階${st}：${theme}` + (next ? `\n次へ：${next}` : ''),
+    gCompany: (n, left) => `会社レベル${n}（あと ${left}）`, gPermit: (n, left) => `会社レベル${n}（行政の許可）（あと ${left}）`,
+    gBreak: n => `岩盤Lv${n}を掘り抜く`, gResearching: '研究「掘削レベル」中', gDigRes: n => `研究「掘削レベル」（岩盤Lv${n}）`, gLab: '研究所を建てる（施設）',
+    permitBtn: n => `行政の許可待ち（会社レベル${n}）`, permitMsg: n => `この深さの掘削には、行政の許可が要ります（会社レベル${n}）`,
+    facEmpty: '研究所で「温泉」「発電所」（段階5）・「製油所」（段階7）を研究すると、ここから地上に建てられます。', fpsCap: n => `資源はマスごとに${n}個まで描く`, beltInf: '無制限', beltN: n => `${n}個`,
     aiFail: c => `失敗：銀行の融資を受けた（${c}）`, aiFailRun: n => `融資を${n}回受けました（失敗）。管理メニュー「AIの失敗記録」に原因があります`,
     aiCause: { noDrill: 'ドリルが無い', drillStop: 'ドリルが全部止まっている', noWorker: '作業員がいない', yard: 'ヤードが山（トラック不足）', dock: '荷おろし場が山（フォークリフト不足）', jam: '地下で資源が詰まっている', noSale: '売上が無い', spend: 'お金の使いすぎ' },
     live10: '+10分', live60: '+60分',
@@ -675,7 +681,13 @@ const TXT_ADD = {
     aiTruck: n => `Truck to level ${n}`, aiForkBuy: 'Bought a forklift', aiFork: 'Upgraded a forklift', aiDrill: 'Added a drill',
     aiDrillUp: 'Upgraded drills', aiTurn: 'Turned a stuck drill', aiMach: n => `Placed ${n} with a sorter`, aiMachUp: 'Upgraded machines',
     aiPrice: n => `${n} price up`, aiPipe: 'Piped a source', aiFac: n => `Built ${n}`,
-    aiRemove: 'Removed a drill that could not dig', aiUnsort: 'Removed a sorter (found a better use)', forkSpd: 'Speed', valueUp: 'Product value', beltCapT: 'Items per cell', fpsCap: n => `drawing up to ${n} items per cell`, beltInf: 'Unlimited', beltN: n => `${n}`,
+    aiRemove: 'Removed a drill that could not dig', aiUnsort: 'Removed a sorter (found a better use)', forkSpd: 'Speed', valueUp: 'Product value', beltCapT: 'Items per cell',
+    stageGoal: ['Make bricks; upgrade the truck and forklift', 'Mine stone and iron; place an adit', 'Smelt iron into bars', 'Process the bars', 'Process diamonds; pipe the hot spring', 'Get a second truck; power plant', 'Oil and refinery; make gems', 'Make luxury ornaments', 'Push your depth record'],
+    gLine: (st, theme, next) => `Stage ${st}: ${theme}` + (next ? `\nNext: ${next}` : ''),
+    gCompany: (n, left) => `Company level ${n} (${left} to go)`, gPermit: (n, left) => `Company level ${n} (government permit) (${left} to go)`,
+    gBreak: n => `Dig through bedrock Lv${n}`, gResearching: 'Researching Dig level', gDigRes: n => `Research Dig level (bedrock Lv${n})`, gLab: 'Build the Lab (Facilities)',
+    permitBtn: n => `Needs a permit (company level ${n})`, permitMsg: n => `Digging this deep needs a government permit (company level ${n})`,
+    facEmpty: 'Research Hot spring / Power plant (stage 5) or Refinery (stage 7) at the Lab to build them on the surface here.', fpsCap: n => `drawing up to ${n} items per cell`, beltInf: 'Unlimited', beltN: n => `${n}`,
     aiFail: c => `Failed: took a bank loan (${c})`, aiFailRun: n => `Took ${n} bank loan(s) (failure). See Admin > AI failure log`,
     aiCause: { noDrill: 'no drill', drillStop: 'all drills stopped', noWorker: 'no workers', yard: 'yard piled up (truck too small)', dock: 'docks piled up (forklifts)', jam: 'items jammed underground', noSale: 'no sales', spend: 'overspending' },
     live10: '+10 min', live60: '+60 min',
@@ -908,10 +920,15 @@ function addHist(text) { S.history.push({ m: Math.floor(S.time / TUNE.month), t:
 // ---- 段階：岩盤を掘り抜いたら上がる。研究できる物が増える ----
 // 研究ごとに、出てくる段階（無い物は段階1から）
 // 段階1＝0〜5m（土だけ）・2＝5〜10m・3＝10〜20m・4＝20〜30m・5＝30〜40m・6＝40〜50m・7＝50〜60m・8＝60〜70m・9＝70m〜
+// 行政の許可：この掘削レベルにする研究には、会社レベルが要る（キー＝研究後の掘削レベル、値＝要る会社レベル）
+// 掘削レベル4＝岩盤Lv3（30m）・6＝Lv5（50m）・8＝Lv7（70m）
+const DIG_PERMIT = { 4: 3, 6: 4, 8: 5 };
+const permitNeed = () => DIG_PERMIT[sk('digLv') + 1] || 0;           // 次の掘削レベルに要る会社レベル（0＝要らない）
+const permitOk = () => S.office.lv + 1 >= permitNeed();
 const RES_STAGE = { 'sk:away': 2, 'sk:land': 2, 'm:smelter': 3, 't:tee': 3, 'sk:dragPlus': 3, 'm:bagger': 4, 'sk:yardPlus': 4,
-  'm:factory': 5, 't:cross': 5, 't:fdrill': 5, batch: 5, 't:pipe': 5, 'f:spa': 5, 'f:power': 5,
+  'm:factory': 4, 't:cross': 5, 't:fdrill': 5, batch: 5, 't:pipe': 5, 'f:spa': 5, 'f:power': 5,
   'sk:truck2': 6, 'sk:black': 6, 'sk:speeding': 6,
-  'm:washer': 7, 'm:cutter': 7, 't:adrill': 7, 'sk:veteran': 7, 'f:refinery': 7, 'm:polisher': 9, 'm:drawer': 4, 'm:atelier': 9 };
+  'm:washer': 5, 'm:cutter': 5, 't:adrill': 7, 'sk:veteran': 7, 'f:refinery': 7, 'm:polisher': 7, 'm:drawer': 4, 'm:atelier': 8 };   // v0.51：ダイヤが出たら加工できるように・段階8を埋める
 const SK_STAGE = { speed: [3, 7, 9], welfare: [3, 7], hr: [4, 7], beltMax: [8, 9] };   // 段ごとに出てくる段階
 function resAvail(id) {
   if (id === 'sk:digLv') return sk('digLv') < S.stage;   // 次の岩盤のぶんだけ研究できる
@@ -1495,6 +1512,7 @@ function startResearch(id) {
   const d = resDef(id);
   if (d.done || !resAvail(id)) return;
   if (S.research) { say(tx().busy); return; }
+  if (id === 'sk:digLv' && !permitOk()) { say(tx().permitMsg(permitNeed())); return; }   // 行政の許可がまだ
   if (S.money < d.cost) { say(tx().noMoney); return; }
   spend(d.cost, labC() + 0.5, YARD_R);
   S.research = { id, t: 0, total: d.months * TUNE.month };
@@ -2357,6 +2375,7 @@ function renderSub() {
     const list = document.createElement('div'); list.className = 'types';
     const ids = openCat === 'works' ? ['dig', 'remove'] : facTools();
     for (const id of ids) list.append(toolBtn(id));
+    if (!ids.length) { const n = document.createElement('div'); n.className = 'sub'; n.textContent = T.facEmpty; list.append(n); }
     box.append(list);
   }
   box.hidden = false;
@@ -2496,6 +2515,7 @@ function renderPanel(id) {
         const title2 = id === 'sk:digLv' ? d.name + (d.lv ? T.digUpTo(d.lv - 1) : '') : d.max > 50 ? `${d.name}　Lv${d.lv}` : d.max > 1 ? `${d.name}　${d.lv}/${d.max}` : d.name;
         let btn;
         if (d.done || !resAvail(id)) { btn = document.createElement('button'); btn.textContent = d.done ? T.got : T.nextRock; btn.disabled = true; }
+        else if (id === 'sk:digLv' && !permitOk()) { btn = document.createElement('button'); btn.textContent = T.permitBtn(permitNeed()); btn.disabled = true; }
         else { btn = costBtn(`${T.startRes}（${d.months}${T.months}）`, d.cost, () => { startResearch(id); renderPanel('skillPanel'); updateUI(); }); if (S.research) btn.disabled = true; }
         box.append(rowEl(title2, d.desc, btn));
       }
@@ -3759,6 +3779,7 @@ $('curTool').addEventListener('click', () => { tool = 'none'; closePop(); update
 function updateUI() {
   const T = tx(), m = $('money');
   m.textContent = fmt(S.money); m.classList.toggle('neg', S.money < 0);
+  $('goalHud').textContent = goalText();
   const mn = S.stats.cur.sale - S.stats.cur.cost, mh = $('monthHud');   // 今月の収支（リアルタイム）
   mh.textContent = `${T.monthNet} ${mn > 0 ? '+' : ''}${fmt(mn)}`; mh.className = mn > 0 ? 'pos' : mn < 0 ? 'neg' : '';
   const month = Math.floor(S.time / TUNE.month);
@@ -3780,7 +3801,7 @@ function updateUI() {
     b.classList.toggle('open', openCat === b.dataset.cat);
   });
   // まだ使えない物は見せない（施設＝事務所レベル2から、スキル＝研究所ができてから）
-  $('facBtn').hidden = !(S.office.lv >= 1 && facTools().length);
+  $('facBtn').hidden = !(S.office.lv >= 1);   // 研究所を建てた後も出す（施設を研究するまでは説明だけ）
   $('skillBtn').hidden = !S.lab.built;
   $('tradeBtn').hidden = S.office.lv < 1;
   const curName = tool === 'none' || tool === 'pan' ? '' : tool === 'machine' ? T.mach[machSel] : tool === 'lab' ? T.labName : T[tool];
@@ -4356,7 +4377,7 @@ function autoStep(build = true) {
   if (S.office.lv < OFFICE_LV.cost.length && S.money > OFFICE_LV.cost[S.office.lv] * (S.office.lv ? W.office : W.office0) * R) officeUp();
   if (S.office.lv >= 1 && !S.lab.built && S.money > COST.lab + 50 * R) { const c = autoFreeCol(); if (c !== undefined) { spend(COST.lab, c + 0.5, YARD_R); S.lab.built = true; S.lab.c = c; addHist(tx().labBuilt); } }
   if (S.lab.built && !S.research) {
-    const ids = allResIds().filter(id => resAvail(id) && !resDef(id).done && !AI_SKIP.has(id)).sort((a, b) => aiResRank(a) - aiResRank(b) || resDef(a).cost - resDef(b).cost);   // 掘削レベル → 横穴掘削口 → 安い順
+    const ids = allResIds().filter(id => resAvail(id) && !resDef(id).done && !AI_SKIP.has(id) && (id !== 'sk:digLv' || permitOk())).sort((a, b) => aiResRank(a) - aiResRank(b) || resDef(a).cost - resDef(b).cost);   // 掘削レベル → 横穴掘削口 → 安い順
     for (const id of ids) if (S.money >= resDef(id).cost + (aiResRank(id) < 2 ? 0 : W.resPad * R + (S.office.lv < OFFICE_LV.cost.length ? OFFICE_LV.cost[S.office.lv] * W.save : 0))) { startResearch(id); break; }
   }
   // 止まったドリル：掘れる向きがあれば向きを変える（横を先に、次に下）。どこも掘れなければ撤去して、別の所に置き直す
@@ -4536,6 +4557,18 @@ function showNotice(text, mood) {
 }
 $('live10').addEventListener('click', () => { if (!autoBusy) autoPlay(10); });
 $('live60').addEventListener('click', () => { if (!autoBusy) autoPlay(60); });
+// ---- 今の目標（段階ごと）：資金の下に1行 ----
+function goalText() {
+  const T = tx(), st = Math.min(S.stage, 9), theme = T.stageGoal[st - 1] || '';
+  let next = '';
+  if (S.stage === 1 && S.office.lv < 1) next = T.gCompany(2, fmt(Math.max(0, OFFICE_LV.cost[0] - S.money)));
+  else if (S.stage >= 9) next = '';
+  else if (sk('digLv') >= S.stage) next = T.gBreak(rockLv(S.stage));                 // 研究は済んだ：掘り抜く
+  else if (!permitOk()) { const need = permitNeed(); next = T.gPermit(need, fmt(Math.max(0, (OFFICE_LV.cost[S.office.lv] || 0) - S.money))); }
+  else if (S.research && S.research.id === 'sk:digLv') next = T.gResearching;
+  else next = S.lab.built ? T.gDigRes(rockLv(S.stage)) : T.gLab;
+  return T.gLine(st, theme, next);
+}
 // ---- FPS：測って表示する。目標（50f/s）を下回ったら、マスごとに描く資源の数を減らす（計算は変えない） ----
 const fpsCtl = { fps: 60, cap: 30, t: 0 };
 function fpsTick(dt) {
