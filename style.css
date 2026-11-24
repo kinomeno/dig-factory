@@ -432,3 +432,12 @@ body.title #fpsHud { display: none; }
 .adAsk { display: flex; gap: 8px; justify-content: center; margin-top: 10px; }
 .adAsk[hidden] { display: none; }
 .adAsk button { font: inherit; padding: 6px 14px; border: 1px solid rgba(0,0,0,.25); border-radius: 4px; background: #fff; cursor: pointer; }
+/* v0.65 はじめの手順 */
+body.tut #dash, body.tut #catBar, body.tut #menuBtn, body.tut #subMenu, body.tut #dHandle, body.tut #dClose { display: none !important; }
+#tutMsg { position: fixed; z-index: 41; left: 50%; transform: translateX(-50%); top: 120px; max-width: calc(100vw - 24px); display: flex; align-items: center; gap: 10px;
+  background: #fff; color: #2b2b2e; border: 1px solid rgba(0,0,0,.2); border-radius: 6px; padding: 8px 10px 8px 14px; font-size: 14px; box-shadow: 0 2px 10px rgba(0,0,0,.12); cursor: pointer; }
+#tutMsg[hidden] { display: none; }
+#tutSkip { font: inherit; font-size: 11px; padding: 2px 8px; border: 1px solid rgba(0,0,0,.2); border-radius: 3px; background: #f4f4f2; color: #6b6a70; cursor: pointer; }
+/* 「設置」をゆっくり光らせる（点滅ではなく、ふちの色がゆっくり変わる） */
+.tutPulse { animation: tutPulse 2.4s ease-in-out infinite; }
+@keyframes tutPulse { 0%, 100% { box-shadow: 0 0 0 2px rgba(208,102,31,.25); } 50% { box-shadow: 0 0 0 4px rgba(208,102,31,.7); } }

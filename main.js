@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.64（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.65（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.64';
+const VERSION = '0.65';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -625,7 +625,9 @@ const TXT_ADD = {
     aiTruck: n => `トラックをレベル${n}に`, aiForkBuy: 'フォークリフトを買った', aiFork: 'フォークリフトを強化', aiDrill: 'ドリルを増やした',
     aiDrillUp: 'ドリルを強化', aiTurn: '止まったドリルを横に向けた', aiMach: n => `${n}を振り分けで設置`, aiMachUp: '機械を強化',
     aiPrice: n => `${n}の売値アップ`, aiPipe: '湧き口をパイプでつないだ', aiFac: n => `${n}を建てた`,
-    aiRemove: '掘れないドリルを撤去した', aiRebuild: '使わなくなった機械を撤去した', aiUnsort: 'もっと良い使い道があるので、仕分けを外した', forkSpd: '走る速さ', valueUp: '作った物の売値', beltCapT: '1マスに乗る数', adReady: '広告を見ると、特典がもらえます', adWatch: '広告を見る', adCancel: 'やめる', adSkip: '最後まで見なかったので、特典はありません', brandUp: (n, p) => `会社レベル${n}！ブランド力が上がりました（売値 +${p}%）`, resOnly: '未取得のみ', resAllB: 'すべて',
+    aiRemove: '掘れないドリルを撤去した', aiRebuild: '使わなくなった機械を撤去した', aiUnsort: 'もっと良い使い道があるので、仕分けを外した', forkSpd: '走る速さ', valueUp: '作った物の売値', beltCapT: '1マスに乗る数', tutHello: 'ほるぞ！', tutTired: 'つらすぎる…', tutGanbaru: 'がんばるぞ！', tutTap: '（タップ）',
+    tutPick: 'どこを掘りますか？（光っているマスをタップ）', tutBuy: 'ドリルを買ってみましょう！（「設置」→ドリル）', tutEasy: 'これで楽になりましたね。',
+    tutDone: 'ドリルやコンベアを置いて、土を出荷しましょう', tutSkipB: 'スキップ', adReady: '広告を見ると、特典がもらえます', adWatch: '広告を見る', adCancel: 'やめる', adSkip: '最後まで見なかったので、特典はありません', brandUp: (n, p) => `会社レベル${n}！ブランド力が上がりました（売値 +${p}%）`, resOnly: '未取得のみ', resAllB: 'すべて',
     yardT: 'トラックヤード', yardDesc: 'トラックが止まり、資源を置く場所（マップに1つ）。撤去でたたみ、工事の「トラックヤード」で別の所に置けます。', yardNone: 'トラックヤードがありません（工事から置いてください）',
     hBasic: '基本操作', hDig: '掘る・運ぶ', hMake: '加工と売る', hLevel: 'レベルアップと研究', hItems: '施設・設置物・資源', pleaseT: 'おねがい',
     levelHelp: '強化（下のタブ）：お金で、ドリル・機械・コンベア・トラック・フォークリフトのレベルや、資源の売値を上げます。置いた物をタップしても強化できます。\n研究（研究所）：時間をかけて、深く掘る力（掘削レベル）・高級な機械・地上の施設・会社の力（スキル）を手に入れます。研究員がいると速く進みます。\n機械や道具の多くは、段階が上がると自動で使えるようになります（研究はいりません）。',
@@ -730,7 +732,9 @@ const TXT_ADD = {
     aiTruck: n => `Truck to level ${n}`, aiForkBuy: 'Bought a forklift', aiFork: 'Upgraded a forklift', aiDrill: 'Added a drill',
     aiDrillUp: 'Upgraded drills', aiTurn: 'Turned a stuck drill', aiMach: n => `Placed ${n} with a sorter`, aiMachUp: 'Upgraded machines',
     aiPrice: n => `${n} price up`, aiPipe: 'Piped a source', aiFac: n => `Built ${n}`,
-    aiRemove: 'Removed a drill that could not dig', aiRebuild: 'Removed an unused machine', aiUnsort: 'Removed a sorter (found a better use)', forkSpd: 'Speed', valueUp: 'Product value', beltCapT: 'Items per cell', adReady: 'Watch an ad to get the reward', adWatch: 'Watch ad', adCancel: 'Cancel', adSkip: 'The ad was skipped, so no reward this time', brandUp: (n, p) => `Company level ${n}! Brand power up (prices +${p}%)`, resOnly: 'Not yet', resAllB: 'All',
+    aiRemove: 'Removed a drill that could not dig', aiRebuild: 'Removed an unused machine', aiUnsort: 'Removed a sorter (found a better use)', forkSpd: 'Speed', valueUp: 'Product value', beltCapT: 'Items per cell', tutHello: "Let's dig!", tutTired: 'This is too hard...', tutGanbaru: "Let's do this!", tutTap: '(tap)',
+    tutPick: 'Where do you want to dig? (tap a glowing cell)', tutBuy: 'Try buying a drill! (Build → Drill)', tutEasy: 'That makes it easier.',
+    tutDone: 'Place drills and conveyors, and ship the soil', tutSkipB: 'Skip', adReady: 'Watch an ad to get the reward', adWatch: 'Watch ad', adCancel: 'Cancel', adSkip: 'The ad was skipped, so no reward this time', brandUp: (n, p) => `Company level ${n}! Brand power up (prices +${p}%)`, resOnly: 'Not yet', resAllB: 'All',
     yardT: 'Truck yard', yardDesc: 'Where the truck parks and items pile up (one per map). Remove it, then place it elsewhere from Works.', yardNone: 'No truck yard (place one from Works)',
     hBasic: 'Basics', hDig: 'Dig & carry', hMake: 'Make & sell', hLevel: 'Upgrades & research', hItems: 'Buildings & items', pleaseT: 'A request',
     levelHelp: 'Upgrades (bottom tab): spend money to level up drills, machines, conveyors, the truck and forklifts, and raise prices. You can also tap a building to upgrade it.\nResearch (Lab): takes time; gives Dig level, advanced machines, surface facilities and company skills. Faster with a researcher.\nMost machines and tools unlock by themselves as you reach new stages.',
@@ -1369,6 +1373,99 @@ function autoDepts() {
     if (rs.length && S.money > priceCost(rs[0]) * 4) priceUp(rs[0]);
   }
 }
+// ---- はじめの手順（チュートリアル） ----
+// 段：hello（ほるぞ！）→ pick（どこを掘る？）→ walk → dig（スコップ）→ carry（ヤードへ）→ load（トラックに積む）→ away（出荷）
+//     → tired（つらすぎる）→ buy（ドリルを買ってみましょう）→ easy（楽になりましたね）→ ganbaru（がんばるぞ！）→ 終わり
+const TUT_SOIL = 2;   // 社長が掘って出す土の数（最初のトラックが積める数）
+let tutBubble = null, tutBubbleT = 0;
+function startTutorial() {
+  // 最初から置いてあるドリルは外して、土に戻す（社長が手で掘るところから）
+  for (const [k, s2] of [...S.st]) if (s2.type === 'drill') { S.st.delete(k); row(rOf(k))[cOf(k)] = makeBlock(rOf(k)); }
+  S.digVer++; S.stVer++;
+  const b = bossOf(); b.state = 'tut'; b.target = null; b.path = []; b.x = OFFICE_C - 0.3; b.y = YARD_R + 0.5; b.carry = 0;
+  S.tut = { step: 'hello', t: 0 };
+  tutShow();
+}
+function tutSet(step) { S.tut.step = step; S.tut.t = 0; tutShow(); }
+// 画面：吹き出し（社長）・メッセージ（秘書ではない）・メニューの隠しと光らせ
+function tutShow() {
+  const T = tx(), st = S.tut ? S.tut.step : null;
+  document.body.classList.toggle('tut', !!st && !['buy', 'easy', 'ganbaru'].includes(st));   // ドリルを買うまではメニューを隠す
+  document.querySelectorAll('[data-open="build"], #catBar [data-cat="build"]').forEach(el => el.classList.toggle('tutPulse', st === 'buy'));
+  tutBubble = st === 'hello' ? T.tutHello : st === 'tired' ? T.tutTired : st === 'ganbaru' ? T.tutGanbaru : null; tutBubbleT = 0;
+  const msg = st === 'pick' ? T.tutPick : st === 'buy' ? T.tutBuy : st === 'easy' ? T.tutEasy : '';
+  $('tutMsg').hidden = !st || st === 'ganbaru'; $('tutText').textContent = msg; $('tutText').hidden = !msg;   // 社長が動いている間は「スキップ」だけ出す
+  if (st === 'hello' || st === 'tired' || st === 'easy') $('tutText').textContent = msg + (msg ? '　' : '') + T.tutTap, $('tutText').hidden = false;
+}
+const tutWait = () => S.tut && (S.tut.step === 'hello' || S.tut.step === 'tired' || S.tut.step === 'easy');
+function tutNext() {   // タップ待ちの段で押した
+  const st = S.tut.step;
+  if (st === 'hello') tutSet('pick');
+  else if (st === 'tired') tutSet('buy');
+  else if (st === 'easy') tutSet('ganbaru');
+}
+function tutEnd() {
+  const b = bossOf(); if (b) { b.state = 'idle'; b.lastLook = -9; b.target = null; b.carry = 0; }
+  S.tut = null; tutShow(); say(tx().tutDone, 7000, 'good');
+}
+// 掘れるマス：地下1段目の、自分の土地の土（ヤードの列は除く）
+const tutCanDig = c => c >= S.landL && c <= S.landR && c !== YARD_C && !!blk(c, SKY) && blk(c, SKY).mat !== 'rock';
+function tutTap(p) {
+  if (!S.tut) return false;
+  if (tutWait()) { tutNext(); return true; }
+  if (S.tut.step === 'pick') { if (tutCanDig(p.c) && (p.r === SKY || p.r === YARD_R)) { S.tut.c = p.c; tutSet('walk'); $('tutMsg').hidden = true; } return true; }
+  if (['walk', 'dig', 'carry', 'load', 'away'].includes(S.tut.step)) return true;   // 社長が動いている間は待つ
+  return false;   // buy などは、ふつうに操作できる
+}
+function tutUpdate(dt) {
+  const t = S.tut; if (!t) return;
+  const b = bossOf(); if (!b) { S.tut = null; return; }
+  t.t += dt;
+  const walkTo = x => { const d = x - b.x, sp = BAL.walkH * TUNE.walk * dt; if (Math.abs(d) <= sp) { b.x = x; return true; } b.x += Math.sign(d) * sp; return false; };
+  if (t.step === 'walk') { b.y = YARD_R + 0.5; if (walkTo(t.c + 0.5)) tutSet('dig'); }
+  else if (t.step === 'dig') {   // スコップで掘る（ゆっくり）。少しずつ土が出る
+    b.carry = Math.min(TUT_SOIL, Math.floor(t.t / 2.5));
+    if (t.t >= 2.5 * TUT_SOIL + 0.5) { row(SKY)[t.c] = null; S.digVer++; S.deepest = Math.max(S.deepest, SKY); tutSet('carry'); }
+  }
+  else if (t.step === 'carry') { if (walkTo(YARD_C + 0.5)) { for (let i = 0; i < b.carry; i++) S.yard.push({ k: 'soil', rx: Math.random(), ry: Math.random() }); b.carry = 0; tutSet('load'); } }
+  else if (t.step === 'load') {   // トラックに積んだら、社長が運転して出荷
+    const tr = S.fleet.find(x => x.phase === 'here' || x.phase === 'leaving');   // 満杯になると、トラックは自分で出かけ始める
+    if (tr && (tr.phase === 'leaving' || (!S.yard.length && tr.load > 0))) { b.state = 'drive'; b.target = tr; tr.op = b.id; if (tr.phase === 'here') { tr.phase = 'leaving'; tr.t = 0; } tutSet('away'); }
+  }
+  else if (t.step === 'away') {
+    if (S.fleet.some(x => x.phase === 'here') && t.t > 1) { b.state = 'tut'; b.target = null; b.x = YARD_C + 0.5; b.y = YARD_R + 0.5; tutSet('tired'); }
+  }
+  else if (t.step === 'buy') { if ([...S.st.values()].some(x => x.type === 'drill')) tutSet('easy'); }
+  else if (t.step === 'ganbaru') { if (t.t > 2.5) tutEnd(); }
+  if (t.step !== 'away') { if (b.state === 'drive') b.state = 'tut'; }
+}
+// 社長の吹き出し（小さく）・掘っている間のスコップ・運んでいる土
+function drawTutBoss() {
+  const b = bossOf(); if (!b || !S.tut || b.state === 'drive') return;
+  const cell = cp, x = b.x * cell, y = b.y * cell;
+  if (S.tut.step === 'dig') {   // スコップを上下に
+    const a = Math.sin(S.tut.t * 6) * 0.6;
+    ctx.save(); ctx.translate(x + cell * 0.12, y + cell * 0.1); ctx.rotate(a);
+    ctx.strokeStyle = '#7a5a3a'; ctx.lineWidth = Math.max(1.5, cell * 0.04); ctx.beginPath(); ctx.moveTo(0, -cell * 0.18); ctx.lineTo(0, cell * 0.12); ctx.stroke();
+    ctx.fillStyle = '#9aa0a8'; ctx.fillRect(-cell * 0.05, cell * 0.12, cell * 0.1, cell * 0.08); ctx.restore();
+  }
+  if (b.carry) { for (let i = 0; i < b.carry; i++) drawItemShape({ k: 'soil' }, x - cell * 0.06 + i * cell * 0.12, y - cell * 0.42, 0.45); }   // 頭の上に土
+  if (tutBubble) {
+    ctx.save(); ctx.font = `bold ${Math.max(10, Math.round(cell * 0.22))}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const w = ctx.measureText(tutBubble).width + cell * 0.24, h = cell * 0.34, bx = x - w / 2, by = y - cell * 0.95;
+    ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#2b2b2e'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx, by, w, h, 6) : ctx.rect(bx, by, w, h); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x - cell * 0.06, by + h); ctx.lineTo(x, by + h + cell * 0.1); ctx.lineTo(x + cell * 0.06, by + h); ctx.fill();
+    ctx.fillStyle = '#2b2b2e'; ctx.fillText(tutBubble, x, by + h / 2 + 1); ctx.restore();
+  }
+}
+// 掘る所を選ぶ間：掘れるマスを薄く示す
+function drawTutPick() {
+  if (!S.tut || S.tut.step !== 'pick') return;
+  const cell = cp; ctx.fillStyle = THEME.okFill; ctx.strokeStyle = THEME.okLine; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+  for (let c = 0; c < COLS; c++) if (tutCanDig(c)) { ctx.fillRect(c * cell + 1, SKY * cell + 1, cell - 2, cell - 2); ctx.strokeRect(c * cell + 2.5, SKY * cell + 2.5, cell - 5, cell - 5); }
+  ctx.setLineDash([]);
+}
 function giftFirst() {
   S.loan1 = true; S.money += BAL.gift;
   addHist(tx().giftHist); S.notice = tx().giftMsg(fmt(BAL.gift));
@@ -1389,6 +1486,7 @@ function sim(sec) {
     updateLiquids(dt);
     updateFacs(dt);
     updateBoss(dt);
+    if (S.tut) tutUpdate(dt);
     S.mgT = (S.mgT || 0) + dt; if (S.mgT >= 5) { S.mgT = 0; autoDepts(); }
     updateMonth();
     if (!S.loan1 && S.money < 30 && S.time > 10) giftFirst();   // 最初の資金ショート：プレゼント（1回だけ）
@@ -1769,6 +1867,7 @@ function deserialize(json) {
     d.workers.push(w); d.bossWork = true; d.bossFat = 0;
   }
   if (d.bossWork === undefined) d.bossWork = true;
+  if (d.tut === undefined) d.tut = null;
   d.elev = d.elev || {}; d.museum = d.museum || {};
   if (d.yardC === undefined) d.yardC = YARD_C0;
   YARD_C = BED = CAB = d.yardC;   // 読み込んだヤードの列
@@ -1953,6 +2052,7 @@ function updateWorkers(dt) {
   taken.delete(S.lab);
   for (const w of S.workers) {
     const maxS = maxStamina(w);
+    if (w.boss && S.tut) continue;   // はじめの手順の間、社長は手順どおりに動く
     if (w.boss && !S.bossWork) {   // 社長が作業しない：事務所（屋上・窓）にいる
       if (w.target) { if (w.target.op === w.id) w.target.op = null; w.target = null; }
       w.state = 'off'; w.path = []; w.stamina = maxS; w.x = OFFICE_C + 1; w.y = YARD_R + 0.5;
@@ -3413,6 +3513,7 @@ function draw() {
     if (S.elev[wKey(w)] && S.time - (w.elevT || -9) < 0.5) drawElevCar(w.x * cell, w.y * cell + cp * 0.48);   // エレベーターで上り下りしている間は、箱に乗っている（消えたり出たりしない）
     drawWorker(w.x * cell, w.y * cell, w);
   }
+  drawTutPick(); drawTutBoss();   // はじめの手順
 
   // 設置中：置けないマスに斜線、カーソルの所に置く物の半透明の見本
   if (isBuildTool()) {
@@ -4321,6 +4422,12 @@ function jumpTo(at) {
   cam.x = at.c + 0.5 - cw / cp / 2; cam.y = at.r + 0.5 - ch / cp / 2; metrics();
   if (at.open) at.open();
 }
+$('tutMsg').addEventListener('pointerup', e => { if (e.target.id === 'tutSkip') return; if (tutWait()) { tutNext(); updateUI(); } });
+$('tutSkip').addEventListener('click', () => {   // はじめの手順をとばす（ドリルを1台もらって、ふつうに始める）
+  if (!S.tut) return;
+  if (![...S.st.values()].some(x => x.type === 'drill')) { const c = OFFICE_C - 1; row(SKY)[c] = null; S.digVer++; S.st.set(key(c, SKY), { type: 'drill', tid: 'drill', dir: 'down', lv: 0, t: 0, hit: -99, op: null, no: 1 }); S.stVer++; }
+  tutEnd(); updateUI();
+});
 $('msg').addEventListener('pointerup', () => { if (msgAt) { const a = msgAt; say(''); jumpTo(a); updateUI(); } });
 $('curTool').addEventListener('pointerup', e => { e.preventDefault(); tool = 'none'; closePop(); updateUI(); });
 function updateUI() {
@@ -4378,7 +4485,8 @@ function updateUI() {
 // 右下：メニュー（またはメニューを開いた列）→ その上に種類 → その上に向き
 function layoutFloats() {
   const H = window.innerHeight;
-  const mh = $('moneyHud'); if (mh && !mh.hidden) $('msg').style.top = Math.round(mh.getBoundingClientRect().bottom + 6) + 'px';   // 資金・目標・AIの表示と重ならないように
+  const mh = $('moneyHud'); if (mh && !mh.hidden) $('msg').style.top = Math.round(mh.getBoundingClientRect().bottom + 6) + 'px';
+  if (mh && !mh.hidden) $('tutMsg').style.top = Math.round(mh.getBoundingClientRect().bottom + 6) + 'px';   // はじめの手順のメッセージも、上に（引き出しと重ならない）   // 資金・目標・AIの表示と重ならないように
   const base = dashOn ? $('dash') : !$('catBar').hidden ? $('catBar') : $('menuBtn');
   const bt = base.getBoundingClientRect().top;
   let bottom = H - bt + 4;
@@ -4459,12 +4567,14 @@ const ptrs = new Map();
 let gesture = null, down = false, lastK = -1, dragSet = new Set(), lastPend = false;
 // 指を離した時のタップ：設置中は置く（地上の施設・地下の物はメニュー）
 function tapPlace(p) {
+  if (S.tut && tutTap(p)) return;
   if (tool !== 'dig' && (!isBuildTool() || p.r < SKY) && tapAt(p)) return;
   apply(p.c, p.r, false);
 }
 function local(e) { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
 function cellAtXY(x, y) { const wx = (x - offX) / cp + cam.x, wy = y / cp + cam.y; return { c: Math.floor(wx), r: Math.floor(wy), wx, wy }; }
 function tapAt(p) {
+  if (S.tut && tutTap(p)) return true;   // はじめの手順
   if (p.wx !== undefined && tool === 'none' && !(inB(p.c, p.r) && S.st.has(key(p.c, p.r)))) {   // 資源（動いている物）をタップ → 説明（置いた物があるマスは、そちらを先に）
     let best = null, bd = 0.3;
     for (const it of S.items) { const d = Math.hypot(it.x - p.wx, it.y - p.wy); if (d < bd) { bd = d; best = it; } }
@@ -5136,6 +5246,7 @@ function showTitle() {
   inTitle = true; document.body.classList.add('title'); $('title').hidden = false;
   closePop(); closePanels(); $('info').hidden = true; tool = 'none'; openCat = null; renderSub();
   $('tCont').hidden = !savedJson();
+  document.body.classList.remove('tut');
   // 地上を画面の下に置き、上はぜんぶ空にする
   cam.z = START_ZOOM; metrics();
   cam.y = SKY + 2.6 - ch / cp; cam.x = OFFICE_C + 1 - cw / cp / 2; metrics();
@@ -5143,10 +5254,11 @@ function showTitle() {
 }
 function leaveTitle() {
   inTitle = false; document.body.classList.remove('title'); $('title').hidden = true;
+  if (typeof tutShow === 'function' && S) tutShow();
   fitHeader(); resize(); resetCam(); updateUI();
 }
 $('tNew').addEventListener('click', () => {
-  const go = () => { newGame(); leaveTitle(); autoSave(); };
+  const go = () => { newGame(); leaveTitle(); startTutorial(); autoSave(); };
   if (savedJson()) askConfirm(tx().confirmNew, go); else go();
 });
 $('tCont').addEventListener('click', () => {
@@ -5352,7 +5464,7 @@ resize();
 resetCam();
 showTitle();
 window.__game = { // 動作確認用
-  get S() { return S; }, setNoDraw: v => { noDraw = !!v; }, BAL, openBalance, balChanged, TUNE, OFFICE_LV, AI_W, BELT_CAP, fpsCtl, row, canPlaceAt, officeUp, buyFork, finishResearch, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
+  get S() { return S; }, tutStart: () => startTutorial(), tutSet: st => tutSet(st), setNoDraw: v => { noDraw = !!v; }, BAL, openBalance, balChanged, TUNE, OFFICE_LV, AI_W, BELT_CAP, fpsCtl, row, canPlaceAt, officeUp, buyFork, finishResearch, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
   setTool: t => setTool(t), setDir: d => { dir = d; }, pause: () => { running = false; },
   checkStage, resAvail, buildCost, allResIds, resDef, autoSave, catchUp, showTitle, leaveTitle, autoPlay, autoStep, workNeed,
   deserialize, serialize, newGame: () => newGame(), aiLearn, autoPlan, AUTO_LINES, autoDiagnose, setLive: v => { autoLive = v; showAiLog(); }, setAutoBuild: v => { autoBuild = v; }, fmt, itemVal, placePend, priceUp, lvVal, lvCost, catalogIds,
