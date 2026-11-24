@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.57（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.58（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.57';
+const VERSION = '0.58';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -601,7 +601,7 @@ const TXT_ADD = {
     aiTruck: n => `トラックをレベル${n}に`, aiForkBuy: 'フォークリフトを買った', aiFork: 'フォークリフトを強化', aiDrill: 'ドリルを増やした',
     aiDrillUp: 'ドリルを強化', aiTurn: '止まったドリルを横に向けた', aiMach: n => `${n}を振り分けで設置`, aiMachUp: '機械を強化',
     aiPrice: n => `${n}の売値アップ`, aiPipe: '湧き口をパイプでつないだ', aiFac: n => `${n}を建てた`,
-    aiRemove: '掘れないドリルを撤去した', aiUnsort: 'もっと良い使い道があるので、仕分けを外した', forkSpd: '走る速さ', valueUp: '作った物の売値', beltCapT: '1マスに乗る数',
+    aiRemove: '掘れないドリルを撤去した', aiRebuild: '使わなくなった機械を撤去した', aiUnsort: 'もっと良い使い道があるので、仕分けを外した', forkSpd: '走る速さ', valueUp: '作った物の売値', beltCapT: '1マスに乗る数',
     bossName: lv => `社長（あなた）　Lv${lv}`, bossDesc: '給料0。雇える人数には数えません。会社が大きくなると…少しずつ貫禄が出ます。',
     bossOn: '現場で作業中（押すと事務所へ）', bossOff: '事務所にいる（押すと現場へ）', bossLock: '会社レベル2で選べます',
     resLeft: d => `あと ${d}（×1）`, labRoomsInfo: (n, r, st) => `研究室 ${n}室・研究中 ${r}・研究員 ${st}人（研究員の数だけ同時に進みます）`, resStop: '研究員なし（止まっています）',
@@ -684,7 +684,7 @@ const TXT_ADD = {
     aiTruck: n => `Truck to level ${n}`, aiForkBuy: 'Bought a forklift', aiFork: 'Upgraded a forklift', aiDrill: 'Added a drill',
     aiDrillUp: 'Upgraded drills', aiTurn: 'Turned a stuck drill', aiMach: n => `Placed ${n} with a sorter`, aiMachUp: 'Upgraded machines',
     aiPrice: n => `${n} price up`, aiPipe: 'Piped a source', aiFac: n => `Built ${n}`,
-    aiRemove: 'Removed a drill that could not dig', aiUnsort: 'Removed a sorter (found a better use)', forkSpd: 'Speed', valueUp: 'Product value', beltCapT: 'Items per cell',
+    aiRemove: 'Removed a drill that could not dig', aiRebuild: 'Removed an unused machine', aiUnsort: 'Removed a sorter (found a better use)', forkSpd: 'Speed', valueUp: 'Product value', beltCapT: 'Items per cell',
     bossName: lv => `The boss (you)  Lv${lv}`, bossDesc: 'No wage. Not counted in the staff limit. As the company grows... so does the boss.',
     bossOn: 'Working on site (tap to stay in office)', bossOff: 'In the office (tap to go to work)', bossLock: 'Available at company level 2',
     resLeft: d => `${d} left (×1)`, labRoomsInfo: (n, r, st) => `Labs ${n} / researching ${r} / researchers ${st} (one researcher runs one research)`, resStop: 'No researcher (stopped)',
@@ -3344,7 +3344,6 @@ function drawBeltCell(x, y, s, speed, ghost, c, r) {
     ctx.restore();
   }
   if (s.type === 'cross') { ctx.save(); ctx.globalAlpha = 0.7; drawConvSprite(x, y, CW[s.dir], speed, ph); ctx.restore(); }
-  if (s.type === 'sort') { ctx.strokeStyle = THEME.sortLine; ctx.lineWidth = Math.max(1.5, cell * 0.05); ctx.strokeRect(x + 1.5, y + 1.5, cell - 3, cell - 3); }
   if (s.type === 'tee') { drawChevron(x, y, CCW[s.dir], THEME.arrow); drawChevron(x, y, CW[s.dir], THEME.arrow); }
   else if (!side) drawChevron(x, y, s.dir, THEME.arrow);
   if (s.type === 'sort') {
@@ -4329,16 +4328,30 @@ function autoPut(k, obj, cost) {   // 地下に置く（今ある物は撤去し
   return true;
 }
 // 湧き口から地下1段目まで、空いたマスをたどってパイプの道を探す
+// 湧き口から地下1段目まで、パイプの道を探す。空いたマス（安い）と、掘れる土（掘る費用がかかる）を通れる。
+// 縦穴のコンベアなど、置いた物のあるマスは通れない（湧き口はたいてい縦穴の底にできるので、横の土を掘って上がる）
 function autoPipePath(wk) {
-  const prev = new Map([[wk, -1]]), q = [wk];
-  for (let i = 0; i < q.length; i++) {
-    const k = q[i], c = cOf(k), r = rOf(k);
-    if (r === SKY && k !== wk) { const p = []; for (let x = k; x !== wk; x = prev.get(x)) p.push(x); return p; }
+  const dist = new Map([[wk, 0]]), prev = new Map([[wk, -1]]), done = new Set();
+  const stepCost = (c, r) => {
+    const b = blk(c, r);
+    if (b) return b.mat === 'rock' && sk('digLv') < b.layer ? Infinity : COST.pipe + digCost(b);
+    const s2 = S.st.get(key(c, r));
+    if (s2 && s2.type !== 'pipe') return Infinity;
+    return s2 ? 0 : COST.pipe;
+  };
+  for (let guard = 0; guard < 4000; guard++) {   // 小さな盤面なので、いちばん安い所を順に広げる
+    let k = -1, bd = Infinity;
+    for (const [k2, d] of dist) if (!done.has(k2) && d < bd) { bd = d; k = k2; }
+    if (k < 0) return null;
+    done.add(k);
+    const c = cOf(k), r = rOf(k);
+    if (r === SKY && k !== wk) { const p2 = []; for (let x = k; x !== wk; x = prev.get(x)) p2.push(x); return { path: p2, cost: bd }; }
     for (const [dx, dy] of NB) {
       const nc = c + dx, nr = r + dy, nk = key(nc, nr);
-      if (!inB(nc, nr) || nr < SKY || prev.has(nk) || blk(nc, nr) !== null) continue;
-      const s = S.st.get(nk); if (s && s.type !== 'pipe') continue;
-      prev.set(nk, k); q.push(nk);
+      if (!inB(nc, nr) || nr < SKY || done.has(nk)) continue;
+      const sc = stepCost(nc, nr); if (sc === Infinity) continue;
+      const nd = bd + sc;
+      if (!dist.has(nk) || nd < dist.get(nk)) { dist.set(nk, nd); prev.set(nk, k); }
     }
   }
   return null;
@@ -4432,7 +4445,10 @@ function autoSortLines(drills) {
     const c = cOf(dk);
     let have = shaftLines(c);
     // もっと良い使い道ができた工程は、仕分けをただのコンベアに戻す
-    for (const l of have) if (!chosen.has(l.id)) for (const rr of l.rows) { const s = S.st.get(key(c, rr)); s.type = 'conv'; delete s.filter; delete s.side; S.stVer++; }
+    for (const l of have) if (!chosen.has(l.id)) {   // 使わなくなった工程：仕分けはただのコンベアに、横の機械は撤去して縦穴向きのコンベアに（敷きなおせるよう場所を空ける）
+      for (const rr of l.rows) { const s = S.st.get(key(c, rr)); const dx2 = s.side === 'right' ? 1 : -1; s.type = 'conv'; delete s.filter; delete s.side; S.stVer++;
+        const mk = key(c + dx2, rr), ms2 = S.st.get(mk); if (ms2 && (ms2.type === 'machine' || ms2.type === 'conv')) { removeAt(mk); S.st.set(mk, { type: 'conv', dir: dx2 > 0 ? 'left' : 'right', lv: 0 }); aiNote.push(tx().aiRebuild); } }
+    }
     have = have.filter(l => chosen.has(l.id));
     for (const l of AUTO_LINES) {   // 前の工程から順に
       if (!chosen.has(l.id) || have.some(h => h.id === l.id)) continue;
@@ -4660,9 +4676,13 @@ function autoStep(build = true) {
     for (const [wk, w] of all) {
       if (w.type !== 'well') continue;
       const n = net.get(wk); if (n && n.surface) continue;
-      const path = autoPipePath(wk);
-      if (!path || S.money < path.length * COST.pipe * 2) continue;
-      for (const k of path) if (!S.st.has(k)) autoPut(k, { type: 'pipe', dir: 'up', lv: 0 }, COST.pipe);
+      const found = autoPipePath(wk);
+      if (!found || S.money < found.cost * 2) continue;
+      for (const k of found.path) {
+        if (S.st.has(k)) continue;
+        const b = blk(cOf(k), rOf(k)); if (b) { spend(digCost(b), cOf(k) + 0.5, rOf(k) + 0.3); row(rOf(k))[cOf(k)] = null; S.digVer++; }   // 土を掘ってから
+        autoPut(k, { type: 'pipe', dir: 'up', lv: 0 }, COST.pipe);
+      }
       break;
     }
   }
@@ -4807,8 +4827,10 @@ function fpsTick(dt) {
 }
 // ---- ループ ----
 let last = performance.now(), panelTick = 0;
+let noDraw = false;   // 試走用：画面を描かず計算だけ（自動プレイ10分・60分の間も描かない）
 function frame(now) {
   const dt = Math.min(now - last, 250) / 1000; last = now;
+  if (noDraw || autoBusy) { requestAnimationFrame(frame); return; }   // 画面表示カット
   fpsTick(dt);
   const sp = speeds(); if (speedIdx >= sp.length) speedIdx = sp.length - 1;
   if (running && !inTitle) {
@@ -4859,7 +4881,7 @@ function balSet(path, v) {
   o[last] = v;
 }
 // キノメノが「釣り合い調整」で決めた数字（2026-11-24）。標準として先に入れる
-const BAL_PRESET = {"ITEMS.iron.v": 15, "ITEMS.gold.v": 50, "ITEMS.dia.v": 100, "ITEMS.gravel.v": 5, "ITEMS.brick.v": 7, "ITEMS.ironbar.v": 200, "ITEMS.goldbar.v": 800, "ITEMS.tool.v": 300, "ITEMS.jewel.v": 1000, "ITEMS.diaClean.v": 800, "ITEMS.diaCut.v": 1200, "ITEMS.gem.v": 500, "ITEMS.tile.v": 8, "ITEMS.glossTile.v": 16, "ITEMS.wire.v": 300, "ITEMS.goldleaf.v": 950, "ITEMS.decoIron.v": 3200, "ITEMS.decoGold.v": 7000, "LV.belt.cost.1": 50, "LV.belt.cost.2": 500, "LV.fork.cost.2": 500, "LV.fork.cost.3": 900, "LV.fork.cost.4": 1800, "LV.fork.cost.5": 4000, "COST.fdrill": 1200, "COST.adrill": 1500, "OFFICE_LV.cap.0": 5, "OFFICE_LV.cap.1": 10, "OFFICE_LV.cap.2": 20, "OFFICE_LV.cap.3": 50, "OFFICE_LV.cap.4": 100, "OFFICE_LV.forks.2": 4, "OFFICE_LV.forks.3": 6, "OFFICE_LV.forks.4": 10, "RESEARCH_TOOL.pipe.0": 200, "RESEARCH_TOOL.pipe.1": 1, "RESEARCH_BATCH.0": 10000, "RESEARCH_BATCH.1": 6, "SKILLS.speed.cost.2": 10000, "SKILLS.dragPlus.months.0": 1, "SKILLS.welfare.cost.0": 4000, "SKILLS.welfare.cost.1": 8000, "SKILLS.black.cost.0": 5000, "SKILLS.labRoom.cost.0": 1000, "SKILLS.labRoom.cost.1": 4000, "SKILLS.labRoom.cost.2": 8000, "RES_STAGE.m:bagger": 2, "RES_STAGE.sk:yardPlus": 3, "RES_STAGE.t:cross": 4, "RES_STAGE.t:pipe": 4, "RES_STAGE.sk:truck2": 4, "SK_STAGE.speed.0": 2, "SK_STAGE.labRoom.0": 2, "BELT_CAP.0": 5, "BELT_CAP.1": 10, "BELT_CAP.2": 20, "BELT_CAP.3": 40};
+const BAL_PRESET = {"ITEMS.iron.v": 15, "ITEMS.gold.v": 50, "ITEMS.dia.v": 100, "ITEMS.gravel.v": 5, "ITEMS.brick.v": 7, "ITEMS.ironbar.v": 200, "ITEMS.goldbar.v": 800, "ITEMS.tool.v": 300, "ITEMS.jewel.v": 1000, "ITEMS.diaClean.v": 800, "ITEMS.diaCut.v": 1200, "ITEMS.gem.v": 500, "ITEMS.tile.v": 8, "ITEMS.glossTile.v": 16, "ITEMS.wire.v": 300, "ITEMS.goldleaf.v": 950, "ITEMS.decoIron.v": 3200, "ITEMS.decoGold.v": 7000, "LV.belt.cost.1": 50, "LV.belt.cost.2": 500, "LV.fork.cost.2": 500, "LV.fork.cost.3": 900, "LV.fork.cost.4": 1800, "LV.fork.cost.5": 4000, "COST.fdrill": 1200, "COST.adrill": 1500, "OFFICE_LV.cap.0": 5, "OFFICE_LV.cap.1": 10, "OFFICE_LV.cap.2": 20, "OFFICE_LV.cap.3": 50, "OFFICE_LV.cap.4": 100, "OFFICE_LV.forks.2": 4, "OFFICE_LV.forks.3": 6, "OFFICE_LV.forks.4": 10, "RESEARCH_TOOL.pipe.0": 200, "RESEARCH_TOOL.pipe.1": 1, "RESEARCH_BATCH.0": 10000, "RESEARCH_BATCH.1": 6, "SKILLS.speed.cost.2": 10000, "SKILLS.dragPlus.months.0": 1, "SKILLS.welfare.cost.0": 4000, "SKILLS.welfare.cost.1": 8000, "SKILLS.black.cost.0": 5000, "SKILLS.labRoom.cost.0": 1000, "SKILLS.labRoom.cost.1": 4000, "SKILLS.labRoom.cost.2": 8000, "RES_STAGE.m:bagger": 2, "RES_STAGE.sk:yardPlus": 3, "RES_STAGE.t:cross": 4, "RES_STAGE.t:pipe": 4, "RES_STAGE.sk:truck2": 4, "SK_STAGE.speed.0": 2, "SK_STAGE.labRoom.0": 2, "BELT_CAP.0": 5, "BELT_CAP.1": 10, "BELT_CAP.2": 20, "BELT_CAP.3": 40, "LV.truck.cap": 10, "OFFICE_LV.cost.0": 600, "OFFICE_LV.cost.1": 5000, "OFFICE_LV.cost.2": 56000, "OFFICE_LV.cost.3": 164000, "RES_STAGE.sk:land": 4, "RES_STAGE.batch": 3, "RES_STAGE.sk:veteran": 3, "RES_STAGE.f:refinery": 5, "SK_STAGE.labRoom.1": 3, "SK_STAGE.labRoom.2": 4, "BAL.priceUpMul": 1.5, "BAL.priceCostG": 2, "BAL.hotP": 0.033, "BAL.beltSlowMin": 0.03};
 for (const [p2, v] of Object.entries(BAL_PRESET)) balSet(p2, v);
 const BAL_DEF = new Map(balLeaves().map(p2 => [p2, balGet(p2)]));   // 標準の数字（変えた所を見分ける）
 for (const d of TUNE_DEF) if (BAL_DEF.has('TUNE.' + d.k)) BAL_DEF.set('TUNE.' + d.k, d.def);   // 「調整」は保存済みの値が先に入っているので、標準は表の値
@@ -4961,7 +4983,7 @@ resize();
 resetCam();
 showTitle();
 window.__game = { // 動作確認用
-  get S() { return S; }, BAL, openBalance, balChanged, TUNE, OFFICE_LV, AI_W, BELT_CAP, fpsCtl, row, canPlaceAt, officeUp, buyFork, finishResearch, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
+  get S() { return S; }, setNoDraw: v => { noDraw = !!v; }, BAL, openBalance, balChanged, TUNE, OFFICE_LV, AI_W, BELT_CAP, fpsCtl, row, canPlaceAt, officeUp, buyFork, finishResearch, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
   setTool: t => setTool(t), setDir: d => { dir = d; }, pause: () => { running = false; },
   checkStage, resAvail, buildCost, allResIds, resDef, autoSave, catchUp, showTitle, leaveTitle, autoPlay, autoStep, workNeed,
   deserialize, serialize, newGame: () => newGame(), aiLearn, autoPlan, AUTO_LINES, autoDiagnose, setLive: v => { autoLive = v; showAiLog(); }, setAutoBuild: v => { autoBuild = v; }, fmt, itemVal, placePend, priceUp, lvVal, lvCost, catalogIds,
