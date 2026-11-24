@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.46（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.47（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.46';
+const VERSION = '0.47';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -602,7 +602,7 @@ const TXT_ADD = {
     aiRemove: '掘れないドリルを撤去した', aiUnsort: 'もっと良い使い道があるので、仕分けを外した', forkSpd: '走る速さ',
     aiFail: c => `失敗：銀行の融資を受けた（${c}）`, aiFailRun: n => `融資を${n}回受けました（失敗）。管理メニュー「AIの失敗記録」に原因があります`,
     aiCause: { noDrill: 'ドリルが無い', drillStop: 'ドリルが全部止まっている', noWorker: '作業員がいない', yard: 'ヤードが山（トラック不足）', dock: '荷おろし場が山（フォークリフト不足）', jam: '地下で資源が詰まっている', noSale: '売上が無い', spend: 'お金の使いすぎ' },
-    live10: '10分進める', live60: '60分進める',
+    live10: '+10分', live60: '+60分',
     dur: (d, h, m) => (d ? `${d}日` : '') + (d || h ? `${h}時間` : '') + `${m}分`,
     playTime: (mo, x1, others) => `ここまで：ゲーム内${mo}か月＝実際に遊ぶと ×1で${x1}（${others}）`,
     aditRule: 'その深さの資源が出続ける（岩盤と岩盤の間に1つ）', aiAdit: '横穴掘削口を置いた',
@@ -4239,7 +4239,7 @@ function autoLiveStep() {
 }
 function showAiLog() {
   const el = $('aiHud'); el.textContent = autoLive ? aiLog.map(x => '・' + x).join('\n') : '';
-  $('liveBar').hidden = !autoLive;
+  $('liveBar').hidden = !autoLive; fitHeader();
 }
 // (c,r)から上へ、上向きのコンベア（仕分け）が地上まで続いているか（掘った物が地上まで上がるか）
 function upToTop(c, r) {

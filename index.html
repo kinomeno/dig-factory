@@ -18,7 +18,7 @@
 <meta property="og:locale" content="ja_JP">
 <meta property="og:site_name" content="ほりほり工場 / Dig Factory Tycoon">
 <meta name="twitter:card" content="summary">
-<link rel="stylesheet" href="style.css?v=0.46">
+<link rel="stylesheet" href="style.css?v=0.47">
 </head>
 <body>
 <canvas id="cv"></canvas>
@@ -40,6 +40,7 @@
   <span class="sep"></span>
   <button id="playBtn" class="play"></button>
   <button id="speedBtn">×1</button>
+  <span id="liveBar" hidden><button id="live10" data-t="live10">+10分</button><button id="live60" data-t="live60">+60分</button></span>
   <span class="sep"></span>
   <span class="lab zl" data-t="zoom">ズーム</span>
   <button id="zoomOut" class="sq">－</button>
@@ -105,7 +106,7 @@
 <button id="dClose" class="x" aria-label="close" hidden>✕</button>
 
 <!-- 資金：ゲーム画面の左上に直接（白いふちで、どんな背景でも読める） -->
-<div id="moneyHud"><span data-t="money">資金</span><b id="money">0</b><small id="monthHud"></small><small id="boostHud"></small><small id="aiTime"></small><small id="aiHud"></small><span id="liveBar" hidden><button id="live10" data-t="live10">10分進める</button><button id="live60" data-t="live60">60分進める</button></span></div>
+<div id="moneyHud"><span data-t="money">資金</span><b id="money">0</b><small id="monthHud"></small><small id="boostHud"></small><small id="aiTime"></small><small id="aiHud"></small></div>
 
 <p id="msg" class="msg"></p>
 <!-- 選択中の道具（左下） -->
@@ -254,7 +255,7 @@
   </div>
 </div>
 
-<script src="sprites.js?v=0.46"></script>
-<script src="main.js?v=0.46"></script>
+<script src="sprites.js?v=0.47"></script>
+<script src="main.js?v=0.47"></script>
 </body>
 </html>
