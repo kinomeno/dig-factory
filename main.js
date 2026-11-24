@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.52（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.53（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.52';
+const VERSION = '0.53';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
@@ -3484,6 +3484,7 @@ function drawMachine(x, y, m) {
     ctx.strokeStyle = THEME.machLine; ctx.lineWidth = 1.5; ctx.strokeRect(x + 1.5, y + 1.5, cell - 3, cell - 3);
     glyph(tx().glyph[m.m], x, y + cell * 0.02, THEME.machText, 0.38);
   }
+  if (m.cur && m.type === 'machine') drawMachAnim(x, y, m);   // 加工中のアニメーション
   const [dx, dy] = DIRS[m.dir];
   const cx = x + cell / 2 + dx * cell * 0.38, cy = y + cell / 2 + dy * cell * 0.38;
   ctx.save(); ctx.translate(cx, cy); ctx.rotate(Math.atan2(dy, dx));
@@ -3494,6 +3495,62 @@ function drawMachine(x, y, m) {
     ctx.fillStyle = THEME.gaugeBg; ctx.fillRect(x + 4, y + cell - 7, cell - 8, 3);
     ctx.fillStyle = THEME.machProg; ctx.fillRect(x + 4, y + cell - 7, (cell - 8) * m.prog / def.time, 3);
   }
+}
+// 加工中のアニメーション（点滅はさせず、形と動きで見せる）。速さは加工の速さ（作業員がいないとゆっくり）
+const machPh = new WeakMap();
+function drawMachAnim(x, y, m) {
+  const cell = cp, ph = (machPh.get(m) || 0) + drawDt * valOf(m) * workFactor(m) * 6;
+  machPh.set(m, ph % 6283);
+  const cx = x + cell / 2, cy = y + cell / 2;
+  ctx.save();
+  const flame = (px, py, w, h) => {   // 炎：3本の舌が、高さだけゆらゆら変わる（明るさは変えない）
+    for (let i = 0; i < 3; i++) {
+      const hh = h * (0.65 + 0.35 * Math.sin(ph * 1.7 + i * 2.1)), fx = px + (i - 1) * w * 0.32;
+      ctx.fillStyle = i === 1 ? '#ffd34d' : '#f08a3c';
+      ctx.beginPath(); ctx.moveTo(fx - w * 0.18, py); ctx.lineTo(fx, py - hh); ctx.lineTo(fx + w * 0.18, py); ctx.closePath(); ctx.fill();
+    }
+  };
+  switch (m.m) {
+    case 'kiln': case 'smelter': flame(cx, y + cell * 0.86, cell * 0.42, cell * 0.22); break;
+    case 'crusher': {
+      for (const sx of [-1, 1]) { ctx.save(); ctx.translate(cx + sx * cell * 0.13, cy + cell * 0.08); ctx.rotate(sx * ph); ctx.strokeStyle = '#2b2b2e'; ctx.lineWidth = Math.max(1, cell * 0.04); ctx.beginPath(); for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2; ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * cell * 0.11, Math.sin(a) * cell * 0.11); } ctx.stroke(); ctx.restore(); }
+      break;
+    }
+    case 'cutter': case 'drawer': case 'polisher': {
+      ctx.save(); ctx.translate(cx + cell * 0.2, cy - cell * 0.16); ctx.rotate(ph * (m.m === 'polisher' ? 1.4 : 2));
+      const r = cell * 0.11;
+      ctx.fillStyle = m.m === 'polisher' ? '#bfe9ff' : '#d8d2c4'; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#2b2b2e'; ctx.lineWidth = Math.max(1, cell * 0.03);
+      ctx.beginPath(); for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; ctx.moveTo(Math.cos(a) * r * 0.4, Math.sin(a) * r * 0.4); ctx.lineTo(Math.cos(a) * r * 1.2, Math.sin(a) * r * 1.2); } ctx.stroke();
+      ctx.restore(); break;
+    }
+    case 'factory': {   // ハンマーが上下する
+      const hy = cy - cell * 0.12 + Math.abs(Math.sin(ph * 1.2)) * cell * 0.12;
+      ctx.fillStyle = '#2b2b2e'; ctx.fillRect(cx - cell * 0.02, y + cell * 0.12, cell * 0.04, hy - y - cell * 0.12); ctx.fillRect(cx - cell * 0.1, hy, cell * 0.2, cell * 0.08);
+      break;
+    }
+    case 'washer': {    // 泡が上がる
+      ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#6fa9d6'; ctx.lineWidth = 1;
+      for (let i = 0; i < 3; i++) { const t = ((ph * 0.25 + i / 3) % 1), bx = cx + (i - 1) * cell * 0.16, by = y + cell * (0.78 - t * 0.5); ctx.beginPath(); ctx.arc(bx, by, cell * (0.03 + 0.02 * t), 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+      break;
+    }
+    case 'bagger': {    // 袋がゆれる
+      ctx.save(); ctx.translate(cx, y + cell * 0.72); ctx.rotate(Math.sin(ph * 1.5) * 0.25);
+      ctx.fillStyle = '#d8c9a0'; ctx.strokeStyle = '#6d5f3c'; ctx.lineWidth = 1; ctx.fillRect(-cell * 0.08, -cell * 0.16, cell * 0.16, cell * 0.16); ctx.strokeRect(-cell * 0.08, -cell * 0.16, cell * 0.16, cell * 0.16);
+      ctx.restore(); break;
+    }
+    case 'atelier': {   // 小さな光が作業台のまわりを回る
+      const a = ph * 1.2, px = cx + Math.cos(a) * cell * 0.18, py = cy + Math.sin(a) * cell * 0.1;
+      ctx.fillStyle = '#ffd34d'; ctx.beginPath(); ctx.moveTo(px, py - cell * 0.06); ctx.lineTo(px + cell * 0.02, py); ctx.lineTo(px, py + cell * 0.06); ctx.lineTo(px - cell * 0.02, py); ctx.closePath(); ctx.fill();
+      break;
+    }
+    case 'adit': {      // 横穴：資源が穴の奥から、こちらに向かって大きくなって出てくる
+      const t = Math.min(1, Math.max(0, (m.prog / MACHINES.adit.time - 0.5) / 0.5));
+      if (t > 0) drawItemShape({ k: m.cur.k }, cx, cy + cell * 0.02, 0.15 + 1.05 * t * t);
+      break;
+    }
+  }
+  ctx.restore();
 }
 // 置く物の見本（設置中のカーソル位置）
 function drawGhost(x, y) {
