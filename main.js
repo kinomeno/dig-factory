@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.91（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.92（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.91';
+const VERSION = '0.92';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -305,7 +305,7 @@ const TXT = {
     gMoney: '資金の動き', gMonth: '月ごとの収支（緑＝プラス・赤＝マイナス）',
     adm: { m1: '資金 ＋1000', m10: '資金 ＋10000', maxLv: '全部レベル最大', ace: '優秀な作業員を雇う',
       month: '1か月進める', fast: '速さ ×16', clear: '地中を見る（切替）', allSk: 'スキル全部取得', finRes: '研究を即完了', tune: '調整',
-      stageUp: '段階ジャンプ（次の岩盤を突破）', auto10: '自動プレイ 10分', auto60: '自動プレイ 60分', pixel: 'ドット編集ツール',
+      stageUp: '段階ジャンプ（次の岩盤を突破）', auto10: '自動プレイ 10分', auto60: '自動プレイ 60分', tripTest: '社員旅行（テスト・回数に数えない）', pixel: 'ドット編集ツール',
       liveOn: '自動プレイ（見る）開始', liveOff: '自動プレイ（見る）終了', liveOnMsg: '自動プレイ中：AIが3秒ごとに考えて動かします', liveTag: '自動プレイ中' },
     tuneInfo: 'バーを動かすとすぐ反映されます（最初の資金・鉱石の出やすさ・硬さは「最初から」の後に反映）。「結果をコピー」でチャットに貼れます。',
     tuneCopy: '結果をコピー', tuneCopied: 'コピーしました。チャットに貼ってください', tuneReset: '初期値に戻す', tuneT: '調整',
@@ -448,7 +448,7 @@ const TXT = {
     unitN: 'だい', unitP: 'にん', unitK: 'こ', unitT: 'かい',
     gMoney: 'おかねの うごき', gMonth: 'つきごとの もうけ（みどり＝プラス・あか＝マイナス）',
     adm: { m1: 'おかね ＋1000', m10: 'おかね ＋10000', maxLv: 'ぜんぶ レベル さいだい', ace: 'すごい さぎょういんを やとう',
-      month: '1かげつ すすめる', fast: 'はやさ ×16', clear: 'つちの なかを みる（きりかえ）', allSk: 'スキル ぜんぶ', finRes: 'けんきゅうを すぐ おわらせる', tune: 'ちょうせい', stageUp: 'だんかい ジャンプ', auto10: 'じどう プレイ 10ぷん', auto60: 'じどう プレイ 60ぷん', pixel: 'ドット へんしゅう' },
+      month: '1かげつ すすめる', fast: 'はやさ ×16', clear: 'つちの なかを みる（きりかえ）', allSk: 'スキル ぜんぶ', finRes: 'けんきゅうを すぐ おわらせる', tune: 'ちょうせい', stageUp: 'だんかい ジャンプ', auto10: 'じどう プレイ 10ぷん', auto60: 'じどう プレイ 60ぷん', tripTest: 'しゃいん りょこう（テスト）', pixel: 'ドット へんしゅう' },
     tuneInfo: 'バーを うごかすと すぐ かわります。「けっかを コピー」で チャットに はれます。',
     tuneCopy: 'けっかを コピー', tuneCopied: 'コピー しました', tuneReset: 'はじめの あたいに もどす', tuneT: 'ちょうせい',
     helpTopics: [
@@ -590,7 +590,7 @@ const TXT = {
     unitN: '', unitP: '', unitK: '', unitT: '',
     gMoney: 'Money over time', gMonth: 'Monthly net (green = profit, red = loss)',
     adm: { m1: 'Money +1000', m10: 'Money +10000', maxLv: 'Max all levels', ace: 'Hire an ace worker',
-      month: 'Skip 1 month', fast: 'Speed ×16', clear: 'Reveal underground (toggle)', allSk: 'All skills', finRes: 'Finish research now', tune: 'Tuning', stageUp: 'Stage jump', auto10: 'Auto play 10 min', auto60: 'Auto play 60 min', pixel: 'Pixel editor' },
+      month: 'Skip 1 month', fast: 'Speed ×16', clear: 'Reveal underground (toggle)', allSk: 'All skills', finRes: 'Finish research now', tune: 'Tuning', stageUp: 'Stage jump', auto10: 'Auto play 10 min', auto60: 'Auto play 60 min', tripTest: 'Company trip (test, not counted)', pixel: 'Pixel editor' },
     tuneInfo: 'Changes apply right away (starting money, ore and hardness after Restart). Copy the result to paste in chat.',
     tuneCopy: 'Copy result', tuneCopied: 'Copied', tuneReset: 'Reset to defaults', tuneT: 'Tuning',
     helpTopics: [
@@ -1668,11 +1668,19 @@ function tutTarget() {
   return [...document.querySelectorAll('[data-open="build"], #catBar [data-cat="build"]')].find(vis) || null;
 }
 let tutCell = null;   // 光らせる工場の中の物（マス）
-function tutPlace(b) {   // 案内のメッセージの位置：ふだんは画面の真ん中。説明する物と重なるなら、反対側へ
+function tutPlace(b) {   // 案内のメッセージの位置：ふだんは画面の上の真ん中。重なる物があれば、空いている所へ下げる
   const m = $('tutMsg'); if (m.hidden) return;
-  const H = window.innerHeight, h = m.offsetHeight;
-  let top = Math.round((H - h) / 2);
-  if (b && !(b.bottom < top - 8 || b.top > top + h + 8)) top = (b.top + b.bottom) / 2 > H / 2 ? Math.max(hdrH + 8, b.top - h - 40) : Math.min(H - h - 90, b.bottom + 40);
+  const W = window.innerWidth, H = window.innerHeight, h = m.offsetHeight, w = m.offsetWidth, top0 = hdrH + 8;
+  const left = (W - w) / 2, right = left + w;
+  const visEl = el => el && !el.hidden && getComputedStyle(el).display !== 'none' && el.getBoundingClientRect().width > 0;
+  const must = [b, ...['tutSkip', 'pop'].map($).filter(visEl).map(el => el.getBoundingClientRect())].filter(Boolean);   // 必ずよける物：説明する物・スキップ・選んだ物のメニュー
+  const soft = ['office', 'skillPanel', 'powerPanel', 'tradePanel', 'subMenu'].map($).filter(visEl).map(el => el.getBoundingClientRect());   // できればよける：開いている画面
+  const dash = $('dash'), floor = visEl(dash) ? dash.getBoundingClientRect().top - 4 : H - 4;
+  const hit = (y, list) => list.some(r => r.left < right && r.right > left && r.top < y + h + 6 && r.bottom > y - 6);
+  const cands = [top0, ...[...must, ...soft].map(r => r.bottom + 8)].filter(y => y >= top0 && y + h <= floor).sort((p2, q) => p2 - q);
+  let top = cands.find(y => !hit(y, must) && !hit(y, soft));
+  if (top === undefined) top = cands.find(y => !hit(y, must));   // 全部はよけられない時は、必ずよける物だけ
+  if (top === undefined) top = top0;
   m.style.top = Math.round(top) + 'px';
 }
 function tutArrow() {
@@ -2186,7 +2194,7 @@ function updateBossFork(dt) {
   else if (f.state === 'toOffice') { if (goTo(OFFICE_C + 1)) { for (const it of f.load) tripAdd(it.k, 1); f.load = []; f.state = 'toYard'; } }
 }
 // 出発：作業員を全員事務所に呼び戻す（歩いて戻る。その間もゲームは進む）→ そろったら「出発しますか？」→ 発進 → 宇宙
-let tripGather = false, tripAsked = false, tripMsgT = 0, launchT = 0;
+let tripGather = false, tripAsked = false, tripMsgT = 0, launchT = 0, tripTestOn = false;
 function tripStart() {
   if (tripGather || launchT) return;
   tripGather = true; tripAsked = false; tripMsgT = 0; closePanels(); closePop();
@@ -2200,12 +2208,12 @@ function tripTick() {   // 画面の更新ごと（実時間）
   if (n >= m && !tripAsked) {
     tripAsked = true;
     askConfirm(T.tripQ, () => { say(T.tripGo, 4000, 'normal'); setTimeout(() => { launchT = performance.now(); }, 1500); },
-      () => { tripGather = false; for (const w of S.workers) if (w.state === 'rest') w.lastLook = -9; say(''); });   // やめる：みんな持ち場へ戻る
+      () => { tripGather = false; tripTestOn = false; for (const w of S.workers) if (w.state === 'rest') w.lastLook = -9; say(''); });   // やめる：みんな持ち場へ戻る
   }
 }
 function tripEnd() {   // 宇宙から戻る：何事もなかったように続く
   $('space').hidden = true; launchT = 0; tripGather = false;
-  S.tripN = (S.tripN || 0) + 1; addHist(tx().tripHist(S.tripN));
+  if (tripTestOn) tripTestOn = false; else { S.tripN = (S.tripN || 0) + 1; addHist(tx().tripHist(S.tripN)); }   // テストは数えない
   for (const w of S.workers) if (w.state === 'rest') w.lastLook = -9;
   updateUI();
 }
@@ -3754,6 +3762,7 @@ function renderPanel(id) {
     });
     add(A.auto10, () => { closePanels(); autoPlay(10); });
     add(A.auto60, () => { closePanels(); autoPlay(60); });
+    add(A.tripTest, () => { closePanels(); tripTestOn = true; tripStart(); });   // 社員旅行を試す（研究や材料なしで。回数・履歴に残さない）
     add(autoLive ? A.liveOff : A.liveOn, () => { autoLive = !autoLive; liveT = 0; aiLog = []; showAiLog(); say(autoLive ? tx().adm.liveOnMsg : tx().adm.liveOff, 2500); renderPanel('admin'); });
     add(A.failLog, () => { closePanels(); showNotice(aiFailText(), 'normal'); });
     add(A.pixel, () => { window.open('tools/pixel.html', '_blank'); });
@@ -4985,7 +4994,7 @@ function drawOffice0() {
   ctx.fillStyle = T2.wall; ctx.fillRect(x0, top, w, h);
   ctx.fillStyle = T2.wall2; ctx.fillRect(x0 + w * 0.82, top, w * 0.18, h);       // 影
   ctx.fillStyle = T2.roof; ctx.fillRect(x0 - cell * 0.04, top - cell * 0.07, w + cell * 0.08, cell * 0.09);   // 屋根（平ら）
-  if (sk('build')) {   // 建造：屋上に▲、左右に羽
+  if (sk('build') || tripTestOn) {   // 建造：屋上に▲、左右に羽（テストの時も）
     ctx.fillStyle = '#c0392b';
     ctx.beginPath(); ctx.moveTo(x0 - cell * 0.04, top - cell * 0.07); ctx.lineTo(x0 + w / 2, top - cell * 1.0); ctx.lineTo(x0 + w + cell * 0.04, top - cell * 0.07); ctx.closePath(); ctx.fill();
     ctx.beginPath(); ctx.moveTo(x0, base - h * 0.45); ctx.lineTo(x0 - cell * 0.42, base); ctx.lineTo(x0, base); ctx.closePath(); ctx.fill();
@@ -6458,7 +6467,7 @@ resize();
 resetCam();
 showTitle();
 window.__game = { // 動作確認用
-  get S() { return S; }, draw: () => draw(), openPop: t => openPop(t), tripStart: () => tripStart(), cappedAllDone: () => cappedAllDone(), TRIP_NEED, toggle: id => togglePanel(id), openCatT: c => { openCat = c; renderSub(); updateUI(); }, tutStart: () => startTutorial(), tutSet: st => tutSet(st), setNoDraw: v => { noDraw = !!v; }, BAL, openBalance, balChanged, TUNE, OFFICE_LV, AI_W, BELT_CAP, fpsCtl, row, canPlaceAt, officeUp, buyFork, finishResearch, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
+  get S() { return S; }, draw: () => draw(), openPop: t => openPop(t), tutTarget: () => tutTarget(), closePop: () => closePop(), tripStart: () => tripStart(), cappedAllDone: () => cappedAllDone(), TRIP_NEED, toggle: id => togglePanel(id), openCatT: c => { openCat = c; renderSub(); updateUI(); }, tutStart: () => startTutorial(), tutSet: st => tutSet(st), setNoDraw: v => { noDraw = !!v; }, BAL, openBalance, balChanged, TUNE, OFFICE_LV, AI_W, BELT_CAP, fpsCtl, row, canPlaceAt, officeUp, buyFork, finishResearch, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
   setTool: t => setTool(t), setDir: d => { dir = d; }, pause: () => { running = false; },
   checkStage, resAvail, buildCost, allResIds, resDef, autoSave, catchUp, showTitle, leaveTitle, autoPlay, autoStep, workNeed,
   deserialize, serialize, newGame: () => newGame(), aiLearn, autoPlan, AUTO_LINES, autoDiagnose, setLive: v => { autoLive = v; showAiLog(); }, setAutoBuild: v => { autoBuild = v; }, fmt, itemVal, placePend, priceUp, lvVal, lvCost, catalogIds,

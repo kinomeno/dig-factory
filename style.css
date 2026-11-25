@@ -474,7 +474,7 @@ html[lang="en"] #dash .dtab b { font-size: 11.5px; letter-spacing: 0; padding-le
 /* v0.78 メッセージは上の真ん中（資金などに重なってよい） */
 .msg { top: calc(var(--hdr) + 6px); left: 50%; transform: translateX(-50%); max-width: min(92vw, 460px); z-index: 42; }
 /* v0.80 案内：メッセージは画面の真ん中（top は tutPlace で決める）・ボタンもゆっくり光らせる（点滅ではない） */
-#tutMsg { top: 45%; }
+#tutMsg { top: calc(var(--hdr) + 8px); }
 .tutPulse2 { animation: tutPulse2 1.6s ease-in-out infinite; position: relative; }
 @keyframes tutPulse2 { 0%, 100% { box-shadow: 0 0 0 2px rgba(208,102,31,.25); } 50% { box-shadow: 0 0 0 4px rgba(208,102,31,.85); } }
 /* v0.81 畳める見出し・左下の「× コンベア」と向きのバーを1本に */
