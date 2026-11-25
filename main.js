@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.87（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.88（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.87';
+const VERSION = '0.88';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -30,7 +30,7 @@ const BAL = {
   priceUpMul: 1.15, priceCostG: 1.6,
   ironP5: 0.17, ironP10: 0.33, goldP10: 0.07, goldP30: 0.18, diaP30: 0.045, diaP50: 0.11, oilP: 0.012, hotP: 0.03,   // v0.72：鉄・金・ダイヤを出やすく（×1.4）
   offCostG: 3, offCapG: 1.3, capMax: 200, brandMul: 1.1, labAlone: 0.25, beltManned: 1.5, elevSpeed: 6, rareP: 0.006, museumFee: 60, truckAdd0: 8000, truckAddG: 2.5,
-  resGrow: 1.07, conneP: 0.1, lampMul: 1.15, awayExact: 120, itemHp: 2, itemMax: 2000, zoneHard: 0.35, restMin: 3, clayP: 0.14, copperP: 0.1, coalP: 0.09, quartzP: 0.05, silverP: 0.06,
+  resGrow: 1.07, conneP: 0.1, lampMul: 1.15, awayExact: 120, awayStep: 0.05, itemHp: 2, itemMax: 2000, zoneHard: 0.35, restMin: 3, clayP: 0.14, copperP: 0.1, coalP: 0.09, quartzP: 0.05, silverP: 0.06,
   bossFatPer: 0.13, bossFatRate: 0.0001, beltSlowPow: 3, beltSlowMin: 0.02, truckWait: 15, gift: 1000,
 };
 const COST = { lamp: 200, drill: 50, fdrill: 120, adrill: 150, conv: 5, sort: 20, tee: 15, cross: 15, lab: 200, pipe: 8, spa: 800, power: 1000, refinery: 1500, museum: 20000, elev: 30, yard: 500 };
@@ -1299,9 +1299,15 @@ function workFactor(s) {
   return (w ? techFactor(w) : TUNE.unmanned) * (S.lamps && lampLit().has(s) ? BAL.lampMul : 1);   // 照明で少し速い
 }
 
+let typeLists = { stamp: '', mach: [], drill: [] };
+function typeList(kind) {   // 機械だけ・ドリルだけの一覧
+  const stamp = S.st.size + ':' + S.stVer;
+  if (typeLists.stamp !== stamp) { typeLists = { stamp, mach: [], drill: [] }; for (const v of S.st.values()) { if (v.type === 'machine') typeLists.mach.push(v); else if (v.type === 'drill') typeLists.drill.push(v); } }
+  return typeLists[kind];
+}
 function updateMachines(dt) {
-  for (const [k, m] of S.st) {
-    if (m.type !== 'machine') continue;
+  for (const m of typeList('mach')) {
+    const k = stationKey(m); if (k < 0) continue;
     const def = MACHINES[m.m];
     if (!m.cur && def.src) { m.cur = { k: aditOre(rOf(k)) }; m.prog = 0; }   // 横穴：材料なしで次の1個を掘り出す
     if (!m.cur) {
@@ -1770,9 +1776,10 @@ function giftFirst() {
   addHist(tx().giftHist); S.notice = tx().giftMsg(fmt(BAL.gift));
 }
 // ---- 時間を進める ----
+let simStep = SUB_SEC;   // 計算の刻み（放置の計算中だけ粗く）
 function sim(sec) {
   while (sec > 1e-9) {
-    const dt = Math.min(SUB_SEC, sec);
+    const dt = Math.min(simStep, sec);
     sec -= dt;
     S.time += dt;
     if (window.__prof) {   // 試験用：どこが重いかを測る
@@ -1834,10 +1841,12 @@ function updateMonth() {
 function approach(v, target, d) { return Math.abs(target - v) <= d ? target : v + Math.sign(target - v) * d; }
 
 function updateItems(dt) {
-  countThru();
+  if ((S.ctT = (S.ctT || 0) + dt) >= 0.06 || !beltN.size) { S.ctT = 0; countThru(); }   // マスごとの数え直しは、0.06秒ごと（毎回はしない）
+  let rmN = 0;
   for (let i = S.items.length - 1; i >= 0; i--) {
     const it = S.items[i];
-    if (it.y < SKY) { toSurface(it); S.items.splice(i, 1); continue; }   // 地上に出た → その場に置く（フォークリフトが運ぶ）
+    if (it.rm) { rmN++; continue; }
+    if (it.y < SKY) { toSurface(it); (it.rm = true); continue; }   // 地上に出た → その場に置く（フォークリフトが運ぶ）
     const c = Math.floor(it.x), r = Math.floor(it.y), k = key(c, r);
     const s = S.st.get(k);
     if (s && s.type === 'machine' && it.thru) {   // 機械の中を通り抜け中（コンベアの半分の速さ＝2倍の時間）
@@ -1846,7 +1855,7 @@ function updateItems(dt) {
       const nx = it.x + dx * v, ny = it.y + dy * v, nc = Math.floor(nx), nr = Math.floor(ny);
       if (nc === c && nr === r) { it.x = nx; it.y = ny; continue; }
       const m2 = machineAt(nc, nr);
-      if (m2 && accepts(m2, it)) { absorb(m2, it); S.items.splice(i, 1); continue; }
+      if (m2 && accepts(m2, it)) { absorb(m2, it); (it.rm = true); continue; }
       if (m2 && thruIn(nc, nr) < THRU_MAX_()) { thruAdd(nc, nr); it.x = nx; it.y = ny; continue; }   // 次の機械も通り抜ける
       if (!m2 && inB(nc, nr) && blk(nc, nr) === null && (nr < SKY || isBelt(S.st.get(key(nc, nr))))) { it.x = nx; it.y = ny; it.thru = false; continue; }
       if (dx) it.x = c + 0.5 + dx * 0.42; else it.y = r + 0.5 + dy * 0.42;   // 出口がふさがっている
@@ -1862,8 +1871,8 @@ function updateItems(dt) {
       } else {
         it.vy = 0;
         const m = machineAt(c, r + 1);
-        if (m && accepts(m, it)) { absorb(m, it); S.items.splice(i, 1); }
-        else if (m && passThrough(m, c, r + 1, it) && it.gone) S.items.splice(i, 1);   // 上から落ちてきた対応外の物も通す
+        if (m && accepts(m, it)) { absorb(m, it); (it.rm = true); }
+        else if (m && passThrough(m, c, r + 1, it) && it.gone) (it.rm = true);   // 上から落ちてきた対応外の物も通す
       }
       continue;
     }
@@ -1897,7 +1906,7 @@ function updateItems(dt) {
     it.cd = md;   // 次のマスへ進む向き（交差で使う）
     const m = machineAt(nc, nr);
     if (m) {
-      if (accepts(m, it)) { absorb(m, it); S.items.splice(i, 1); continue; }
+      if (accepts(m, it)) { absorb(m, it); (it.rm = true); continue; }
       if (thruIn(nc, nr) < THRU_MAX_()) { thruAdd(nc, nr); it.thru = true; it.x = nx; it.y = ny; continue; }   // 対応外：機械の中をとてもゆっくり通り抜ける（混んでいたら手前で待つ）
     }
     else if (inB(nc, nr) && blk(nc, nr) === null && (nr < SKY || isBelt(S.st.get(key(nc, nr))))) {
@@ -1906,13 +1915,14 @@ function updateItems(dt) {
     const edge = 0.42 - Math.abs(it.ox) * 0.4;
     if (dx) it.x = c + 0.5 + dx * edge; else it.y = r + 0.5 + dy * edge;
   }
+  if (S.items.some(x => x.rm)) S.items = S.items.filter(x => !x.rm);   // 取り除いた物を、まとめて外す（1回だけ書き写す）
 }
 
 function updateDrills(dt) {
   S.stopT = (S.stopT || 0) + dt;
   const check = S.stopT >= 1; if (check) S.stopT -= 1;
-  for (const [k, s] of [...S.st]) {
-    if (s.type !== 'drill' || s.off) continue;   // 止めてあるドリルは動かない
+  for (const s of typeList('drill').slice()) {   // ドリルは掘り進むと場所が変わるので、場所はその都度引く
+    const k = stationKey(s); if (k < 0 || s.type !== 'drill' || s.off) continue;   // 止めてあるドリルは動かない
     if (check) {   // 1秒ごと：10秒以上止まっていたら知らせる（同じドリルは3分に1回まで）
       s.stuckT = s.stuck ? (s.stuckT || 0) + 1 : 0;
       if (s.stuckT >= 10 && S.time - (s.stopSaid || -1e9) > 180) {
@@ -2269,6 +2279,25 @@ function savedJson() {
 const awayLimit = () => Math.min(86400, 3600 * (1 + sk('away')));   // 放置できる時間：1時間＋研究ごとに1時間（最大1日）
 const fmtDur = sec => { const m = Math.round(sec / 60), T = tx(); return T.dur(Math.floor(m / 60), m % 60); };
 // 留守の間を、本当に時間を進めて計算する（バーで進み具合を見せる）
+// 見積もりの間のドリル：ドリルの力で前のマスを順に削る。掘りきったら進む（普段と同じ動き）。出た資源は見積もったお金に入っている扱い
+function drillsAway(sec) {
+  for (const s of typeList('drill').slice()) {
+    if (s.off) continue;
+    let budget = drillPw(s) / drillIv(s) * sec;
+    for (let n = 0; n < 400 && budget > 0; n++) {
+      const k = stationKey(s); if (k < 0) break;
+      const [dx, dy] = DIRS[s.dir], tc = cOf(k) + dx, tr = rOf(k) + dy;
+      if (!inB(tc, tr)) break;
+      const g = blk(tc, tr);
+      if (g === null) { if (s.dir === 'down' && !S.st.has(key(tc, tr)) && !isYard(tc, tr) && !isOffice(tc, tr)) { moveDrill(k, s, key(tc, tr)); continue; } break; }
+      const rem = (g.left - 1) * g.h + (g.h - g.p);
+      if (budget < rem) { const nr = rem - budget; g.left = Math.max(1, Math.ceil(nr / g.h)); g.p = g.left * g.h - nr; budget = 0; break; }
+      budget -= rem; row(tr)[tc] = null; S.digVer++;
+      if (g.pocket) { makeWell(tc, tr, g.pocket); s.stuck = true; break; }
+      moveDrill(k, s, key(tc, tr));
+    }
+  }
+}
 let catchBusy = false;   // 放置の計算中：画面は描かない（真っ暗にバーだけ）
 async function catchUp(sec) {
   if (catchBusy) return;
@@ -2278,7 +2307,7 @@ async function catchUp(sec) {
   $('awayMsg').textContent = T.awayCalc(fmtDur(sec)); $('awayEta').textContent = '';
   const m0 = S.money, s0 = S.stats.saleTotal, c0 = S.stats.costTotal, r0 = performance.now();
   const exact = Math.min(sec, BAL.awayExact);   // 本当に計算する時間（ゲームの秒）
-  let done = 0;
+  let done = 0; simStep = BAL.awayStep;
   while (done < exact) {
     const t0 = performance.now();
     while (done < exact && performance.now() - t0 < 45) { const st = Math.min(20, exact - done); sim(st); done += st; }
@@ -2293,10 +2322,11 @@ async function catchUp(sec) {
     S.money += dm * rest; S.stats.saleTotal += ds * rest; S.stats.costTotal += dc * rest;
     S.time += rest; S.month = Math.floor(S.time / TUNE.month);   // 給料は見積もりに入っているので、ここでは払わない
     updateResearch(rest);   // 研究は時間どおり進む（研究員の速さで）
+    drillsAway(rest);       // ドリルも、その力で掘り進む（残り時間の表示どおり）
     if (S.boost.priceT > 0) S.boost.priceT = Math.max(0, S.boost.priceT - rest);
     $('awayBar').style.width = '100%';
   }
-  S.pops = []; catchBusy = false; box.classList.remove('calc'); $('awayEta').textContent = ''; last = performance.now();
+  simStep = SUB_SEC; S.pops = []; catchBusy = false; box.classList.remove('calc'); $('awayEta').textContent = ''; last = performance.now();
   $('awayMsg').textContent = T.awayDone(fmtDur(sec), S.stats.saleTotal - s0, S.money - m0);
   $('awayOk').hidden = false;
   addHist(T.hAway(fmtDur(sec)));
@@ -2409,11 +2439,13 @@ function walk(w, dt) {
 }
 
 function updateWorkers(dt) {
-  const busyW = S.workers.filter(w => w.target && (w.state === 'toWork' || w.state === 'work' || w.state === 'drive'));
-  const taken = new Set(busyW.map(w => w.target));
-  const facN = new Map(); for (const w of busyW) if (w.target.type === 'fac') facN.set(w.target, (facN.get(w.target) || 0) + 1);   // 地上施設は数人まで
-  let labN = busyW.filter(w => w.target === S.lab).length;
-  taken.delete(S.lab);
+  let taken = null, facN = null, labN = 0;
+  const busyMake = () => {   // 暇な人が持ち場を探す時だけ作る（毎回は作らない）。地上施設は数人まで
+    const busyW = S.workers.filter(w => w.target && (w.state === 'toWork' || w.state === 'work' || w.state === 'drive'));
+    taken = new Set(busyW.map(w => w.target));
+    facN = new Map(); for (const w of busyW) if (w.target.type === 'fac') facN.set(w.target, (facN.get(w.target) || 0) + 1);
+    labN = busyW.filter(w => w.target === S.lab).length; taken.delete(S.lab);
+  };
   for (const w of S.workers) {
     const maxS = maxStamina(w);
     if (w.boss && S.tut) continue;   // はじめの手順の間、社長は手順どおりに動く
@@ -2433,6 +2465,7 @@ function updateWorkers(dt) {
       case 'idle': {
         if (S.time - (w.lastLook || -9) < 0.5) break;
         w.lastLook = S.time;
+        if (!taken) busyMake();
         const { dist } = officeMap();
         let best = null, bd = Infinity;
         // Lv2以上は、地上・上級勤務（研究所・フォークリフト・トラック）を先に
