@@ -471,3 +471,5 @@ html[lang="en"] #dash .dtab b { font-size: 11.5px; letter-spacing: 0; padding-le
 .row2 .name { letter-spacing: .02em; }
 .row2 + .row2 { border-top: 1px dashed var(--line2); }
 .prow.labeled .opts button, #skillBody .opts button { white-space: nowrap; }
+/* v0.77 メッセージは画面の真ん中ではなく、資金の下の左に */
+.msg { left: calc(var(--edge) + 4px); transform: none; max-width: min(78vw, 420px); }

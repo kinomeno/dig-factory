@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.76（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.77（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.76';
+const VERSION = '0.77';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -1466,7 +1466,8 @@ function updateFacs(dt) {
 // 最初の資金ショート：1000のプレゼント（返さなくてよい。1回だけ）
 // 人事部・技術部・市場調査（研究して、事務所でオン・オフ）
 // 部署の報告：たまった分を、部署ごとに順番に1つずつ知らせる（多い時はまとめて「3人」など）
-let deptLog = { hr: 0, tech: 0, sales: [] }, deptTurn = 0;
+let deptLog = { hr: 0, tech: 0, sales: [], techAt: null }, deptTurn = 0, deptSaid = {};
+const DEPT_GAP = 120;   // 同じ部署の報告は、ゲームの2か月に1回まで（その間の分はまとめる）
 function autoDepts() {
   const o = S.opts || {};
   if (sk('autoHire') && o.autoHire !== false) {   // 人事部：持ち場（コンベア以外）が人より多い時だけ、余裕があれば雇う
@@ -1476,20 +1477,22 @@ function autoDepts() {
   if (sk('autoUpg') && o.autoUpg !== false && Math.random() < 0.3) {   // 技術部：気まぐれ。たまに、適当に選んだ物を、お金がかなりある時だけ強化
     const ts = [...S.st.values()].filter(x => x.type === 'drill' || x.type === 'machine' || isBelt(x));
     const t = ts[Math.floor(Math.random() * ts.length)], c = t ? nextCost(t) : null;
-    if (c !== null && S.money > c * 8) { levelUp(t); deptLog.tech++; }
+    if (c !== null && S.money > c * 8) { levelUp(t); deptLog.tech++; const tk = findKey(t); if (tk >= 0) deptLog.techAt = { c: cOf(tk), r: rOf(tk), open: () => { if ([...S.st.values()].includes(t)) openPop(t); } }; }   // 最後に強化した物へ飛べる
   }
   if (sk('autoPrice') && o.autoPrice !== false) {   // 営業部：売ったことのある資源のうち、いちばん安い売値アップを、余裕があれば
     const rs = ROOT_ORDER.filter(r => S.sold['@' + r]).sort((a, b) => priceCost(a) - priceCost(b));
     if (rs.length && S.money > priceCost(rs[0]) * 4) { priceUp(rs[0]); if (!deptLog.sales.includes(rs[0])) deptLog.sales.push(rs[0]); }
   }
-  if (autoBusy || catchBusy) { deptLog = { hr: 0, tech: 0, sales: [] }; return; }   // 早送りの計算中は知らせない
+  if (autoBusy || catchBusy) { deptLog = { hr: 0, tech: 0, sales: [], techAt: null }; return; }   // 早送りの計算中は知らせない
   const T = tx(), order = ['hr', 'tech', 'sales'];
   for (let i = 0; i < 3; i++) {
     const d = order[(deptTurn + i) % 3], v = deptLog[d];
     if (d === 'sales' ? !v.length : !v) continue;
-    deptTurn = (deptTurn + i + 1) % 3;
-    say(d === 'hr' ? T.deptHr(v) : d === 'tech' ? T.deptTech(v) : T.deptSales(v.map(k2 => T.items[k2]).join('・')), 3500, 'good', null, d);
+    if (S.time - (deptSaid[d] || -1e9) < DEPT_GAP) continue;
+    deptTurn = (deptTurn + i + 1) % 3; deptSaid[d] = S.time;
+    say(d === 'hr' ? T.deptHr(v) : d === 'tech' ? T.deptTech(v) : T.deptSales(v.map(k2 => T.items[k2]).join('・')), 3500, 'good', d === 'tech' ? deptLog.techAt : null, d);
     if (d === 'sales') deptLog.sales = []; else deptLog[d] = 0;
+    if (d === 'tech') deptLog.techAt = null;
     break;
   }
 }
