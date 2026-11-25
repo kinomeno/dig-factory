@@ -458,3 +458,7 @@ html[lang="en"] #dash .dtab b { font-size: 11.5px; letter-spacing: 0; padding-le
 #pop .head #popRemove[hidden] { display: none; }
 #dirBar .dir[data-dir="auto"] { font-size: 11px; padding-left: 6px; padding-right: 6px; }
 #dirBar .dir[hidden] { display: none; }
+/* v0.70 放置の計算中は真っ暗にバーだけ */
+#away.calc { background: #000; }
+#away.calc .box { background: transparent; border-color: transparent; color: #e8e6e0; }
+#awayEta { margin: -6px 0 8px; font-size: 12px; opacity: .8; min-height: 1.2em; }

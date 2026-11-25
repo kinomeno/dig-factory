@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.69（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.70（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.69';
+const VERSION = '0.70';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -286,7 +286,7 @@ const TXT = {
     nextRock: '次の岩盤を突破すると研究できます',
     hStart: '創業（社長ひとり・ドリル1台）', hOffice: n => `事務所をレベル${n}に`, hStage: n => `岩盤レベル${n}を突破`, hMoney: v => `資金が${v.toLocaleString()}を超えた`,
     tCont: 'つづきから', tNew: 'はじめから', confirmNew: 'はじめからにしますか？（今の遊びかけは消えます）', confirmTitle: 'タイトルにもどりますか？（自動でセーブします）',
-    dur: (h, m) => (h ? `${h}時間` : '') + `${m}分`, awayCalc: t => `おかえりなさい。留守の間（${t}）の工場を計算しています…`,
+    dur: (h, m) => (h ? `${h}時間` : '') + `${m}分`, awayCalc: t => `おかえりなさい。留守の間（${t}）の工場を計算しています…`, awayEta: n => `完了まで あと約${n}秒`,
     awayDone: (t, sale, net) => `留守の間（${t}）に、売上 ${sale.toLocaleString()}・資金 ${net >= 0 ? '+' : ''}${net.toLocaleString()}`,
     hAway: t => `留守の間 ${t} 工場が動いた`, autoSaveNote: 'ゲームは自動でセーブされます（30秒ごと・閉じる時・タイトルに戻る時）。',
     finance: '財務', history: '履歴', histEmpty: 'まだありません',
@@ -418,7 +418,7 @@ const TXT = {
     nextRock: 'つぎの がんばんを とっぱすると けんきゅう できます',
     hStart: 'かいしゃを はじめた（しゃちょう ひとり・ドリル1だい）', hOffice: n => `じむしょを レベル${n}に`, hStage: n => `がんばん レベル${n}を とっぱ`, hMoney: v => `おかねが ${v.toLocaleString()}を こえた`,
     tCont: 'つづきから', tNew: 'はじめから', confirmNew: 'はじめから に しますか？（いまの あそびかけは きえます）', confirmTitle: 'タイトルに もどりますか？（じどうで セーブします）',
-    dur: (h, m) => (h ? `${h}じかん` : '') + `${m}ふん`, awayCalc: t => `おかえりなさい。るすの あいだ（${t}）の こうじょうを けいさん しています…`,
+    dur: (h, m) => (h ? `${h}じかん` : '') + `${m}ふん`, awayCalc: t => `おかえりなさい。るすの あいだ（${t}）の こうじょうを けいさん しています…`, awayEta: n => `おわるまで あと やく${n}びょう`,
     awayDone: (t, sale, net) => `るすの あいだ（${t}）に、うりあげ ${sale.toLocaleString()}・おかね ${net >= 0 ? '+' : ''}${net.toLocaleString()}`,
     hAway: t => `るすの あいだ ${t} こうじょうが うごいた`, autoSaveNote: 'ゲームは じどうで セーブ されます（30びょうごと・とじる とき・タイトルに もどる とき）。',
     finance: 'おかね', history: 'れきし', histEmpty: 'まだ ありません',
@@ -550,7 +550,7 @@ const TXT = {
     nextRock: 'Break through the next bedrock to research',
     hStart: 'Company founded (just the boss, one drill)', hOffice: n => `Office upgraded to level ${n}`, hStage: n => `Broke through bedrock level ${n}`, hMoney: v => `Money passed ${v.toLocaleString()}`,
     tCont: 'Continue', tNew: 'New game', confirmNew: 'Start a new game? (your current game will be lost)', confirmTitle: 'Back to the title? (the game is saved automatically)',
-    dur: (h, m) => (h ? `${h}h ` : '') + `${m}m`, awayCalc: t => `Welcome back. Working out your factory while you were away (${t})…`,
+    dur: (h, m) => (h ? `${h}h ` : '') + `${m}m`, awayCalc: t => `Welcome back. Working out your factory while you were away (${t})…`, awayEta: n => `About ${n}s left`,
     awayDone: (t, sale, net) => `While you were away (${t}): sales ${sale.toLocaleString()}, money ${net >= 0 ? '+' : ''}${net.toLocaleString()}`,
     hAway: t => `Factory ran for ${t} while away`, autoSaveNote: 'The game saves automatically (every 30s, when closing, and when returning to the title).',
     finance: 'Finance', history: 'History', histEmpty: 'Nothing yet',
@@ -1995,19 +1995,24 @@ function savedJson() {
 const awayLimit = () => Math.min(86400, 3600 * (1 + sk('away')));   // 放置できる時間：1時間＋研究ごとに1時間（最大1日）
 const fmtDur = sec => { const m = Math.round(sec / 60), T = tx(); return T.dur(Math.floor(m / 60), m % 60); };
 // 留守の間を、本当に時間を進めて計算する（バーで進み具合を見せる）
+let catchBusy = false;   // 放置の計算中：画面は描かない（真っ暗にバーだけ）
 async function catchUp(sec) {
+  if (catchBusy) return;
+  catchBusy = true; closePop();
   const T = tx(), box = $('away');
-  box.hidden = false; $('awayOk').hidden = true;
-  $('awayMsg').textContent = T.awayCalc(fmtDur(sec));
-  const m0 = S.money, s0 = S.stats.saleTotal;
+  box.hidden = false; box.classList.add('calc'); $('awayOk').hidden = true;
+  $('awayMsg').textContent = T.awayCalc(fmtDur(sec)); $('awayEta').textContent = '';
+  const m0 = S.money, s0 = S.stats.saleTotal, r0 = performance.now();
   let done = 0;
   while (done < sec) {
     const t0 = performance.now();
-    while (done < sec && performance.now() - t0 < 30) { const st = Math.min(20, sec - done); sim(st); done += st; }
+    while (done < sec && performance.now() - t0 < 45) { const st = Math.min(20, sec - done); sim(st); done += st; }
     $('awayBar').style.width = (100 * done / sec) + '%';
+    const el = (performance.now() - r0) / 1000;
+    if (el > 0.6 && done < sec) $('awayEta').textContent = T.awayEta(Math.max(1, Math.ceil(el / done * (sec - done))));   // 完了まで あと約○秒
     await new Promise(r => setTimeout(r, 0));
   }
-  S.pops = [];
+  S.pops = []; catchBusy = false; box.classList.remove('calc'); $('awayEta').textContent = ''; last = performance.now();
   $('awayMsg').textContent = T.awayDone(fmtDur(sec), S.stats.saleTotal - s0, S.money - m0);
   $('awayOk').hidden = false;
   addHist(T.hAway(fmtDur(sec)));
@@ -5447,7 +5452,12 @@ $('tHelp').addEventListener('click', () => togglePanel('help'));
 $('awayOk').addEventListener('click', () => { $('away').hidden = true; });
 $('noticeOk').addEventListener('click', () => { $('notice').hidden = true; });
 window.addEventListener('pagehide', autoSave);
-document.addEventListener('visibilitychange', () => { if (document.hidden) autoSave(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { autoSave(); hiddenAt = Date.now(); return; }
+  const gone = hiddenAt ? (Date.now() - hiddenAt) / 1000 : 0; hiddenAt = 0;
+  last0 = last = performance.now();   // 画面のすき間の検出と、二重に計算しないように
+  if (gone >= AWAY_MIN && !inTitle && S && !autoBusy) catchUp(Math.min(gone, awayLimit()));
+});
 setInterval(autoSave, 30000);
 
 function showNotice(text, mood) {
@@ -5481,9 +5491,15 @@ function fpsTick(dt) {
 }
 // ---- ループ ----
 let last = performance.now(), panelTick = 0;
+// スリープ・ほかのアプリを見ていた間も放置あつかい（20秒以上あいたら、戻った時にまとめて計算）
+const AWAY_MIN = 20;
+let last0 = performance.now(), hiddenAt = 0;
 let noDraw = false;   // 試走用：画面を描かず計算だけ（自動プレイ10分・60分の間も描かない）
 function frame(now) {
   const dt = Math.min(now - last, 250) / 1000; last = now;
+  const gap0 = now - last0; last0 = now;
+  if (catchBusy) { requestAnimationFrame(frame); return; }   // 放置の計算中は、何も描かない（バーだけ）
+  if (gap0 > AWAY_MIN * 1000 && !inTitle && !autoBusy && !document.hidden) { catchUp(Math.min(gap0 / 1000, awayLimit())); requestAnimationFrame(frame); return; }   // スリープ解除など
   if (noDraw || autoBusy) { requestAnimationFrame(frame); return; }   // 画面表示カット
   fpsTick(dt);
   const sp = speeds(); if (speedIdx >= sp.length) speedIdx = sp.length - 1;
