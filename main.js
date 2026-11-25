@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.92（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.94（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.92';
+const VERSION = '0.94';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -2223,26 +2223,37 @@ function showSpace() {
   if (!box) {
     box = document.createElement('div'); box.id = 'space'; box.className = 'modal space';
     box.innerHTML = '<div class="spbox"><canvas id="spaceCv"></canvas><h2 id="spaceT"></h2><p id="spaceSub"></p><div class="btns"><button id="spaceOk" class="active">OK</button></div></div>';
-    document.body.append(box); $('spaceOk').addEventListener('click', tripEnd);
+    document.body.append(box);
+    $('spaceOk').addEventListener('click', () => { const b2 = $('spaceOk'); if (b2.disabled) return; b2.disabled = true; box.style.opacity = '0'; setTimeout(() => { b2.disabled = false; tripEnd(); }, 1000); });   // OK：ゆっくり消えてから戻る
   }
   $('spaceT').textContent = 'Thank you for playing!'; $('spaceSub').textContent = T.spaceSub((S.tripN || 0) + 1);
-  box.hidden = false;
+  box.hidden = false; box.style.opacity = '0'; void box.offsetWidth; box.style.opacity = '1';   // ゆっくり出てくる
   const c = $('spaceCv'), W = Math.min(window.innerWidth - 40, 420), H = Math.round(W * 0.62), dpr = window.devicePixelRatio || 1;
   c.width = W * dpr; c.height = H * dpr; c.style.width = W + 'px'; c.style.height = H + 'px';
-  const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.imageSmoothingEnabled = false;
-  const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#0b1030'); bg.addColorStop(1, '#1d2b5c'); g.fillStyle = bg; g.fillRect(0, 0, W, H);
-  const rnd = seeded(777); g.fillStyle = '#e8ecff'; for (let i = 0; i < 90; i++) { const sz = rnd() < 0.15 ? 2 : 1; g.fillRect(Math.floor(rnd() * W), Math.floor(rnd() * H), sz, sz); }   // 星（動かない）
-  g.fillStyle = '#3a78c8'; g.beginPath(); g.arc(W * 0.86, H * 1.05, H * 0.42, 0, Math.PI * 2); g.fill();   // 地球
-  g.fillStyle = '#5aa36a'; g.beginPath(); g.arc(W * 0.8, H * 0.86, H * 0.1, 0, Math.PI * 2); g.fill(); g.beginPath(); g.arc(W * 0.93, H * 0.8, H * 0.07, 0, Math.PI * 2); g.fill();
-  const bx = W * 0.32, bw = W * 0.2, bh = H * 0.42, by = H * 0.34;   // 事務所ロケット
-  g.fillStyle = '#e8e2d8'; g.fillRect(bx, by, bw, bh);
-  g.fillStyle = '#c0392b'; g.beginPath(); g.moveTo(bx - 3, by); g.lineTo(bx + bw / 2, by - bh * 0.45); g.lineTo(bx + bw + 3, by); g.closePath(); g.fill();   // ▲
-  g.beginPath(); g.moveTo(bx, by + bh * 0.55); g.lineTo(bx - bw * 0.45, by + bh); g.lineTo(bx, by + bh); g.closePath(); g.fill();
-  g.beginPath(); g.moveTo(bx + bw, by + bh * 0.55); g.lineTo(bx + bw + bw * 0.45, by + bh); g.lineTo(bx + bw, by + bh); g.closePath(); g.fill();   // 羽
-  g.fillStyle = '#f0a040'; g.beginPath(); g.moveTo(bx + bw * 0.2, by + bh); g.lineTo(bx + bw / 2, by + bh + bh * 0.35); g.lineTo(bx + bw * 0.8, by + bh); g.closePath(); g.fill();   // 火（動かない）
-  const ws = Math.min(9, S.workers.length), cols = 3;
-  for (let i = 0; i < ws; i++) { const wx = bx + 4 + (i % cols) * (bw - 8) / cols, wy = by + 8 + Math.floor(i / cols) * 18; g.fillStyle = '#9fd0f0'; g.fillRect(wx, wy, (bw - 8) / cols - 3, 14); g.drawImage(WORKER_FR[1], 3, 0, 2, 3, wx + 2, wy + 2, 6, 9); }   // 窓からのぞく作業員
-  g.drawImage(BOSS_FR[1], bx + bw / 2 - 8, by - bh * 0.45 - 16, 16, 16);   // てっぺんに社長
+  const g = c.getContext('2d');
+  const paint = () => {
+    if (box.hidden) return;
+    const t = performance.now() / 1000, fy = Math.sin(t * 0.9) * H * 0.035, tilt = Math.sin(t * 0.55) * 0.04;   // ふわふわ上下・少し傾く
+    g.setTransform(dpr, 0, 0, dpr, 0, 0); g.imageSmoothingEnabled = false;
+    const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#0b1030'); bg.addColorStop(1, '#1d2b5c'); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+    const rnd = seeded(777); g.fillStyle = '#e8ecff'; for (let i = 0; i < 90; i++) { const sz = rnd() < 0.15 ? 2 : 1; g.fillRect(Math.floor(rnd() * W), Math.floor(rnd() * H), sz, sz); }   // 星（動かない）
+    g.fillStyle = '#3a78c8'; g.beginPath(); g.arc(W * 0.86, H * 1.05, H * 0.42, 0, Math.PI * 2); g.fill();   // 地球
+    g.fillStyle = '#5aa36a'; g.beginPath(); g.arc(W * 0.8, H * 0.86, H * 0.1, 0, Math.PI * 2); g.fill(); g.beginPath(); g.arc(W * 0.93, H * 0.8, H * 0.07, 0, Math.PI * 2); g.fill();
+    const bw = W * 0.2, bh = H * 0.42, bx = W * 0.32, by = H * 0.34 + fy;   // 事務所ロケット
+    g.save(); g.translate(bx + bw / 2, by + bh / 2); g.rotate(tilt); g.translate(-(bx + bw / 2), -(by + bh / 2));
+    g.fillStyle = '#e8e2d8'; g.fillRect(bx, by, bw, bh);
+    g.fillStyle = '#c0392b'; g.beginPath(); g.moveTo(bx - 3, by); g.lineTo(bx + bw / 2, by - bh * 0.45); g.lineTo(bx + bw + 3, by); g.closePath(); g.fill();   // ▲
+    g.beginPath(); g.moveTo(bx, by + bh * 0.55); g.lineTo(bx - bw * 0.45, by + bh); g.lineTo(bx, by + bh); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(bx + bw, by + bh * 0.55); g.lineTo(bx + bw + bw * 0.45, by + bh); g.lineTo(bx + bw, by + bh); g.closePath(); g.fill();   // 羽
+    const fl = bh * (0.28 + 0.05 * Math.sin(t * 3));   // 火（長さがゆっくり変わるだけ）
+    g.fillStyle = '#f0a040'; g.beginPath(); g.moveTo(bx + bw * 0.2, by + bh); g.lineTo(bx + bw / 2, by + bh + fl); g.lineTo(bx + bw * 0.8, by + bh); g.closePath(); g.fill();
+    const ws = Math.min(9, S.workers.length), cols = 3;
+    for (let i = 0; i < ws; i++) { const wx = bx + 4 + (i % cols) * (bw - 8) / cols, wy = by + 8 + Math.floor(i / cols) * 18; g.fillStyle = '#9fd0f0'; g.fillRect(wx, wy, (bw - 8) / cols - 3, 14); g.drawImage(WORKER_FR[1], 3, 0, 2, 3, wx + 2, wy + 2, 6, 9); }   // 窓からのぞく作業員
+    g.drawImage(BOSS_FR[1], bx + bw / 2 - 8, by - bh * 0.45 - 16, 16, 16);   // てっぺんに社長
+    g.restore();
+    requestAnimationFrame(paint);
+  };
+  paint();
 }
 function finishResearch(id) {
   S.resN = (S.resN || 0) + 1;
@@ -4145,7 +4156,8 @@ function draw() {
   const out = (c, r) => r < r0 || r > r1 || c < c0 || c > c1;
   const stKey = new Map(); for (const [k, v] of S.st) stKey.set(v, k);   // 持ち場 → マス（作業員ごとに探さない）
   ctx.save();
-  ctx.translate(offX - cam.x * cp, -cam.y * cp);
+  const le = launchT ? (performance.now() - launchT) / 1000 : 0, sh = launchT ? launchShake(le) * Math.max(1.5, cp * 0.05) : 0;   // 発進の どどど
+  ctx.translate(offX - cam.x * cp + Math.sin(le * 97) * sh, -cam.y * cp + Math.cos(le * 83) * sh * 0.7);
   const W = COLS * cell;
   const sky = ctx.createLinearGradient(0, (SKY - 6) * cell, 0, SKY * cell);   // 空（落ち着いたグラデーション）
   sky.addColorStop(0, THEME.skyTop); sky.addColorStop(1, THEME.skyLow);
@@ -4971,11 +4983,34 @@ function drawDrill(x, y, s) {
 const offFloors = lv => (lv < 5 ? [1, 1.6, 2, 2.6, 3.2][lv] : Math.min(6, 3.2 + 0.3 * (lv - 4)));   // 事務所の高さ（階）。レベル5の先も少しずつ高く
 // 事務所の見た目が入っているマス（上の方をタップしても選べるように）
 const officeTap = (c, r) => (c === OFFICE_C || c === OFFICE_C + 1) && r <= YARD_R && r >= YARD_R + 1 - Math.ceil(0.72 * offFloors(S.office.lv) + 0.1);
+// 発進の動き（e＝発進してからの秒）：lift＝上がった高さ（マス。マイナスは沈む）・sx＝横のゆれ・fl＝火の長さ
+const LAUNCH_SEC = 6.6;   // この秒で宇宙の絵へ
+function launchPose(e) {
+  if (e < 0.45) return { lift: -0.05 * (e / 0.45), sx: 0, fl: 0.2 };                                        // ぐっ（重さで沈む）
+  if (e < 1.3) return { lift: -0.05, sx: Math.sin(e * 95) * 0.035, fl: 0.35 + 0.15 * Math.sin(e * 40) };    // ぶるぶる
+  if (e < 1.7) return { lift: -0.05 + 0.22 * ((e - 1.3) / 0.4), sx: 0, fl: 0.6 };                          // ぐぐっ
+  if (e < 2.15) return { lift: 0.17, sx: Math.sin(e * 85) * 0.03, fl: 0.65 + 0.1 * Math.sin(e * 50) };     // ぶるっ
+  const u = e - 2.15;
+  return { lift: 0.17 + 0.12 * u + 0.32 * u * u, sx: Math.sin(e * 70) * 0.03 / (1 + u), fl: 0.9 + 0.35 * Math.sin(e * 33) };   // ぐぐーん！
+}
+const launchShake = e => (e > 0.45 && e < 1.3) || (e > 1.7 && e < 4.6) ? 1 - Math.max(0, e - 3.2) / 1.4 : 0;   // どどど（画面のゆれの強さ）
 function drawOffice() {
-  const lift = launchT ? Math.pow((performance.now() - launchT) / 1000, 2) * 2.2 : 0;   // 発進：だんだん速く上がる
-  if (!lift) { drawOffice0(); return; }
-  ctx.save(); ctx.translate(0, -lift * cp); drawOffice0();
-  const cell = cp, x0 = OFFICE_C * cell + cell * 0.04, w = cell * 1.92, base = (YARD_R + 1) * cell, L = cell * (0.7 + 0.25 * Math.sin(performance.now() / 45));
+  const e = launchT ? (performance.now() - launchT) / 1000 : -1;
+  if (e < 0) { drawOffice0(); return; }
+  const P = launchPose(e), lift = P.lift;
+  const cell = cp, x0 = OFFICE_C * cell + cell * 0.04, w = cell * 1.92, base = (YARD_R + 1) * cell;
+  if (e > 0.45) {   // 地面のけむり：ロケットの足もとから左右へもくもく広がる（灰色。光らせない）
+    const cx = x0 + w / 2, gy = base - cell * 0.1;
+    for (let i = 0; i < 14; i++) {
+      const t0 = 0.45 + i * 0.28; if (e < t0) break;
+      const a2 = e - t0, side = i % 2 ? 1 : -1, dist = Math.min(4.5, a2 * (1.4 + (i % 3) * 0.3)) * cell;   // 左右へ転がる
+      const rr = cell * (0.22 + Math.min(0.55, a2 * 0.22)), al = Math.max(0, 0.6 - a2 * 0.12);
+      ctx.fillStyle = `rgba(150,150,155,${al.toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(cx + side * (w * 0.3 + dist), gy - rr * 0.35 - (i % 3) * cell * 0.05, rr, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  ctx.save(); ctx.translate(P.sx * cell, -lift * cell); drawOffice0();
+  const L = cell * P.fl;
   ctx.fillStyle = '#f0a040'; ctx.beginPath(); ctx.moveTo(x0 + w * 0.15, base); ctx.lineTo(x0 + w / 2, base + L); ctx.lineTo(x0 + w * 0.85, base); ctx.closePath(); ctx.fill();
   ctx.fillStyle = '#ffd36a'; ctx.beginPath(); ctx.moveTo(x0 + w * 0.32, base); ctx.lineTo(x0 + w / 2, base + L * 0.6); ctx.lineTo(x0 + w * 0.68, base); ctx.closePath(); ctx.fill();
   ctx.restore();
@@ -6319,7 +6354,7 @@ function frame(now) {
   applyMove(dt);
   const tU = performance.now();
   tripTick();
-  if (launchT && performance.now() - launchT > 3200 && (!$('space') || $('space').hidden)) showSpace();
+  if (launchT && performance.now() - launchT > LAUNCH_SEC * 1000 && (!$('space') || $('space').hidden)) showSpace();
   updateUI();
   if (S.notice && !autoBusy) { showNotice(S.notice, 'good'); S.notice = null; }
   if ((panelTick = (panelTick + 1) % 15) === 0) {
@@ -6467,7 +6502,7 @@ resize();
 resetCam();
 showTitle();
 window.__game = { // 動作確認用
-  get S() { return S; }, draw: () => draw(), openPop: t => openPop(t), tutTarget: () => tutTarget(), closePop: () => closePop(), tripStart: () => tripStart(), cappedAllDone: () => cappedAllDone(), TRIP_NEED, toggle: id => togglePanel(id), openCatT: c => { openCat = c; renderSub(); updateUI(); }, tutStart: () => startTutorial(), tutSet: st => tutSet(st), setNoDraw: v => { noDraw = !!v; }, BAL, openBalance, balChanged, TUNE, OFFICE_LV, AI_W, BELT_CAP, fpsCtl, row, canPlaceAt, officeUp, buyFork, finishResearch, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
+  get S() { return S; }, draw: () => draw(), openPop: t => openPop(t), launchAt: e => { launchT = performance.now() - e * 1000; }, tutTarget: () => tutTarget(), closePop: () => closePop(), tripStart: () => tripStart(), cappedAllDone: () => cappedAllDone(), TRIP_NEED, toggle: id => togglePanel(id), openCatT: c => { openCat = c; renderSub(); updateUI(); }, tutStart: () => startTutorial(), tutSet: st => tutSet(st), setNoDraw: v => { noDraw = !!v; }, BAL, openBalance, balChanged, TUNE, OFFICE_LV, AI_W, BELT_CAP, fpsCtl, row, canPlaceAt, officeUp, buyFork, finishResearch, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
   setTool: t => setTool(t), setDir: d => { dir = d; }, pause: () => { running = false; },
   checkStage, resAvail, buildCost, allResIds, resDef, autoSave, catchUp, showTitle, leaveTitle, autoPlay, autoStep, workNeed,
   deserialize, serialize, newGame: () => newGame(), aiLearn, autoPlan, AUTO_LINES, autoDiagnose, setLive: v => { autoLive = v; showAiLog(); }, setAutoBuild: v => { autoBuild = v; }, fmt, itemVal, placePend, priceUp, lvVal, lvCost, catalogIds,
