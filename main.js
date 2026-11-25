@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.74（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.75（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.74';
+const VERSION = '0.75';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -2773,7 +2773,7 @@ function buildPop() {
       for (const k of sortChoices(t.filter)) { const b = document.createElement('button'); b.dataset.pf = k; b.textContent = T.items[k]; b.addEventListener('click', () => { if (popTarget) { pickFilter(popTarget, k); updatePop(); } }); box.append(b); }
     }
     $('popDirs').hidden = false; $('popInfo').hidden = false; $('popInfo').innerText = drillP ? T.pendNote : T.pendNote2;
-    document.querySelector('#pop [data-pdir=up]').hidden = drillP;
+    document.querySelector('#pop [data-pdir=up]').hidden = false;   // ドリルも上向きに置ける
     const a = $('popAction'); a.hidden = false; a.innerHTML = '';
     a.append(document.createTextNode(T.placeDo + ' ')); const sm = document.createElement('small'); sm.textContent = fmt(buildCost(t.tid)); a.append(sm);
     a.disabled = S.money < buildCost(t.tid);
