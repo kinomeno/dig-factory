@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.86（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.87（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.86';
+const VERSION = '0.87';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -30,7 +30,7 @@ const BAL = {
   priceUpMul: 1.15, priceCostG: 1.6,
   ironP5: 0.17, ironP10: 0.33, goldP10: 0.07, goldP30: 0.18, diaP30: 0.045, diaP50: 0.11, oilP: 0.012, hotP: 0.03,   // v0.72：鉄・金・ダイヤを出やすく（×1.4）
   offCostG: 3, offCapG: 1.3, capMax: 200, brandMul: 1.1, labAlone: 0.25, beltManned: 1.5, elevSpeed: 6, rareP: 0.006, museumFee: 60, truckAdd0: 8000, truckAddG: 2.5,
-  resGrow: 1.07, conneP: 0.1, lampMul: 1.15, itemHp: 2, itemMax: 2000, zoneHard: 0.35, restMin: 3, clayP: 0.14, copperP: 0.1, coalP: 0.09, quartzP: 0.05, silverP: 0.06,
+  resGrow: 1.07, conneP: 0.1, lampMul: 1.15, awayExact: 120, itemHp: 2, itemMax: 2000, zoneHard: 0.35, restMin: 3, clayP: 0.14, copperP: 0.1, coalP: 0.09, quartzP: 0.05, silverP: 0.06,
   bossFatPer: 0.13, bossFatRate: 0.0001, beltSlowPow: 3, beltSlowMin: 0.02, truckWait: 15, gift: 1000,
 };
 const COST = { lamp: 200, drill: 50, fdrill: 120, adrill: 150, conv: 5, sort: 20, tee: 15, cross: 15, lab: 200, pipe: 8, spa: 800, power: 1000, refinery: 1500, museum: 20000, elev: 30, yard: 500 };
@@ -945,7 +945,7 @@ const isDrillTool = t => t === 'drill' || t === 'fdrill' || t === 'adrill';
 const isStation = s => !!s && (s.type === 'drill' || s.type === 'machine' || s.type === 'conv' || s.type === 'sort' || s.type === 'tee' || s.type === 'cross');   // 作業員がつく物（コンベア類も）
 const isYard = (c, r) => r === YARD_R && c === YARD_C;
 const isOffice = (c, r) => r === YARD_R && (c === OFFICE_C || c === OFFICE_C + 1);
-const isLab = (c, r) => S.lab.built && r === YARD_R && c === S.lab.c;   // 研究所（1マス・地上のどこでも）
+const isLab = (c, r) => S.lab.built && c === S.lab.c && r <= YARD_R && r >= YARD_R + 1 - Math.ceil(0.95 + (labRooms() - 1) * 0.42 + 0.2);   // 増室して上に積んだ階も   // 研究所（1マス・地上のどこでも）
 const labC = () => (S.lab.built ? S.lab.c : OFFICE_C + 1);
 // 地上（施設の段）で空いているマス：施設どうしだけが重ならない。地下とはお互いに干渉しない
 const facAt = c => S.fac.find(f => f.c === c);
@@ -2276,15 +2276,25 @@ async function catchUp(sec) {
   const T = tx(), box = $('away');
   box.hidden = false; box.classList.add('calc'); $('awayOk').hidden = true;
   $('awayMsg').textContent = T.awayCalc(fmtDur(sec)); $('awayEta').textContent = '';
-  const m0 = S.money, s0 = S.stats.saleTotal, r0 = performance.now();
+  const m0 = S.money, s0 = S.stats.saleTotal, c0 = S.stats.costTotal, r0 = performance.now();
+  const exact = Math.min(sec, BAL.awayExact);   // 本当に計算する時間（ゲームの秒）
   let done = 0;
-  while (done < sec) {
+  while (done < exact) {
     const t0 = performance.now();
-    while (done < sec && performance.now() - t0 < 45) { const st = Math.min(20, sec - done); sim(st); done += st; }
+    while (done < exact && performance.now() - t0 < 45) { const st = Math.min(20, exact - done); sim(st); done += st; }
     $('awayBar').style.width = (100 * done / sec) + '%';
     const el = (performance.now() - r0) / 1000;
-    if (el > 0.6 && done < sec) $('awayEta').textContent = T.awayEta(Math.max(1, Math.ceil(el / done * (sec - done))));   // 完了まで あと約○秒
+    if (el > 0.6 && done < exact) $('awayEta').textContent = T.awayEta(Math.max(1, Math.ceil(el / done * (exact - done))));   // 完了まで あと約○秒
     await new Promise(r => setTimeout(r, 0));
+  }
+  const rest = sec - exact;
+  if (rest > 0) {   // 残りは見積もり：さっきの2分の、1秒あたりのお金・売上・経費で進める
+    const dm = (S.money - m0) / exact, ds = (S.stats.saleTotal - s0) / exact, dc = (S.stats.costTotal - c0) / exact;
+    S.money += dm * rest; S.stats.saleTotal += ds * rest; S.stats.costTotal += dc * rest;
+    S.time += rest; S.month = Math.floor(S.time / TUNE.month);   // 給料は見積もりに入っているので、ここでは払わない
+    updateResearch(rest);   // 研究は時間どおり進む（研究員の速さで）
+    if (S.boost.priceT > 0) S.boost.priceT = Math.max(0, S.boost.priceT - rest);
+    $('awayBar').style.width = '100%';
   }
   S.pops = []; catchBusy = false; box.classList.remove('calc'); $('awayEta').textContent = ''; last = performance.now();
   $('awayMsg').textContent = T.awayDone(fmtDur(sec), S.stats.saleTotal - s0, S.money - m0);
@@ -2370,7 +2380,15 @@ function postAlive(p) {
 }
 // その持ち場で今働いている（運転している）作業員
 const opOf = p => (p && p.op ? S.workers.find(w => w.id === p.op && w.target === p && (w.state === 'work' || w.state === 'drive')) : null);
-const stationKey = s => { for (const [k, v] of S.st) if (v === s) return k; return -1; };
+let stKeyMap = new Map(), stKeyStamp = '';
+function stationKey(s) {
+  let k = stKeyMap.get(s);
+  if (k !== undefined && S.st.get(k) === s) return k;   // 表のとおり
+  const stamp = S.st.size + ':' + S.stVer;
+  if (k === undefined && stamp === stKeyStamp) return -1;   // 表を作ったあと何も変わっていない＝置いた物ではない
+  stKeyMap = new Map(); for (const [k2, v] of S.st) stKeyMap.set(v, k2); stKeyStamp = stamp;   // 作り直す（動いた・増えた・減った）
+  k = stKeyMap.get(s); return k === undefined ? -1 : k;
+}
 
 // 1マスずつ歩く（横は速く、縦ははしごでゆっくり）
 function walk(w, dt) {
@@ -2855,7 +2873,7 @@ function pickFilter(t, k) {
   if (i >= 0) { if (all.length > 1) all.splice(i, 1); } else all.push(k);
   t.filter = all[0]; t.filters = all.slice(1);
 }
-function findKey(s) { for (const [k, v] of S.st) if (v === s) return k; return -1; }
+const findKey = s => stationKey(s);
 function popCell() {
   if (!popTarget) return null;
   if (popTarget === 'truck') return { c: BED, r: YARD_R };
