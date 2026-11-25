@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.77（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.78（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.77';
+const VERSION = '0.78';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -4908,7 +4908,8 @@ function updateUI() {
 // 右下：メニュー（またはメニューを開いた列）→ その上に種類 → その上に向き
 function layoutFloats() {
   const H = window.innerHeight;
-  const mh = $('moneyHud'); if (mh && !mh.hidden) $('msg').style.top = Math.round(mh.getBoundingClientRect().bottom + 6) + 'px';
+  $('msg').style.top = '';   // メッセージは上の真ん中（資金などに重なってよい）
+  const mh = $('moneyHud');
   if (mh && !mh.hidden) $('tutMsg').style.top = Math.round(mh.getBoundingClientRect().bottom + 6) + 'px';   // はじめの手順のメッセージも、上に（引き出しと重ならない）   // 資金・目標・AIの表示と重ならないように
   const base = dashOn ? $('dash') : !$('catBar').hidden ? $('catBar') : $('menuBtn');
   const bt = base.getBoundingClientRect().top;
@@ -5782,7 +5783,7 @@ function fpsTick(dt) {
   if (lr !== !!fpsCtl.lowRes) { fpsCtl.lowRes = lr; resize(); }
   else if (fpsCtl.fps > 55) fpsCtl.cap = Math.min(30, fpsCtl.cap + 1);
   const pm = fpsCtl.ms || {}, ms = v => (v || 0).toFixed(v < 10 ? 1 : 0);
-  $('fpsHud').textContent = `${Math.round(fpsCtl.fps)} f/s` + (fpsCtl.lite ? ` ・${tx().liteLv(fpsCtl.lite)}` : '') + (fpsCtl.cap < 30 ? ` ・${tx().fpsCap(fpsCtl.cap)}` : '') + ` ・${tx().fpsParts(ms(pm.sim), ms(pm.draw), ms(pm.ui))}`;
+  $('fpsHud').textContent = `${Math.round(fpsCtl.fps)} f/s`;   // 右上は f/s だけ（内訳 fpsCtl.ms は試験用に残す）
 }
 // ---- ループ ----
 let last = performance.now(), panelTick = 0;
