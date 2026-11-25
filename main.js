@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.75（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.76（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.75';
+const VERSION = '0.76';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -3867,7 +3867,7 @@ function draw() {
     if (w.state === 'work' && w.target && w.target.type === 'fac') continue;   // 地上の施設の中
     if (w.state === 'work' && w.target && isStation(w.target)) {   // ドリル・機械で作業中は、そのマスの右上に頭だけ
       const k = stKey.has(w.target) ? stKey.get(w.target) : -1;
-      if (k >= 0 && !out(cOf(k), rOf(k)) && isBelt(w.target)) { drawBeltWorker(cOf(k) * cell, rOf(k) * cell); continue; }   // コンベア：上半身
+      if (k >= 0 && !out(cOf(k), rOf(k)) && isBelt(w.target)) { drawBeltWorker(cOf(k) * cell, rOf(k) * cell, w.target); continue; }   // コンベア：上半身
       if (k >= 0 && !out(cOf(k), rOf(k))) { const st2 = S.st.get(k), [ox, oy] = st2 && st2.type === 'drill' ? drillShift(k, st2) : [0, 0]; drawWorkerHead((cOf(k) + ox) * cell, (rOf(k) + oy) * cell, st2, w); }
       continue;
     }
@@ -4197,14 +4197,13 @@ const workerFrames = col => WORKER_PIX.map(rows => {
   return c2;
 });
 const WORKER_FR = workerFrames(WORKER_COL);
-const BELT_PIX = [   // コンベアについた作業員の上半身（8×5）：バンザイ／直立
-  ['.b.aa.b.', '.c.bb.c.', '..cccc..', '...cc...', '...cc...'],
-  ['...aa...', '...bb...', '...cc...', '..bccb..', '...cc...'],
-];
-const BELT_FR = BELT_PIX.map(rows => { const c2 = document.createElement('canvas'); c2.width = 8; c2.height = 5; const g = c2.getContext('2d'); rows.forEach((rw, y) => [...rw].forEach((ch, x) => { if (WORKER_COL[ch]) { g.fillStyle = WORKER_COL[ch]; g.fillRect(x, y, 1, 1); } })); return c2; });
-function drawBeltWorker(x, y) {
-  const f = fpsCtl.lite >= 1 ? 1 : Math.floor(performance.now() / 320) % 2, u = cp * 0.42 / 8;
-  ctx.imageSmoothingEnabled = false; ctx.drawImage(BELT_FR[f], Math.round(x + cp * 0.6), Math.round(y + cp * 0.5 - 5 * u), 8 * u, 5 * u); ctx.imageSmoothingEnabled = true;
+const BELT_PIX = ['...aa...', '...bb...', '..cccc..', '..cccc..', '..bccb..'];   // コンベアについた作業員の上半身（8×5）：気を付け（動かない）
+const BELT_FR = (() => { const c2 = document.createElement('canvas'); c2.width = 8; c2.height = 5; const g = c2.getContext('2d'); BELT_PIX.forEach((rw, y) => [...rw].forEach((ch, x) => { if (WORKER_COL[ch]) { g.fillStyle = WORKER_COL[ch]; g.fillRect(x, y, 1, 1); } })); return c2; })();
+// コンベアの横の縁に立つ：縦のコンベアは右の縁、横のコンベアは奥（上）の縁から上半身がのぞく
+function drawBeltWorker(x, y, s) {
+  const u = cp * 0.42 / 8, w = 8 * u, h = 5 * u, vert = s && (s.dir === 'up' || s.dir === 'down');
+  const px = vert ? x + cp - w * 0.75 : x + cp / 2 - w / 2, py = vert ? y + cp / 2 - h / 2 : y + cp * 0.14 - h * 0.55;
+  ctx.imageSmoothingEnabled = false; ctx.drawImage(BELT_FR, Math.round(px), Math.round(py), w, h); ctx.imageSmoothingEnabled = true;
 }
 const BOSS_FR = workerFrames({ ...WORKER_COL, a: '#d8402c' });   // 社長：赤いヘルメット
 // お客さん：ヘルメットではなく髪。服と髪の色は人ごとにいろいろ（色の組み合わせごとに1回だけ作る）
