@@ -473,3 +473,30 @@ html[lang="en"] #dash .dtab b { font-size: 11.5px; letter-spacing: 0; padding-le
 .prow.labeled .opts button, #skillBody .opts button { white-space: nowrap; }
 /* v0.78 メッセージは上の真ん中（資金などに重なってよい） */
 .msg { top: calc(var(--hdr) + 6px); left: 50%; transform: translateX(-50%); max-width: min(92vw, 460px); z-index: 42; }
+/* v0.80 案内：メッセージは画面の真ん中（top は tutPlace で決める）・ボタンもゆっくり光らせる（点滅ではない） */
+#tutMsg { top: 45%; }
+.tutPulse2 { animation: tutPulse2 1.6s ease-in-out infinite; position: relative; }
+@keyframes tutPulse2 { 0%, 100% { box-shadow: 0 0 0 2px rgba(208,102,31,.25); } 50% { box-shadow: 0 0 0 4px rgba(208,102,31,.85); } }
+/* v0.81 畳める見出し・左下の「× コンベア」と向きのバーを1本に */
+.panel .secT.fold { cursor: pointer; user-select: none; }
+.panel .secT.fold::before { content: '▸ '; color: var(--sub); }
+.panel .secT.fold.open::before { content: '▾ '; }
+.foldBody[hidden] { display: none; }
+#curTool .ctx { order: -1; }
+#dirBar.joined { padding-top: 2px; padding-bottom: 2px; align-items: center; }
+#dirBar.joined:not(.above) { border-left: 0; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+#dirBar.joined .dir { min-width: 26px; padding: 2px 4px; }
+/* v0.82 研究の数字の並び・切りかえ・情報の列 */
+.chips { display: flex; gap: 6px; margin: 0 0 8px; }
+.chip { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 4px 2px; border: 1px solid var(--line2); border-radius: 3px; background: rgba(0,0,0,.025); }
+.chip i { font-style: normal; font-size: 10px; color: var(--sub); white-space: nowrap; }
+.chip b { font-size: 15px; }
+.segRow { margin: 8px 0 2px; }
+.seg { display: inline-flex; }
+.seg button { white-space: nowrap; border-radius: 0; margin: 0; }
+.seg button:first-child { border-radius: 3px 0 0 3px; }
+.seg button:last-child { border-radius: 0 3px 3px 0; border-left: 0; }
+.icol { display: flex; flex-direction: column; gap: 10px; }
+.igrp .data .lastY { font-size: 10px; color: var(--sub); white-space: nowrap; font-weight: 400; }
+#tutMsg { width: max-content; max-width: calc(100vw - 24px); }
+#tutText { white-space: pre-line; word-break: keep-all; }
