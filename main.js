@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.90（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.91（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.90';
+const VERSION = '0.91';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -1659,6 +1659,7 @@ function tutTarget() {
     if (popTarget && popTarget.type === 'drill') return st2 === 'drillDir' ? $('popDirs') : $('popLvUp');
     const k = firstDrillKey(); return k >= 0 ? cellRect(cOf(k), rOf(k)) : null;
   }
+  if (S.tut && S.tut.step === 'pick') { const cs = [...Array(COLS).keys()].filter(tutCanDig); return cs.length ? cellRect(cs[0], SKY, cs[cs.length - 1] - cs[0] + 1, 1) : null; }   // 掘る所を選ぶ：光っているマスの列（メッセージはそこを避ける）
   if (!S.tut || S.tut.step !== 'buy' || isDrillTool(tool) || (popTarget && popTarget.type === 'pend')) return null;
   const tb = [...document.querySelectorAll('#subMenu .si')].find(b => b.dataset.tool === 'drill');
   if (vis(tb)) return tb;
