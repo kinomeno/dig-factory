@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.88（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.89（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.88';
+const VERSION = '0.89';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -30,7 +30,7 @@ const BAL = {
   priceUpMul: 1.15, priceCostG: 1.6,
   ironP5: 0.17, ironP10: 0.33, goldP10: 0.07, goldP30: 0.18, diaP30: 0.045, diaP50: 0.11, oilP: 0.012, hotP: 0.03,   // v0.72：鉄・金・ダイヤを出やすく（×1.4）
   offCostG: 3, offCapG: 1.3, capMax: 200, brandMul: 1.1, labAlone: 0.25, beltManned: 1.5, elevSpeed: 6, rareP: 0.006, museumFee: 60, truckAdd0: 8000, truckAddG: 2.5,
-  resGrow: 1.07, conneP: 0.1, lampMul: 1.15, awayExact: 120, awayStep: 0.05, itemHp: 2, itemMax: 2000, zoneHard: 0.35, restMin: 3, clayP: 0.14, copperP: 0.1, coalP: 0.09, quartzP: 0.05, silverP: 0.06,
+  resGrow: 1.07, conneP: 0.1, lampMul: 1.15, awayExact: 120, awayStep: 0.05, awayRatio: 0.02, awayMax: 300, itemHp: 2, itemMax: 2000, zoneHard: 0.35, restMin: 3, clayP: 0.14, copperP: 0.1, coalP: 0.09, quartzP: 0.05, silverP: 0.06,
   bossFatPer: 0.13, bossFatRate: 0.0001, beltSlowPow: 3, beltSlowMin: 0.02, truckWait: 15, gift: 1000,
 };
 const COST = { lamp: 200, drill: 50, fdrill: 120, adrill: 150, conv: 5, sort: 20, tee: 15, cross: 15, lab: 200, pipe: 8, spa: 800, power: 1000, refinery: 1500, museum: 20000, elev: 30, yard: 500 };
@@ -1548,6 +1548,9 @@ function updateFacs(dt) {
 let deptLog = { hr: 0, tech: 0, sales: [], techAt: null }, deptTurn = 0, deptSaid = {};
 const DEPT_GAP = 120;   // 同じ部署の報告は、ゲームの2か月に1回まで（その間の分はまとめる）
 function autoDepts() {
+  const mBefore = S.money; try { autoDepts0(); } finally { if (S.money < mBefore) S.stats.deptCost = (S.stats.deptCost || 0) + (mBefore - S.money); }   // 部署が使ったお金（放置の見積もりで使う）
+}
+function autoDepts0() {
   const o = S.opts || {};
   if (sk('autoHire') && o.autoHire !== false) {   // 人事部：持ち場（コンベア以外）が人より多い時だけ、余裕があれば雇う
     const posts = [...S.st.values()].filter(x => x.type === 'drill' || x.type === 'machine').length + S.fac.length + (S.lab.built ? 1 : 0) + S.forks.length;
@@ -1562,7 +1565,7 @@ function autoDepts() {
     const rs = ROOT_ORDER.filter(r => S.sold['@' + r]).sort((a, b) => priceCost(a) - priceCost(b));
     if (rs.length && S.money > priceCost(rs[0]) * 4) { priceUp(rs[0]); if (!deptLog.sales.includes(rs[0])) deptLog.sales.push(rs[0]); }
   }
-  if (autoBusy || catchBusy) { deptLog = { hr: 0, tech: 0, sales: [], techAt: null }; return; }   // 早送りの計算中は知らせない
+  if (autoBusy || catchBusy) { deptLog = { hr: 0, tech: 0, sales: [], techAt: null }; return; }   // 早送り・放置の計算中は知らせない   // 早送りの計算中は知らせない
   const T = tx(), order = ['hr', 'tech', 'sales'];
   for (let i = 0; i < 3; i++) {
     const d = order[(deptTurn + i) % 3], v = deptLog[d];
@@ -2305,22 +2308,36 @@ async function catchUp(sec) {
   const T = tx(), box = $('away');
   box.hidden = false; box.classList.add('calc'); $('awayOk').hidden = true;
   $('awayMsg').textContent = T.awayCalc(fmtDur(sec)); $('awayEta').textContent = '';
-  const m0 = S.money, s0 = S.stats.saleTotal, c0 = S.stats.costTotal, r0 = performance.now();
-  const exact = Math.min(sec, BAL.awayExact);   // 本当に計算する時間（ゲームの秒）
-  let done = 0; simStep = BAL.awayStep;
+  const m0 = S.money, s0 = S.stats.saleTotal, c0 = S.stats.costTotal, r0 = performance.now(), dpt = () => S.stats.deptCost || 0;
+  // 本当に計算する時間（ゲームの秒）：2分以下の放置は全部。それより長い時は放置の2%（最小2分・最大5分）
+  const exact = window.__awayExactForce || (sec <= BAL.awayExact ? sec : clamp(sec * BAL.awayRatio, BAL.awayExact, BAL.awayMax));
+  let done = 0, half = null; simStep = BAL.awayStep;
   while (done < exact) {
     const t0 = performance.now();
-    while (done < exact && performance.now() - t0 < 45) { const st = Math.min(20, exact - done); sim(st); done += st; }
+    while (done < exact && performance.now() - t0 < 45) {
+      const st = Math.min(20, exact - done); sim(st); done += st;
+      if (!half && done >= exact / 2) half = { t: done, m: S.money, s: S.stats.saleTotal, c: S.stats.costTotal, d: dpt() };   // 後ろ半分の始まり
+    }
     $('awayBar').style.width = (100 * done / sec) + '%';
     const el = (performance.now() - r0) / 1000;
     if (el > 0.6 && done < exact) $('awayEta').textContent = T.awayEta(Math.max(1, Math.ceil(el / done * (exact - done))));   // 完了まで あと約○秒
     await new Promise(r => setTimeout(r, 0));
   }
   const rest = sec - exact;
-  if (rest > 0) {   // 残りは見積もり：さっきの2分の、1秒あたりのお金・売上・経費で進める
-    const dm = (S.money - m0) / exact, ds = (S.stats.saleTotal - s0) / exact, dc = (S.stats.costTotal - c0) / exact;
-    S.money += dm * rest; S.stats.saleTotal += ds * rest; S.stats.costTotal += dc * rest;
-    S.time += rest; S.month = Math.floor(S.time / TUNE.month);   // 給料は見積もりに入っているので、ここでは払わない
+  if (rest > 0) {   // 残りは見積もり：計算した時間の後ろ半分の、1秒あたりのお金・売上・経費で進める（戻った直後のいつもどおりでない動きは使わない）
+    const h = half && exact - half.t > 1 ? half : { t: 0, m: m0, s: s0, c: c0, d: 0 }, span = exact - h.t, dd = dpt() - h.d;
+    // 部署の買い物（強化・売値アップ）は、続けて伸ばさず、見積もりの間も5秒ごとに本当に買わせる（買った強化や売値は本当に上がる）
+    let ds = (S.stats.saleTotal - h.s) / span;
+    const dc = (S.stats.costTotal - h.c - dd) / span, fixed = ds - (S.money - h.m + dd) / span;   // 部署の買い物以外の出費（給料など）
+    const roots = ROOT_ORDER.filter(r2 => S.sold['@' + r2]), lvSum = () => roots.reduce((a, r2) => a + priceLv(r2), 0);
+    let left = rest, lv0 = lvSum();
+    while (left > 0) {
+      const st = Math.min(5, left); left -= st;
+      S.money += (ds - fixed) * st; S.stats.saleTotal += ds * st; S.stats.costTotal += dc * st; S.time += st;
+      autoDepts();
+      const lv1 = lvSum(); if (lv1 > lv0 && roots.length) { ds *= Math.pow(BAL.priceUpMul, (lv1 - lv0) / roots.length); lv0 = lv1; }   // 営業部が売値を上げた分、売上も上がる
+    }
+    S.month = Math.floor(S.time / TUNE.month);   // 給料は見積もりに入っているので、ここでは払わない
     updateResearch(rest);   // 研究は時間どおり進む（研究員の速さで）
     drillsAway(rest);       // ドリルも、その力で掘り進む（残り時間の表示どおり）
     if (S.boost.priceT > 0) S.boost.priceT = Math.max(0, S.boost.priceT - rest);
