@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.73（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.74（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.73';
+const VERSION = '0.74';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -258,6 +258,8 @@ const TXT = {
       machines: '機械', belts: 'コンベア・仕分け', workers: '作業員（作業中）', yard: 'ヤードの資源', loan: '借入（売上から返す）' },
     infoGrp: ['お金', '累計', '現場'],
     coHud: n => `会社 Lv${n}`, coNeed: n => `会社Lv${n}で解放`,
+    roomBoss: '社長室', roomSec: '秘書', roomRest: '休憩室', roomWait: '待機', roomLab: n => `研究室${n}`, roomFree: '（空き）',
+    secDept: '部署', secBoss: '社長', secCo: '会社', secVeh: '車両', secBatch: 'まとめて強化', secRes: '研究',
     deptHr: n => `人事部：${n}人 採用しました`, deptTech: n => `技術部：${n}か所 強化しました`, deptSales: s2 => `営業部：${s2}の売値を上げました`,
     secCome: '今日から、秘書がつきました。よろしくお願いします。',
     yProfit: '今年の利益', ySale: '今年の売上', yCost: '今年の経費', lastY: v => `（去年 ${v}）`,
@@ -397,6 +399,8 @@ const TXT = {
       machines: 'きかい', belts: 'コンベア・しわけ', workers: 'さぎょういん（しごとちゅう）', yard: 'おきばの もの', loan: 'かりている おかね' },
     infoGrp: ['おかね', 'ぜんぶで', 'げんば'],
     coHud: n => `かいしゃ Lv${n}`, coNeed: n => `かいしゃLv${n}で かいほう`,
+    roomBoss: 'しゃちょうしつ', roomSec: 'ひしょ', roomRest: 'きゅうけいしつ', roomWait: 'たいき', roomLab: n => `けんきゅうしつ${n}`, roomFree: '（あき）',
+    secDept: 'ぶしょ', secBoss: 'しゃちょう', secCo: 'かいしゃ', secVeh: 'くるま', secBatch: 'まとめて つよく', secRes: 'けんきゅう',
     deptHr: n => `じんじぶ：${n}にん やといました`, deptTech: n => `ぎじゅつぶ：${n}か所 つよく しました`, deptSales: s2 => `えいぎょうぶ：${s2}の ねだんを あげました`,
     secCome: 'きょうから、ひしょが つきました。よろしく おねがいします。',
     yProfit: 'ことしの もうけ', ySale: 'ことし うれた', yCost: 'ことし つかった', lastY: v => `（きょねん ${v}）`,
@@ -534,6 +538,8 @@ const TXT = {
       machines: 'Machines', belts: 'Conveyors & sorters', workers: 'Workers (working)', yard: 'Items in yard', loan: 'Loan (repaid from sales)' },
     infoGrp: ['Money', 'Totals', 'Site'],
     coHud: n => `Company Lv${n}`, coNeed: n => `Company Lv${n} needed`,
+    roomBoss: 'Boss', roomSec: 'Secretary', roomRest: 'Break room', roomWait: 'Waiting', roomLab: n => `Lab ${n}`, roomFree: '(free)',
+    secDept: 'Departments', secBoss: 'Boss', secCo: 'Company', secVeh: 'Vehicles', secBatch: 'Upgrade all', secRes: 'Research',
     deptHr: n => `HR: hired ${n}`, deptTech: n => `Engineering: upgraded ${n}`, deptSales: s2 => `Sales: raised the price of ${s2}`,
     secCome: 'From today you have a secretary. Nice to meet you.',
     yProfit: 'Profit this year', ySale: 'Sales this year', yCost: 'Costs this year', lastY: v => ` (last year ${v})`,
@@ -3098,6 +3104,7 @@ function togglePanel(id) {
   if (show) renderPanel(id);
   updateUI();
 }
+const secEl = t => { const h = document.createElement('div'); h.className = 'secT'; h.textContent = t; return h; };   // 見出し（下に線）
 function rowEl(nameText, specText, btn) {
   const el = document.createElement('div'); el.className = 'row2';
   const name = document.createElement('div'); name.className = 'name'; name.textContent = nameText;
@@ -3113,16 +3120,66 @@ function costBtn(label, cost, onClick) {
   b.addEventListener('click', onClick);
   return b;
 }
+// 断面図：部屋を並べて、それぞれの部屋で人が働く（2枚の動き。重い時は止める）
+function cutRooms(kind) {
+  const T = tx(), rooms = [];
+  if (kind === 'office') {
+    const bs = bossOf();
+    rooms.push({ name: T.roomBoss, n: bs && (!S.bossWork || bs.state === 'idle' || bs.state === 'off') ? 1 : 0, boss: true, desk: true });
+    if (secOn()) rooms.push({ name: T.roomSec, n: 1, who: 'sec', desk: true });
+    if (sk('autoHire')) rooms.push({ name: T.sk.autoHire[0], n: (S.opts || {}).autoHire !== false ? 2 : 0, desk: true });
+    if (sk('autoUpg')) rooms.push({ name: T.sk.autoUpg[0], n: (S.opts || {}).autoUpg !== false ? 2 : 0, desk: true });
+    if (sk('autoPrice')) rooms.push({ name: T.sk.autoPrice[0], n: (S.opts || {}).autoPrice !== false ? 2 : 0, desk: true });
+    rooms.push({ name: T.roomRest, n: S.workers.filter(w => !w.boss && w.state === 'rest').length, sofa: true });
+    rooms.push({ name: T.roomWait, n: S.workers.filter(w => !w.boss && w.state === 'idle').length });
+  } else {
+    const staff = labStaff();
+    for (let i = 0; i < labRooms(); i++) {
+      const r = S.researches[i];
+      rooms.push({ name: T.roomLab(i + 1), n: r && staff[i] ? 1 : 0, desk: true, prog: r ? r.t / r.total : null, label: r ? resDef(r.id).name : T.roomFree });
+    }
+  }
+  return rooms;
+}
+function drawCutaway(cv2, kind) {
+  if (!cv2 || cv2.offsetParent === null) return;
+  const rooms = cutRooms(kind), cols = 3, rowsN = Math.ceil(rooms.length / cols);
+  const W = cv2.clientWidth || 300, rh = 46, H = rowsN * rh + 10, dpr = window.devicePixelRatio || 1;
+  if (cv2.width !== Math.round(W * dpr) || cv2.height !== Math.round(H * dpr)) { cv2.width = Math.round(W * dpr); cv2.height = Math.round(H * dpr); cv2.style.height = H + 'px'; }
+  const g = cv2.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.imageSmoothingEnabled = false;
+  const wall = kind === 'office' ? '#efe7da' : '#e4ecf0', frame = kind === 'office' ? '#8a7a66' : '#6f8592';
+  g.fillStyle = frame; g.fillRect(0, 0, W, H);   // 建物の外壁
+  const rw = (W - 8) / cols, t = performance.now(), anim = !(fpsCtl.lite >= 2);
+  rooms.forEach((rm, i) => {
+    const x = 4 + (i % cols) * rw, y = 5 + Math.floor(i / cols) * rh, w = rw - 4, h = rh - 6;
+    g.fillStyle = wall; g.fillRect(x, y, w, h);
+    g.fillStyle = 'rgba(0,0,0,.12)'; g.fillRect(x, y + h - 4, w, 4);   // 床
+    g.fillStyle = '#5a5248'; g.font = '9px sans-serif'; g.textBaseline = 'top'; g.fillText(rm.name, x + 3, y + 2, w - 6);
+    if (rm.label) { g.fillStyle = '#7a7a80'; g.font = '8px sans-serif'; g.fillText(rm.label, x + 3, y + 12, w - 6); }
+    if (rm.sofa) { g.fillStyle = '#c0583c'; g.fillRect(x + 4, y + h - 11, w - 8, 7); }   // ソファ
+    const n = Math.min(rm.n, rm.desk ? 2 : 6), sz = 20;
+    for (let j = 0; j < n; j++) {   // 人（机の部屋は机の向こうで働く・休憩室と待機はならぶ）
+      const f = anim ? Math.floor(t / 420 + j * 0.7 + i) % 2 : 1, px = rm.desk ? x + w * (n > 1 ? 0.3 + 0.32 * j : 0.45) - sz / 2 : x + 4 + j * ((w - sz - 8) / Math.max(1, n - 1));
+      const fr = rm.boss ? BOSS_FR[f] : WORKER_FR[f];
+      g.drawImage(fr, Math.round(px), Math.round(y + h - 4 - sz), sz, sz);
+    }
+    if (rm.desk) { g.fillStyle = '#b08a5a'; g.fillRect(x + w * 0.14, y + h - 12, w * 0.72, 3); g.fillStyle = '#8a6a44'; g.fillRect(x + w * 0.14, y + h - 9, w * 0.72, 5); }   // 机（人の前）
+    if (rm.n > (rm.desk ? 2 : 6)) { g.fillStyle = '#5a5248'; g.font = '9px sans-serif'; g.fillText('×' + rm.n, x + w - 22, y + 2); }
+    if (rm.prog !== null && rm.prog !== undefined) { g.fillStyle = 'rgba(0,0,0,.12)'; g.fillRect(x + 3, y + h - 3, w - 6, 2); g.fillStyle = '#d0661f'; g.fillRect(x + 3, y + h - 3, (w - 6) * rm.prog, 2); }
+  });
+}
 function renderPanel(id) {
   const T = tx();
   if (id === 'powerPanel') {
     const box = $('powerItems'); box.innerHTML = '';
+    box.append(secEl(T.secCo));
     {   // 会社レベル（事務所をタップした時と同じ）
       const ol = S.office.lv;
       let ob;
       ob = costBtn(T.levelUp, offCost(ol), () => { officeUp(); renderPanel('powerPanel'); updateUI(); });
       box.append(rowEl(`${T.companyLv}　${T.lv(ol + 1)}`, `${T.capP(offCap(ol))}・${T.forksMax(offForks(ol))}`, ob));
     }
+    box.append(secEl(T.secVeh));
     // フォークリフト購入（台数の上限は会社のレベル）
     const fn = S.forks.length, fm = forkMax();
     let fb;
@@ -3133,7 +3190,8 @@ function renderPanel(id) {
       const tc = truckAddCost();
       box.append(rowEl(T.truckAddT, T.truckAddN(S.fleet.length), costBtn(T.truckAddB, tc, () => { addTruck(); renderPanel('powerPanel'); updateUI(); })));
     }
-    for (const g of ['drill', 'belt', 'machine', 'truck']) {
+    for (const g of ['truck', 'drill', 'belt', 'machine']) {
+      if (g === 'drill') { if (!S.unlock.batch) break; box.append(secEl(T.secBatch)); }
       if (g !== 'truck' && !S.unlock.batch) continue;
       const ts = groupTargets(g), total = groupCost(g);
       const name = g === 'truck' ? `${T.grp.truck}　${T.lv(S.truck.lv + 1)}` : T.allUp(T.grp[g], ts.length);
@@ -3164,6 +3222,7 @@ function renderPanel(id) {
     const hl = hireLv();   // 雇う：いつもいちばん上（押しているうちに、解雇のボタンと入れかわらないように）
     box.append(rowEl(T.hireLv(hl), `${T.wage}${Math.round((10 + 6 * hl) * TUNE.wage)}${T.perMonth}`,
       costBtn(T.hire, HIRE_FEE(hl), () => { hire(); renderPanel('office'); updateUI(); })));
+    if (sk('autoHire') || sk('autoUpg') || sk('autoPrice')) box.append(secEl(T.secDept));
     for (const [sid, key2] of [['autoHire', 'autoHire'], ['autoUpg', 'autoUpg'], ['autoPrice', 'autoPrice']]) {   // 自動の部署（研究したもの）
       if (!sk(sid)) continue;
       const on = (S.opts || {})[key2] !== false;
@@ -3172,6 +3231,7 @@ function renderPanel(id) {
       box.append(rowEl(T.sk[sid][0], T.sk[sid][1], b));
     }
     const bs = bossOf();
+    if (bs) box.append(secEl(T.secBoss));
     if (bs) {   // 社長（自分）：会社レベル2から、作業するかどうかを選べる
       let bb;
       if (S.office.lv >= 1) { bb = document.createElement('button'); bb.textContent = S.bossWork ? T.bossOn : T.bossOff; bb.classList.toggle('active', !!S.bossWork); bb.addEventListener('click', () => { S.bossWork = !S.bossWork; renderPanel('office'); updateUI(); }); }
@@ -3179,6 +3239,7 @@ function renderPanel(id) {
       box.append(rowEl(T.bossName(bs.lv), T.bossDesc, bb));
     }
     // 事務所のレベル（定員・休憩の速さ・フォークリフトの台数。レベル2で研究所）
+    box.append(secEl(T.secCo));
     let olBtn;
     olBtn = costBtn(T.levelUp, offCost(ol), () => { officeUp(); renderPanel('office'); updateUI(); });
     const nx = ` → ${T.capP(offCap(ol + 1))}・${T.forksMax(offForks(ol + 1))}`;
@@ -5757,6 +5818,8 @@ function frame(now) {
   if (!$('mapPanel').hidden && panelTick % 5 === 0) renderMap();
   metrics();
   placePop();
+  if (!$('office').hidden) drawCutaway($('officeView'), 'office');   // 断面図（開いている時だけ）
+  if (!$('skillPanel').hidden) drawCutaway($('labView'), 'lab');
   const tD = performance.now(); fpsMs('ui', tD - tU);
   draw(); fpsMs('draw', performance.now() - tD);
   requestAnimationFrame(frame);

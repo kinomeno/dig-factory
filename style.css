@@ -462,3 +462,12 @@ html[lang="en"] #dash .dtab b { font-size: 11.5px; letter-spacing: 0; padding-le
 #away.calc { background: #000; }
 #away.calc .box { background: transparent; border-color: transparent; color: #e8e6e0; }
 #awayEta { margin: -6px 0 8px; font-size: 12px; opacity: .8; min-height: 1.2em; }
+/* v0.74 事務所・研究所の断面図／メニューの情報の整理（見出しに線・まとまりごとに区切る） */
+.cutaway { display: block; width: 100%; height: 60px; margin: 2px 0 8px; border-radius: 3px; image-rendering: pixelated; }
+.panel .secT { margin: 14px 0 0; padding: 0 0 4px; font-size: 11.5px; color: #4a4a50; border-bottom: 2px solid var(--line2); letter-spacing: .12em; }
+.panel .secT + .row2 { border-top: 0; }
+.panel .secT + .sub { margin-top: 6px; }
+.panel > div > .sub:first-child { background: rgba(0,0,0,.035); border-left: 3px solid var(--accent); padding: 5px 8px; border-radius: 2px; }
+.row2 .name { letter-spacing: .02em; }
+.row2 + .row2 { border-top: 1px dashed var(--line2); }
+.prow.labeled .opts button, #skillBody .opts button { white-space: nowrap; }
