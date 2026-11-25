@@ -18,7 +18,7 @@
 <meta property="og:locale" content="ja_JP">
 <meta property="og:site_name" content="ほりほり工場 / Dig Factory Tycoon">
 <meta name="twitter:card" content="summary">
-<link rel="stylesheet" href="style.css?v=0.68">
+<link rel="stylesheet" href="style.css?v=0.69">
 <!-- 広告（準備だけ。まだ動かしていない）：Google の H5 ゲーム広告を使う時に、下のコメントを外し、ca-pub-XXXX を自分の番号にする。main.js の AD_ON も true に
 <script async data-ad-client="ca-pub-8328461906614341" data-adbreak-test="on" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js" crossorigin="anonymous"></script>
 <script>window.adsbygoogle = window.adsbygoogle || []; var adBreak = adConfig = function (o) { adsbygoogle.push(o); }; adConfig({ preloadAdBreaks: 'on', sound: 'on' });</script>
@@ -74,6 +74,7 @@
 <!-- 向き（コンベア・仕分け・機械を置くとき） -->
 <div id="dirBar" class="float group">
   <span class="lab" data-t="dir">向き</span>
+  <button class="dir" data-dir="auto" data-t="autoDirB">オート</button>
   <button class="dir" data-dir="left">←</button>
   <button class="dir" data-dir="up">↑</button>
   <button class="dir" data-dir="down">↓</button>
@@ -193,13 +194,13 @@
 
 <!-- 置いた物をタップしたときのメニュー -->
 <div id="pop" class="float" hidden>
-  <div class="head"><span id="popTitle"></span><button id="popClose" class="x">✕</button></div>
-  <div id="popDirs" class="prow">
+  <div class="head"><span id="popTitle"></span><button id="popRemove" data-t="remove">撤去</button><button id="popClose" class="x">✕</button></div>
+  <div id="popDirs" class="prow labeled"><span class="lab" data-t="dir">向き</span><span class="opts">
     <button data-pdir="left">←</button>
     <button data-pdir="up">↑</button>
     <button data-pdir="down">↓</button>
     <button data-pdir="right">→</button>
-  </div>
+  </span></div>
   <div id="popFilterRow" class="prow labeled"><span class="lab" data-t="filter">選ぶ資源</span><span class="opts" id="popFilters"></span></div>
   <div id="popSideRow" class="prow labeled"><span class="lab" data-t="side">出す側</span>
     <span class="opts"><button data-ps="left" data-t="left">左</button><button data-ps="right" data-t="right">右</button></span>
@@ -207,11 +208,10 @@
   <div id="popPrioRow" class="prow labeled"><span class="lab" data-t="prio">優先度</span>
     <span class="opts"><button data-pp="0" data-t="pLow">低</button><button data-pp="1" data-t="pMid">普通</button><button data-pp="2" data-t="pHigh">高</button></span>
   </div>
-  <div id="popInfo" class="sub"></div>
   <div id="popLevel" class="sub lvline"></div>
   <button id="popLvUp" class="wide"></button>
   <button id="popAction" class="wide"></button>
-  <button id="popRemove" class="wide" data-t="remove">撤去</button>
+  <div id="popInfo" class="sub"></div>
 </div>
 
 <!-- タイトル画面（下に地上、上はぜんぶ空） -->
@@ -263,7 +263,7 @@
   </div>
 </div>
 
-<script src="sprites.js?v=0.68"></script>
-<script src="main.js?v=0.68"></script>
+<script src="sprites.js?v=0.69"></script>
+<script src="main.js?v=0.69"></script>
 </body>
 </html>
