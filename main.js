@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.70（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.71（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.70';
+const VERSION = '0.71';
 const NOTE_URL = 'https://note.com/kinomeno/xxxxxxx'; // 紹介記事ができたら差し替え
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -654,7 +654,7 @@ const TXT_ADD = {
     gCompany: (n, left) => `会社レベル${n}（あと ${left}）`, gPermit: (n, left) => `会社レベル${n}（行政の許可）（あと ${left}）`,
     gBreak: n => `岩盤Lv${n}を掘り抜く`, gResearching: '研究「掘削レベル」中', gDigRes: n => `研究「掘削レベル」（岩盤Lv${n}）`, gLab: '研究所を建てる（工事）',
     permitBtn: n => `行政の許可待ち（会社レベル${n}）`, permitMsg: n => `この深さの掘削には、行政の許可が要ります（会社レベル${n}）`,
-    facEmpty: '地上の施設：研究所で「温泉」「発電所」（段階5）・「製油所」（段階7）を研究すると、ここから建てられます。', fpsCap: n => `資源はマスごとに${n}個まで描く`, beltInf: '無制限', beltN: n => `${n}個`,
+    facEmpty: '地上の施設：研究所で「温泉」「発電所」（段階5）・「製油所」（段階7）を研究すると、ここから建てられます。', fpsCap: n => `資源はマスごとに${n}個まで描く`, fpsParts: (a, b, c) => `計算${a}・描画${b}・画面${c}ms`, liteLv: n => `軽量化${n}`, beltInf: '無制限', beltN: n => `${n}個`,
     aiFail: c => `失敗：銀行の融資を受けた（${c}）`, aiFailRun: n => `融資を${n}回受けました（失敗）。管理メニュー「AIの失敗記録」に原因があります`,
     aiCause: { noDrill: 'ドリルが無い', drillStop: 'ドリルが全部止まっている', noWorker: '作業員がいない', yard: 'ヤードが山（トラック不足）', dock: '荷おろし場が山（フォークリフト不足）', jam: '地下で資源が詰まっている', noSale: '売上が無い', spend: 'お金の使いすぎ' },
     live10: '+10分', live60: '+60分',
@@ -789,7 +789,7 @@ const TXT_ADD = {
     gCompany: (n, left) => `Company level ${n} (${left} to go)`, gPermit: (n, left) => `Company level ${n} (government permit) (${left} to go)`,
     gBreak: n => `Dig through bedrock Lv${n}`, gResearching: 'Researching Dig level', gDigRes: n => `Research Dig level (bedrock Lv${n})`, gLab: 'Build the Lab (Works)',
     permitBtn: n => `Needs a permit (company level ${n})`, permitMsg: n => `Digging this deep needs a government permit (company level ${n})`,
-    facEmpty: 'Research Hot spring / Power plant (stage 5) or Refinery (stage 7) at the Lab to build them on the surface here.', fpsCap: n => `drawing up to ${n} items per cell`, beltInf: 'Unlimited', beltN: n => `${n}`,
+    facEmpty: 'Research Hot spring / Power plant (stage 5) or Refinery (stage 7) at the Lab to build them on the surface here.', fpsCap: n => `drawing up to ${n} items per cell`, fpsParts: (a, b, c) => `sim ${a} / draw ${b} / UI ${c} ms`, liteLv: n => `lite ${n}`, beltInf: 'Unlimited', beltN: n => `${n}`,
     aiFail: c => `Failed: took a bank loan (${c})`, aiFailRun: n => `Took ${n} bank loan(s) (failure). See Admin > AI failure log`,
     aiCause: { noDrill: 'no drill', drillStop: 'all drills stopped', noWorker: 'no workers', yard: 'yard piled up (truck too small)', dock: 'docks piled up (forklifts)', jam: 'items jammed underground', noSale: 'no sales', spend: 'overspending' },
     live10: '+10 min', live60: '+60 min',
@@ -2546,8 +2546,10 @@ function zoomAt(sx, sy, f) {
   cam.y = wr - sy / cp;
   metrics();
 }
+// 画面の解像度：ふだんは端末どおり（2倍など）。f/s が低い時は1倍で描く（描く点の数が1/4になる）
+const viewDpr = () => (fpsCtl.lowRes ? 1 : window.devicePixelRatio || 1);
 function resize() {
-  const dpr = window.devicePixelRatio || 1;
+  const dpr = viewDpr();
   cv.width = cv.clientWidth * dpr; cv.height = cv.clientHeight * dpr;
   metrics(); placePop();
 }
@@ -3483,11 +3485,14 @@ function groundColor(b, r) {
 }
 
 function draw() {
-  const dpr = window.devicePixelRatio || 1;
+  const dpr = viewDpr();
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = THEME.bg; ctx.fillRect(0, 0, cw, ch);
   const cell = cp;
   const r0 = Math.floor(cam.y) - 1, r1 = Math.ceil(cam.y + ch / cp) + 1;
+  const c0 = Math.max(0, Math.floor(cam.x - offX / cp) - 1), c1 = Math.min(COLS - 1, Math.ceil(cam.x + (cw - offX) / cp) + 1);   // 見えている列（左右の画面外は描かない）
+  const out = (c, r) => r < r0 || r > r1 || c < c0 || c > c1;
+  const stKey = new Map(); for (const [k, v] of S.st) stKey.set(v, k);   // 持ち場 → マス（作業員ごとに探さない）
   ctx.save();
   ctx.translate(offX - cam.x * cp, -cam.y * cp);
   const W = COLS * cell;
@@ -3507,7 +3512,7 @@ function draw() {
   const digSet = tool === 'dig' ? diggable() : null;
   for (let r = g0; r <= r1; r++) {
     const a = row(r);
-    for (let c = 0; c < COLS; c++) {
+    for (let c = c0; c <= c1; c++) {
       const b = a[c];
       const x = c * cell, y = r * cell;
       const v = (c * 7 + r * 13) % 4;   // 模様の種類（隣と同じにならないよう散らす）
@@ -3542,7 +3547,7 @@ function draw() {
   for (let r = g0; r <= r1; r++) if (r > SKY && (r - SKY) % 5 === 0) ctx.fillText(tx().depthM(r - SKY), S.landL * cell + 2, r * cell + 2);
 
   for (const k0 in S.lids) {   // 湧き口のふた（鉄板）。上に物があれば、その下に見える
-    const c = cOf(+k0), r = rOf(+k0); if (r < r0 || r > r1) continue;
+    const c = cOf(+k0), r = rOf(+k0); if (out(c, r)) continue;
     const x = c * cell, y = r * cell, m = cell * 0.08;
     ctx.fillStyle = '#5d626b'; ctx.fillRect(x + m, y + m, cell - 2 * m, cell - 2 * m);
     ctx.fillStyle = '#7c828c'; ctx.fillRect(x + m, y + m, cell - 2 * m, cell * 0.06);
@@ -3550,7 +3555,7 @@ function draw() {
   }
   for (const [k, s] of S.st) {
     const c = cOf(k), r = rOf(k);
-    if (r < r0 || r > r1 || s.type === 'drill') continue;
+    if (out(c, r) || s.type === 'drill') continue;
     const x = c * cell, y = r * cell;
     if (s.type === 'machine') { drawMachine(x, y, s); drawLevel(x, y, s.lv); continue; }
     if (s.type === 'pipe') { drawPipe(x, y, c, r, false); continue; }
@@ -3579,7 +3584,7 @@ function draw() {
   }
   const drawn = new Map(), over = new Map();
   for (const it of S.items) {
-    if (it.y < r0 || it.y > r1 + 1) continue;
+    if (it.y < r0 || it.y > r1 + 1 || it.x < c0 || it.x > c1 + 1) continue;
     const ck = key(Math.floor(it.x), Math.floor(it.y)), n = (drawn.get(ck) || 0) + 1;
     drawn.set(ck, n);
     if (lite && cnt.get(ck) > fpsCtl.cap) { over.set(ck, cnt.get(ck)); continue; }   // 山の絵にするマス
@@ -3600,21 +3605,20 @@ function draw() {
     }
   }
 
-  for (const k of Object.keys(S.elev)) { const c = cOf(+k), r = rOf(+k); if (r >= r0 && r <= r1) drawElev(c * cell, r * cell); }   // エレベーター（別の層）
+  for (const k of Object.keys(S.elev)) { const c = cOf(+k), r = rOf(+k); if (!out(c, r)) drawElev(c * cell, r * cell); }   // エレベーター（別の層）
   for (const [k, s] of S.st) {
     if (s.type !== 'drill') continue;
     const c = cOf(k), r = rOf(k);
-    if (r < r0 || r > r1) continue;
-    const shaking = S.time - s.hit < 0.12;
+    if (out(c, r)) continue;
+    const shaking = S.time - s.hit < 0.12 && !(fpsCtl.lite >= 2);
     const j = shaking ? (Math.random() < 0.5 ? -1 : 1) : 0;
     drawDrill(c * cell + j, r * cell, s);
     drawLevel(c * cell, r * cell, s.lv);
   }
   // 作業員がいない持ち場には「z」の印（とても遅い）
   for (const [k, s] of S.st) {
-    if (!isStation(s) || isBelt(s) || workFactor(s) > TUNE.unmanned) continue;   // コンベアは人がいなくても普通に動くので「z」は出さない
     const c = cOf(k), r = rOf(k);
-    if (r < r0 || r > r1) continue;
+    if (out(c, r) || !isStation(s) || isBelt(s) || workFactor(s) > TUNE.unmanned) continue;   // コンベアは人がいなくても普通に動くので「z」は出さない
     ctx.fillStyle = THEME.zBg; ctx.beginPath(); ctx.arc(c * cell + cell * 0.84, r * cell + cell * 0.16, cell * 0.12, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = THEME.zText; ctx.font = `bold ${Math.round(cell * 0.18)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText('z', c * cell + cell * 0.84, r * cell + cell * 0.17);
@@ -3626,11 +3630,12 @@ function draw() {
     if (w.state === 'drive') continue;                            // 乗り物の絵の中に描く
     if (w.state === 'work' && w.target && w.target.type === 'fac') continue;   // 地上の施設の中
     if (w.state === 'work' && w.target && isStation(w.target)) {   // ドリル・機械で作業中は、そのマスの右上に頭だけ
-      const k = stationKey(w.target);
-      if (k >= 0 && rOf(k) >= r0 && rOf(k) <= r1) { const st2 = S.st.get(k), [ox, oy] = st2 && st2.type === 'drill' ? drillShift(k, st2) : [0, 0]; drawWorkerHead((cOf(k) + ox) * cell, (rOf(k) + oy) * cell, st2, w); }
+      const k = stKey.has(w.target) ? stKey.get(w.target) : -1;
+      if (k >= 0 && !out(cOf(k), rOf(k))) { const st2 = S.st.get(k), [ox, oy] = st2 && st2.type === 'drill' ? drillShift(k, st2) : [0, 0]; drawWorkerHead((cOf(k) + ox) * cell, (rOf(k) + oy) * cell, st2, w); }
       continue;
     }
-    if (w.y < r0 || w.y > r1 + 1) continue;
+    if (w.y < r0 || w.y > r1 + 1 || w.x < c0 || w.x > c1 + 1) continue;
+    if (fpsCtl.lite >= 3 && w.id % 2 && !w.boss) continue;   // とても重い時は、歩いている作業員を半分だけ描く
     if (S.elev[wKey(w)] && S.time - (w.elevT || -9) < 0.5) drawElevCar((Math.floor(w.x) + 0.5) * cell, w.y * cell + cp * 0.48);   // エレベーターで上り下りしている間は、箱に乗っている（消えたり出たりしない）
     drawWorker(w.x * cell, w.y * cell, w);
   }
@@ -3640,7 +3645,7 @@ function draw() {
   if (isBuildTool()) {
     // 置ける所（空いているマス）だけ薄い青で塗る
     ctx.fillStyle = THEME.okFill; ctx.strokeStyle = THEME.okLine; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
-    for (let r = Math.max(0, r0); r <= r1; r++) for (let c = 0; c < COLS; c++) {
+    for (let r = Math.max(0, r0); r <= r1; r++) for (let c = c0; c <= c1; c++) {
       if (canPlaceAt(c, r) && !S.st.has(key(c, r))) { ctx.fillRect(c * cell + 1, r * cell + 1, cell - 2, cell - 2); ctx.strokeRect(c * cell + 2.5, r * cell + 2.5, cell - 5, cell - 5); }
     }
     ctx.setLineDash([]);
@@ -3872,20 +3877,20 @@ function drawTee(x, y, s, speed, ph) {
   ctx.restore();
 }
 function drawConvSprite(x, y, d, speed, ph) {
-  const cell = cp, f = Math.floor(ph !== undefined && ph !== null ? ph : S.time * speed * 16) % 4;   // 速さに合わせてコマを進める（1コマ＝1ドット）
-  ctx.save();
-  ctx.imageSmoothingEnabled = false;
-  ctx.translate(x + cell / 2, y + cell / 2); ctx.rotate(CONV_ROT[d]);
-  ctx.drawImage(CONV_FRAMES[f], -cell / 2, -cell / 2, cell, cell);
-  ctx.restore();
+  const f = fpsCtl.lite >= 2 ? 0 : Math.floor(ph !== undefined && ph !== null ? ph : S.time * speed * 16) % 4;   // 速さに合わせてコマを進める（1コマ＝1ドット）。重い時は止める
+  blitCell(cachedCell(`cv${d}${f}`, () => {   // 向きごと・コマごとに回した絵を覚えておく
+    const cell = cp; ctx.translate(cell / 2, cell / 2); ctx.rotate(CONV_ROT[d]);
+    ctx.drawImage(CONV_FRAMES[f], -cell / 2, -cell / 2, cell, cell);
+  }), x, y);
 }
 // 向きの小さな印（止まっている時も向きが分かるように、控えめに）
 function drawChevron(x, y, d, color) {
-  const cell = cp;
-  ctx.save(); ctx.translate(x + cell / 2, y + cell / 2); ctx.rotate(CONV_ROT[d]);
-  ctx.strokeStyle = color; ctx.lineWidth = Math.max(1.2, cell * 0.05); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  ctx.beginPath(); ctx.moveTo(-cell * 0.12, cell * 0.05); ctx.lineTo(0, -cell * 0.08); ctx.lineTo(cell * 0.12, cell * 0.05); ctx.stroke();
-  ctx.restore();
+  ctx.drawImage(cachedCell(`ch${d}${color}`, () => {
+    const cell = cp;
+    ctx.translate(cell / 2, cell / 2); ctx.rotate(CONV_ROT[d]);
+    ctx.strokeStyle = color; ctx.lineWidth = Math.max(1.2, cell * 0.05); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.moveTo(-cell * 0.12, cell * 0.05); ctx.lineTo(0, -cell * 0.08); ctx.lineTo(cell * 0.12, cell * 0.05); ctx.stroke();
+  }), x, y, cp, cp);
 }
 function hatch(x, y, cell) {
   ctx.save();
@@ -3908,19 +3913,38 @@ function drawLvPix(x, y, w, lv) {   // x,y＝並べ始め、w＝本体の幅
   for (let i = 0; i < n; i++) ctx.fillRect(x + i * d * 3, y, d, d);
 }
 // コンベアのレベル：小さな四角を、縦のコンベアなら縦に、横なら横に並べる（左上の端に沿って）
+// 1マスの大きさの絵を一度だけ作って覚えておく（同じ印を毎回1つずつ描くと、スマホでは重い）
+const sprC = new Map();
+function cachedCell(key, paint) {
+  const dpr = viewDpr(), cs = Math.max(4, Math.round(cp)), k = key + '|' + cs + '|' + dpr;
+  let c = sprC.get(k);
+  if (!c) {
+    if (sprC.size > 800) sprC.clear();
+    c = document.createElement('canvas'); c.width = c.height = Math.ceil(cs * dpr);
+    const keep = [ctx, cp]; ctx = c.getContext('2d'); cp = cs; ctx.scale(dpr, dpr); ctx.imageSmoothingEnabled = false;
+    try { paint(); } finally { [ctx, cp] = keep; }
+    sprC.set(k, c);
+  }
+  return c;
+}
+const blitCell = (c, x, y) => { ctx.imageSmoothingEnabled = false; ctx.drawImage(c, x, y, cp, cp); ctx.imageSmoothingEnabled = true; };
 function drawBeltLv(x, y, s) {
   if (!s.lv) return;
-  const d = Math.max(1.5, cp * 0.05), g = d * 1.8, vert = s.dir === 'up' || s.dir === 'down';
-  ctx.fillStyle = THEME.level;
-  for (let i = 0; i < s.lv; i++) ctx.fillRect(x + cp * 0.06 + (vert ? 0 : i * g), y + cp * 0.06 + (vert ? i * g : 0), d, d);
+  const vert = s.dir === 'up' || s.dir === 'down';
+  blitCell(cachedCell(`bl${s.lv}${vert ? 'v' : 'h'}`, () => {
+    const d = Math.max(1.5, cp * 0.05), g = d * 1.8;
+    ctx.fillStyle = THEME.level;
+    for (let i = 0; i < s.lv; i++) ctx.fillRect(cp * 0.06 + (vert ? 0 : i * g), cp * 0.06 + (vert ? i * g : 0), d, d);
+  }), x, y);
 }
 function drawLevel(x, y, lv) {
   if (!lv) return;
-  const cell = cp, r = Math.max(1.5, cell * 0.055);
-  ctx.fillStyle = THEME.level; ctx.strokeStyle = THEME.levelLine; ctx.lineWidth = 1;
-  for (let i = 0; i < Math.min(lv, 8); i++) {
-    ctx.beginPath(); ctx.arc(x + cell * 0.14 + i * r * 2.6, y + cell * 0.14, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-  }
+  const n = Math.min(lv, 8);
+  ctx.drawImage(cachedCell('lv' + n, () => {
+    const cell = cp, r = Math.max(1.5, cell * 0.055);
+    ctx.fillStyle = THEME.level; ctx.strokeStyle = THEME.levelLine; ctx.lineWidth = 1;
+    for (let i = 0; i < n; i++) { ctx.beginPath(); ctx.arc(cell * 0.14 + i * r * 2.6, cell * 0.14, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+  }), x, y, cp, cp);
 }
 // 作業員：「i」の形（丸い頭＋縦の体）。疲れると頭の色がくすむ
 // 作業員のドット絵（参考画像「New Piskel」：8×8・2コマ・0.17秒ごと）。a=ヘルメット b=肌 c=服 d=くつ
@@ -3973,7 +3997,7 @@ function drawWorkerHead(x, y, st, w2) {
 }
 function drawWorker(x, y, w) {   // x,y＝マスの中心（画面座標）。小さく表示
   const moving = w.path && w.path.length, working = w.state === 'work';
-  const f = moving || working ? Math.floor(S.time / 0.17) % 2 : 1;
+  const f = (moving || working) && !(fpsCtl.lite >= 1) ? Math.floor(S.time / 0.17) % 2 : 1;   // 重い時は1枚のまま動く
   const tired = w.stamina / maxStamina(w) < 0.25;
   drawWorkerSprite(x, y + cp * 0.48, cp * 0.42, f, tired ? 0.6 : 1, w.boss);
 }
@@ -4087,12 +4111,12 @@ function drawMachine(x, y, m) {
     ctx.strokeStyle = THEME.machLine; ctx.lineWidth = 1.5; ctx.strokeRect(x + 1.5, y + 1.5, cell - 3, cell - 3);
     glyph(tx().glyph[m.m], x, y + cell * 0.02, THEME.machText, 0.38);
   }
-  if (m.cur && m.type === 'machine') drawMachAnim(x, y, m);   // 加工中のアニメーション
-  const [dx, dy] = DIRS[m.dir];
-  const cx = x + cell / 2 + dx * cell * 0.38, cy = y + cell / 2 + dy * cell * 0.38;
-  ctx.save(); ctx.translate(cx, cy); ctx.rotate(Math.atan2(dy, dx));
-  ctx.fillStyle = THEME.machOut; ctx.beginPath(); ctx.moveTo(cell * 0.08, 0); ctx.lineTo(-cell * 0.05, -cell * 0.08); ctx.lineTo(-cell * 0.05, cell * 0.08); ctx.closePath(); ctx.fill();
-  ctx.restore();
+  if (m.cur && m.type === 'machine' && !(fpsCtl.lite >= 2)) drawMachAnim(x, y, m);   // 加工中のアニメーション（重い時は止める）
+  ctx.drawImage(cachedCell('mo' + m.dir, () => {   // 出口の矢印
+    const [dx, dy] = DIRS[m.dir];
+    ctx.translate(cp / 2 + dx * cp * 0.38, cp / 2 + dy * cp * 0.38); ctx.rotate(Math.atan2(dy, dx));
+    ctx.fillStyle = THEME.machOut; ctx.beginPath(); ctx.moveTo(cp * 0.08, 0); ctx.lineTo(-cp * 0.05, -cp * 0.08); ctx.lineTo(-cp * 0.05, cp * 0.08); ctx.closePath(); ctx.fill();
+  }), x, y, cell, cell);
   if (m.cur) {
     const def = MACHINES[m.m];
     ctx.fillStyle = THEME.gaugeBg; ctx.fillRect(x + 4, y + cell - 7, cell - 8, 3);
@@ -5481,13 +5505,25 @@ function goalText() {
 }
 // ---- FPS：測って表示する。目標（50f/s）を下回ったら、マスごとに描く資源の数を減らす（計算は変えない） ----
 const fpsCtl = { fps: 60, cap: 30, t: 0 };
+// 1フレームの内訳（ミリ秒・ならした値）
+function fpsMs(k, v) { const m = fpsCtl.ms || (fpsCtl.ms = {}); m[k] = (m[k] || 0) * 0.9 + v * 0.1; }
 function fpsTick(dt) {
   if (dt > 0) fpsCtl.fps = fpsCtl.fps * 0.95 + (1 / dt) * 0.05;
   fpsCtl.t += dt; if (fpsCtl.t < 0.5) return;
   fpsCtl.t = 0;
   if (fpsCtl.fps < 45) fpsCtl.cap = Math.max(3, Math.floor(fpsCtl.cap * 0.7));
+  // 重い時は段階的に軽くする（3秒続いたら1段）。1＝作業員の動きを1枚に 2＝ほかの動きも止める・1倍の解像度 3＝描く作業員を半分に
+  // 軽くなったら（15秒続いたら）1段ずつ戻す
+  fpsCtl.lowT = fpsCtl.fps < 25 ? (fpsCtl.lowT || 0) + 0.5 : 0;
+  fpsCtl.highT = fpsCtl.fps > 48 ? (fpsCtl.highT || 0) + 0.5 : 0;
+  const lite0 = fpsCtl.lite || 0;
+  if (fpsCtl.lowT >= 3 && lite0 < 3) { fpsCtl.lite = lite0 + 1; fpsCtl.lowT = 0; }
+  else if (fpsCtl.highT >= 15 && lite0 > 0) { fpsCtl.lite = lite0 - 1; fpsCtl.highT = 0; }
+  const lr = (fpsCtl.lite || 0) >= 2 && (window.devicePixelRatio || 1) > 1;
+  if (lr !== !!fpsCtl.lowRes) { fpsCtl.lowRes = lr; resize(); }
   else if (fpsCtl.fps > 55) fpsCtl.cap = Math.min(30, fpsCtl.cap + 1);
-  $('fpsHud').textContent = `${Math.round(fpsCtl.fps)} f/s` + (fpsCtl.cap < 30 ? ` ・${tx().fpsCap(fpsCtl.cap)}` : '');
+  const pm = fpsCtl.ms || {}, ms = v => (v || 0).toFixed(v < 10 ? 1 : 0);
+  $('fpsHud').textContent = `${Math.round(fpsCtl.fps)} f/s` + (fpsCtl.lite ? ` ・${tx().liteLv(fpsCtl.lite)}` : '') + (fpsCtl.cap < 30 ? ` ・${tx().fpsCap(fpsCtl.cap)}` : '') + ` ・${tx().fpsParts(ms(pm.sim), ms(pm.draw), ms(pm.ui))}`;
 }
 // ---- ループ ----
 let last = performance.now(), panelTick = 0;
@@ -5506,11 +5542,12 @@ function frame(now) {
   if (running && !inTitle) {
     const gdt = dt * sp[speedIdx] * (Date.now() < S.boost.speedUntil ? 10 : 1);
     drawDt = gdt;
-    sim(gdt);
+    const tS = performance.now(); sim(gdt); fpsMs('sim', performance.now() - tS);
     if (autoLive) { liveT += gdt; if (liveT >= 3) { liveT = 0; autoLiveStep(); } }   // 自動プレイ（見る）：ゲームの3秒ごとにAIが考える
   }
   if (!running || inTitle) drawDt = 0;
   applyMove(dt);
+  const tU = performance.now();
   updateUI();
   if (S.notice && !autoBusy) { showNotice(S.notice, 'good'); S.notice = null; }
   if ((panelTick = (panelTick + 1) % 15) === 0) {
@@ -5524,7 +5561,8 @@ function frame(now) {
   if (!$('mapPanel').hidden && panelTick % 5 === 0) renderMap();
   metrics();
   placePop();
-  draw();
+  const tD = performance.now(); fpsMs('ui', tD - tU);
+  draw(); fpsMs('draw', performance.now() - tD);
   requestAnimationFrame(frame);
 }
 
@@ -5653,7 +5691,7 @@ resize();
 resetCam();
 showTitle();
 window.__game = { // 動作確認用
-  get S() { return S; }, toggle: id => togglePanel(id), openCatT: c => { openCat = c; renderSub(); updateUI(); }, tutStart: () => startTutorial(), tutSet: st => tutSet(st), setNoDraw: v => { noDraw = !!v; }, BAL, openBalance, balChanged, TUNE, OFFICE_LV, AI_W, BELT_CAP, fpsCtl, row, canPlaceAt, officeUp, buyFork, finishResearch, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
+  get S() { return S; }, draw: () => draw(), toggle: id => togglePanel(id), openCatT: c => { openCat = c; renderSub(); updateUI(); }, tutStart: () => startTutorial(), tutSet: st => tutSet(st), setNoDraw: v => { noDraw = !!v; }, BAL, openBalance, balChanged, TUNE, OFFICE_LV, AI_W, BELT_CAP, fpsCtl, row, canPlaceAt, officeUp, buyFork, finishResearch, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
   setTool: t => setTool(t), setDir: d => { dir = d; }, pause: () => { running = false; },
   checkStage, resAvail, buildCost, allResIds, resDef, autoSave, catchUp, showTitle, leaveTitle, autoPlay, autoStep, workNeed,
   deserialize, serialize, newGame: () => newGame(), aiLearn, autoPlan, AUTO_LINES, autoDiagnose, setLive: v => { autoLive = v; showAiLog(); }, setAutoBuild: v => { autoBuild = v; }, fmt, itemVal, placePend, priceUp, lvVal, lvCost, catalogIds,
