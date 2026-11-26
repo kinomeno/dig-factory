@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.94（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.95（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.94';
+const VERSION = '0.95';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -77,8 +77,9 @@ const START_ZOOM = 1.8;        // 最初は拡大した状態から
 // レベル（マスごと。レベル1が最弱）
 // val/cost の表を使い切ったら、vg（力）・cg（値段）の倍率で伸び続ける。cap＝上限
 const LV = {
-  drill:   { v0: 0.5, vg: 2, c0: 30, cg: 1.6, cap: Infinity },   // v0.79：1レベルごとに力が2倍（上限なし。岩盤はドリルの強化で破る）                                   // 1回で削る力
-  belt:    { val: [0.8, 1.1, 1.5, 2.1, 3], cost: [10, 40, 200, 5000] },   // コンベアの速さ（マス/秒）。Lv1〜5。最後（Lv5＝乗る数が無制限）はとても高い
+  drill:   { v0: 0.5, vg: 1.5, c0: 30, cg: 1.3, cap: Infinity },   // v0.95：強さは×1.5ずつ・値段は×1.3ずつ（次の岩盤まで約21レベル）   // v0.79：1レベルごとに力が2倍（上限なし。岩盤はドリルの強化で破る）                                   // 1回で削る力
+  belt:    { val: [0.8, 0.95, 1.1, 1.25, 1.4],   // v0.95：上がり方を半分以下・最大も半分以下に（前は 0.8〜3）
+              cost: [10, 40, 200, 5000] },   // コンベアの速さ（マス/秒）。Lv1〜5。最後（Lv5＝乗る数が無制限）はとても高い
   machine: { v0: 1, vg: 1.3, c0: 100, cg: 2.5, cap: 5 },   // レベルアップは5回まで（強化だけで解決しないように。効率化・施設を生かす余地を残す）   // 強化の値段は1レベルごとに2.5倍（作った物の売値は1.5倍ずつ上がるので、伸びすぎないように）                                    // 加工の速さ（倍）
   truck:   { val: [2, 4, 7, 12, 20, 32, 50, 80], vg: 1.5, cost: [30, 80, 200, 450, 1000, 2000, 4000], cg: 2.1, cap: 80 },   // 積める数（最初は2個だけ）
   fork:    { val: [1, 2, 4, 7, 11, 16, 24], vg: 1.45, cost: [40, 120, 300, 700, 1500, 3200], cg: 2.1, cap: 80 },          // フォークリフトの積める数（最初は1個・速さも上がる）
@@ -1015,7 +1016,7 @@ const newTruck = phase => ({ type: 'truck', op: null, load: 0, value: 0, phase, 
 // 1マスを掘りきるのに要る力の合計（v0.79）
 // 岩盤Lv0（5m）＝ドリルLv3で約20秒。次の岩盤は、その4300倍（同じドリルで約24時間）
 // 岩盤と岩盤の間の地面：上の岩盤と同じ硬さから始まり、次の岩盤の真上で約19倍まで（BAL.zoneHard）、だんだん硬くなる
-const ROCK_HP0 = 100, ROCK_G = 4300;
+const ROCK_HP0 = 56, ROCK_G = 4300;   // v0.95：ドリルLv3（作業員つき）で岩盤Lv0が約20秒になるように
 const rockHp = n => ROCK_HP0 * Math.pow(ROCK_G, n - 1);   // 岩盤（中の番号n：1＝5m）
 function cellHp(d) {
   if (d < layerDepth(1)) return 14 * Math.pow(40 / 14, d / layerDepth(1));   // 最初の岩盤まで：やわらかい
@@ -2003,7 +2004,7 @@ function drillEta(tc, tr) {
   for (const [k2, s2] of S.st) { if (s2.type !== 'drill' || s2.off) continue; const [dx, dy] = DIRS[s2.dir]; if (cOf(k2) + dx === tc && rOf(k2) + dy === tr) rate += drillPw(s2) / drillIv(s2); }
   if (!rate) return Infinity;
   const left = (g.left - 1) * g.h + (g.h - g.p);
-  return Math.max(left / rate, g.left * drillIv({}) / 2);
+  return Math.max(left / rate, g.left * drillIv({}));   // 1回に1個までなので、最低でも残りの数×1回
 }
 function drillHit(k, s) {
   const c = cOf(k), r = rOf(k);
@@ -2025,12 +2026,12 @@ function drillHit(k, s) {
   const pw = drillPw(s);
   g.p += pw;
   let n2 = 0;
-  while (g.p >= g.h && g.left > 0 && n2 < 2) { g.p -= g.h; g.left--; n2++; emitOre(c, r, s, oreFrom(g)); }   // 1回で出せるのは2つまで
-  if (n2 >= 2) g.p = Math.min(g.p, g.h * 0.99);   // 強すぎる分は捨てる（1マスに最低の時間がかかる）
+  while (g.p >= g.h && g.left > 0 && n2 < 1) { g.p -= g.h; g.left--; n2++; emitOre(c, r, s, oreFrom(g)); }   // 1回で出せるのは2つまで
+  if (n2 >= 1) g.p = Math.min(g.p, g.h * 0.99);   // 強すぎる分は捨てる（1マスに最低の時間がかかる）
   if (g.mat === 'rock') {   // 岩盤を叩いている間も、すぐ上の地面と同じ速さで資源が出る（破れなくても稼ぎは止まらない）
     const he = BAL.itemHp * TUNE.hard;   // 普通の地面と同じ出方（ドリルの力で決まる）
     s.racc = Math.min((s.racc || 0) + pw, he * 3);
-    let n3 = 0; while (s.racc >= he && n3 < 2) { s.racc -= he; n3++; emitOre(c, r, s, oreFrom(g)); }
+    let n3 = 0; while (s.racc >= he && n3 < 1) { s.racc -= he; n3++; emitOre(c, r, s, oreFrom(g)); }
   }
   if (s.hint79 === undefined && g.mat === 'rock' && drillEta(tc, tr) > 600 && !autoBusy) { s.hint79 = 1; say(tx().rockSlow, 6000, 'bad', { c, r, open: () => { if ([...S.st.values()].includes(s)) openPop(s); } }); }   // 岩盤が硬い：ドリルを強化しよう
   if (g.left <= 0 && g.mat !== 'rock') {   // まれに珍しい物を掘り当てる（深いほど種類が増える）
@@ -2351,6 +2352,10 @@ function deserialize(json) {
       const hp = cellHp(dd) * TUNE.hard * (b.mat === 'stone' ? 1.3 : 1), yN = Math.min(BAL.itemMax, Math.max(b.yieldN, Math.round(hp / BAL.itemHp)));
       const fr = b.yieldN ? b.left / b.yieldN : 1; b.yieldN = yN; b.left = Math.max(1, Math.round(fr * yN)); b.h = hp / yN; b.p = 0;
     }
+  }
+  if (!d.hp95) {   // v0.95：岩盤の硬さの元が 100 → 56 になった（5mより深い所はその分やわらかく）
+    d.hp95 = true;
+    for (const [r, a] of d.rows) { if (r - SKY < 5) continue; for (const b of a) if (b && b.h) { b.h *= 0.56; b.p = (b.p || 0) * 0.56; } }
   }
   if (d.secHi === undefined) d.secHi = d.office && d.office.lv >= 2;   // 前からのセーブで、もうレベル3以上なら、あいさつはしない
   if (d.resN === undefined) d.resN = Object.values(d.unlock || {}).filter(Boolean).length + Object.entries(d.skills || {}).reduce((a, [k2, v]) => a + (k2 === 'away' ? 0 : +v || 0), 0);   // v0.72：前からのセーブは、今までに終えた研究の数から
@@ -2978,7 +2983,7 @@ function spillMachine(m, c, r) {
   for (const k2 of out) spawnItem(k2, c + 0.5, r + 0.5, c, r);
 }
 // 会社レベルで解放される強化の上限（会社レベルが主な目標。上げるほど強くできる）
-const CO_CAP = { drill: ol => 4 + 12 * ol, truck: ol => 2 + 2 * ol, fork: ol => 2 + 2 * ol, machine: ol => 1 + ol, belt: ol => 1 + ol };
+const CO_CAP = { drill: ol => 4 + 21 * ol, truck: ol => 2 + 2 * ol, fork: ol => 2 + 2 * ol, machine: ol => 1 + ol, belt: ol => 1 + ol };
 const capOf0 = t => (t !== 'truck' && t.type === 'machine' && MACHINES[t.m].src ? BAL.aditMax : lvCap(grpOf(t)));
 const capOf = t => { const g = grpOf(t), c0 = capOf0(t); return CO_CAP[g] ? Math.min(c0, CO_CAP[g](S.office.lv)) : c0; };
 // 会社レベルが足りなくて止まっている時：あと何レベルの会社で上げられるか（でなければ null）
@@ -4122,6 +4127,17 @@ function holeDeco(c, r, a, x, y) {
     if (rk) { ctx.fillStyle = 'rgba(40,42,48,.75)'; ctx.fillRect(0, 0, k, Math.max(1.5, k * 0.04)); ctx.fillRect(0, k - Math.max(1.5, k * 0.04), k, Math.max(1.5, k * 0.04)); }
   }), x, y, cp, cp);
 }
+// 鉱脈の粒（16×16）：強さ1〜4で粒の数が変わる。資源の色・ふちの色の2色
+function veinSpeck(k, lv, v) {
+  return texOf('vs' + k + lv + ':' + v, g => {
+    const rnd = seeded(500 + v * 31 + lv * 7), [c1, c2] = ITEMS[k].c;
+    for (let i = 0; i < 2 + lv * 3; i++) {
+      const x = 1 + Math.floor(rnd() * 13), y = 1 + Math.floor(rnd() * 13);
+      g.fillStyle = c2; g.fillRect(x - 1, y, 1, 2); g.fillRect(x, y + 1, 2, 1); g.fillStyle = c1; g.fillRect(x, y, 2, 1);
+      g.fillStyle = '#ffffff'; g.fillRect(x + 1, y, 1, 1);   // 光る点（動かない）
+    }
+  });
+}
 function caveColor(r) {
   const t = clamp((r - SKY) / 60, 0, 1), a = [122, 94, 72], z = [58, 45, 38];
   return `rgb(${a.map((v, i) => Math.round(v + (z[i] - v) * t)).join(',')})`;
@@ -4191,6 +4207,8 @@ function draw() {
       else {
         ctx.fillStyle = groundColor(b, r); ctx.fillRect(x + 1, y + 1, cell - 2, cell - 2);
         ctx.drawImage(groundTex(b.mat, v), x + 1, y + 1, cell - 2, cell - 2);
+        const vn0 = S.veins && S.veins.length ? veinAt(c, r) : null;
+        if (vn0) ctx.drawImage(veinSpeck(vn0[0], Math.min(4, Math.ceil(vn0[1] * 4)), v), x + 1, y + 1, cell - 2, cell - 2);   // 鉱脈：資源の色の粒
       }
       if (dg) ctx.restore();
       if (r === SKY && c !== YARD_C) ctx.drawImage(grassTex(v), x, y, cell, cell);   // 地表の1段目は草（ヤードの所は舗装）
