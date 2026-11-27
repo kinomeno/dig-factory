@@ -18,7 +18,7 @@
 <meta property="og:locale" content="ja_JP">
 <meta property="og:site_name" content="ほりほり工場 / Dig Factory Tycoon">
 <meta name="twitter:card" content="summary">
-<link rel="stylesheet" href="style.css?v=1.16">
+<link rel="stylesheet" href="style.css?v=1.17">
 <!-- 広告（準備だけ。まだ動かしていない）：Google の H5 ゲーム広告を使う時に、下のコメントを外し、ca-pub-XXXX を自分の番号にする。main.js の AD_ON も true に
 <script async data-ad-client="ca-pub-8328461906614341" data-adbreak-test="on" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js" crossorigin="anonymous"></script>
 <script>window.adsbygoogle = window.adsbygoogle || []; var adBreak = adConfig = function (o) { adsbygoogle.push(o); }; adConfig({ preloadAdBreaks: 'on', sound: 'on' });</script>
@@ -37,6 +37,7 @@
     <button id="colBtn" class="icon" aria-label="collection"><svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1" opacity=".35"/></svg></button>
     <button id="helpBtn"><span class="lg" data-t="help">遊び方</span><span class="sm">?</span></button>
     <button id="adminBtn" class="test"><span class="lg" data-t="admin">管理</span><span class="sm">管</span></button>
+    <button id="hideBtn" class="icon" aria-label="hide"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M2 3h12M2 13h12"/><path d="M5 7l3 3 3-3" /></svg></button>
     <button id="setBtn" class="icon" aria-label="settings">⚙&#xFE0E;</button>
   </div>
   <!-- 2段目：時間・空間の操作（手のひら・停止・速さ・拡大縮小・地上・地図） -->
@@ -58,6 +59,7 @@
 </header>
 
 <!-- ヘッダー2段目を畳んだときの、引き出すつまみ（ヘッダーの下に垂れる） -->
+<button id="unhideBtn" aria-label="show" hidden><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M2 3h12M2 13h12"/><path d="M5 10l3-3 3 3"/></svg></button>
 <button id="unfoldBtn" class="fold" aria-label="unfold" hidden>▾&#xFE0E;</button>
 
 <!-- 移動：画面の端の帯を押している間、画面が動く（ボタンの絵は小さいまま） -->
@@ -280,7 +282,7 @@
   </div>
 </div>
 
-<script src="sprites.js?v=1.16"></script>
-<script src="main.js?v=1.16"></script>
+<script src="sprites.js?v=1.17"></script>
+<script src="main.js?v=1.17"></script>
 </body>
 </html>

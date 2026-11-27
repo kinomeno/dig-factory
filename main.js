@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.16（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.17（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.16';
+const VERSION = '1.17';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -3183,7 +3183,7 @@ const camTop = () => -0.3 - hdrH / cp;      // ゲーム画面はヘッダーの
 
 function metrics() {
   cw = cv.clientWidth; ch = cv.clientHeight;
-  hdrH = $('hdr').offsetHeight || 44;
+  hdrH = document.body.classList.contains('hideUI') ? 0 : ($('hdr').offsetHeight || 44);
   const base = Math.min(cw / COLS, 46);
   cam.z = clamp(cam.z, Math.min(3, cw / (COLS * base)), 3);   // 縮小は、左右に空きが出ないところまで
   cp = base * cam.z;
@@ -6161,6 +6161,9 @@ $('powerBtn').addEventListener('click', () => togglePanel('powerPanel'));
 $('tradeBtn').addEventListener('click', () => togglePanel('tradePanel'));
 $('skillBtn').addEventListener('click', () => { if (S.lab.built) togglePanel('skillPanel'); });
 $('helpBtn').addEventListener('click', () => togglePanel('help'));
+const setHideUI = on => { document.body.classList.toggle('hideUI', on); $('unhideBtn').hidden = !on; closePanels(); closePop(); openCat = null; renderSub(); resize(); updateUI(); };
+$('hideBtn').addEventListener('click', () => setHideUI(true));
+$('unhideBtn').addEventListener('click', () => setHideUI(false));
 { let taps = []; $('tVer').addEventListener('click', () => {   // 管理モードの入り口（ふつうの人は押さない所）
   const now = performance.now(); taps = taps.filter(t => now - t < 3000); taps.push(now);
   if (taps.length < 5) return; taps = [];
