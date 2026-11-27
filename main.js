@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.00（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.01（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.00';
+const VERSION = '1.01';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -361,7 +361,7 @@ const TXT = {
     startRes: '研究', got: '取得済み', resInfo: 'お金を払って研究すると、何か月か後にスキルが手に入ります（研究は1つずつ）。',
     sk: {
       autoConv: ['コンベア自動設置', 'ドリルが掘り進むと、後ろに自動でコンベアを置きます（1マス5）。設定でオン・オフできます。'],
-      speed: ['時間速度アップ', '時間の速さ ×2 → ×4 → ×8 が選べるようになります。'],
+      speed: ['時間速度アップ', '時間の速さが1段ずつ速くなります（いちばん速くて約2.5倍）。上の ▶ を押すと切りかわります。'],
       dragPlus: ['ドラッグ設置の強化', 'コンベアをなぞると、なぞった向きにそろえて置けます（曲がり角もOK）。'],
       hr: ['人事力', '新しく雇う人が Lv1 → Lv2 から始まります。'],
       veteran: ['ベテラン教育', '作業員のレベルが2倍の速さで上がります。'],
@@ -506,7 +506,7 @@ const TXT = {
     startRes: 'けんきゅう', got: 'てにいれた', resInfo: 'おかねを はらって けんきゅうすると、なんかげつか あとに スキルが てに はいります（けんきゅうは 1つずつ）。',
     sk: {
       autoConv: ['コンベア じどう おき', 'ドリルが ほりすすむと、うしろに じどうで コンベアを おきます（1マス5）。せっていで オン・オフ できます。'],
-      speed: ['じかんの はやさ アップ', 'じかんの はやさ ×2 → ×4 → ×8 が えらべるように なります。'],
+      speed: ['じかんの はやさ アップ', 'じかんの はやさが 1だんずつ はやく なります（いちばん はやくて やく 2.5ばい）。うえの ▶ を おすと かわります。'],
       dragPlus: ['なぞって おく', 'コンベアを なぞると、なぞった むきに そろえて おけます（まがりかども OK）。'],
       hr: ['ひとを みる ちから', 'あたらしく やとう ひとが Lv1 → Lv2 から はじまります。'],
       veteran: ['ベテランきょういく', 'さぎょういんの レベルが 2ばいの はやさで あがります。'],
@@ -651,7 +651,7 @@ const TXT = {
     startRes: 'Research', got: 'Acquired', resInfo: 'Pay to research; the skill arrives after a few in-game months (one at a time).',
     sk: {
       autoConv: ['Auto conveyor', 'Drills lay conveyors behind them as they dig (5 per cell). Toggle in Settings.'],
-      speed: ['Faster time', 'Unlocks time speeds x2 -> x4 -> x8.'],
+      speed: ['Faster time', 'Each level adds a faster time speed (up to about 2.5x). Tap the ▶ button at the top to switch.'],
       dragPlus: ['Smart drag', 'Dragged conveyors follow the direction you draw, corners included.'],
       hr: ['HR power', 'New hires start at Lv1, then Lv2.'],
       veteran: ['Veteran training', 'Workers level up twice as fast.'],
@@ -1011,7 +1011,7 @@ const lvCap = g => (g === 'belt' ? BELT_CAP.length - 1 : LV[g].cap);   // レベ
 const BELT_CAP = [1, 2, 5, 10, 100];   // v0.98：最大レベルも100まで（無制限はやめる）   // コンベア1マスに同時に乗る数（レベルごと。最大レベルは無制限）
 const beltCap = s => BELT_CAP[Math.min(s.lv || 0, BELT_CAP.length - 1)];
 // 時間の速さ：最初は×1だけ。スキルで増える（管理メニューの×16はテスト用）
-function speeds() { const a = autoLive ? [1, 2, 4, 8] : [1, 2, 4, 8].slice(0, 1 + sk('speed')); if (S.adminFast || autoLive) a.push(16); return a; }   // 自動プレイ（見る）の間は16倍まで
+function speeds() { const a = autoLive ? [1, 2, 4, 8] : [1, 1.5, 2, 2.5].slice(0, 1 + sk('speed')); if (S.adminFast || autoLive) a.push(16); return a; }   // v1.01：研究で手に入る速さは2.5倍まで（自動プレイを見る間は16倍まで）
 const drainMul = () => [1, 0.75, 0.5][sk('welfare')];                         // 福利厚生：疲れにくい
 // 会社レベル：表の先も上限なし。値段はインフレ（3倍ずつ）、定員は1.3倍ずつ、フォークリフトは1台ずつ、休憩は0.25ずつ
 const offLast = a => a[a.length - 1];
@@ -2197,7 +2197,7 @@ function startResearch(id) {
 }
 function gainSkill(id) {
   S.skills[id] = sk(id) + 1;
-  if (id === 'speed') speedIdx = speeds().length - 1;          // 取ったら一番速く（あとで変えられる）
+  // v1.01：倍速を手に入れても、今の速さは変えない（▶ を押すと速くなる）
   if (id === 'truck2') S.fleet.push(newTruck('standby'));
   if (id === 'autoConv') S.opts.autoConv = true;
   if (id === 'land') { S.landL = Math.max(0, S.landL - 1); S.landR = Math.min(COLS - 1, S.landR + 1); digCache.ver = -1; pathCache.ver = -1; S.digVer++; addHist(tx().landBought); }
@@ -5640,7 +5640,7 @@ function updateUI() {
   const month = Math.floor(S.time / TUNE.month);
   $('date').textContent = T.date(Math.floor(month / 12) + 1, month % 12 + 1);
   $('playBtn').textContent = running ? T.pause : T.play;
-  $('speedBtn').textContent = '×' + speeds()[speedIdx];
+  $('speedBtn').textContent = '▶'.repeat(speedIdx + 1); $('speedBtn').title = '×' + speeds()[speedIdx];   // 速いほど ▶ が増える（数字は出さない）
   $('speedBtn').hidden = speeds().length < 2;   // 速くできるようになるまで「×1」は出さない
   // 端まで来た向きの▲▼◀▶は消す
   $('mvUp').hidden = cam.y <= camLim.y0 + 0.02; $('mvDown').hidden = cam.y >= camLim.y1 - 0.02;

@@ -569,3 +569,5 @@ body.title #cmBox { display: none; }
 body.title #secAdv, body.title #secAdvBub, body.tut #secAdv, body.tut #secAdvBub { display: none !important; }
 /* 知らせから開いた行：枠が少し外から縮んで合う（明るさは変えない） */
 .focusRow { box-shadow: 0 0 0 2px rgba(208,102,31,.7); border-radius: 4px; background: rgba(208,102,31,.06); }
+/* v1.01：速さのボタンは ▶ の数で（▶ どうしを詰めて、横に広がりすぎない） */
+#speedBtn { letter-spacing: -0.38em; padding-right: calc(9px + 0.38em); font-size: 11px; min-width: 30px; }
