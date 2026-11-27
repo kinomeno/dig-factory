@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.63（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.64（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.63';
+const VERSION = '1.64';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -5603,13 +5603,20 @@ let skyFx = null;   // 19・20：タップした時の動き {n, kind, t0, x, y,
 function skyPos() {   // 今飛んでいる物と、その位置（マス）。いなければ null
   const T0 = 45, ph = S.time % T0, n = Math.floor(S.time / T0), kind = n % 3 === 2 ? 'plane' : 'birds', dur = kind === 'plane' ? 14 : 18;
   if (ph > dur || launchT) return null;
-  const rnd = seeded(300 + n), dir = rnd() < 0.5 ? 1 : -1, y0 = kind === 'plane' ? YARD_R - 5 - rnd() * 2.5 : YARD_R - 2.2 - rnd() * 2.5, u = ph / dur;   // 飛行機はずっと高い所
+  const rnd = seeded(300 + n), dir = rnd() < 0.5 ? 1 : -1, y0 = kind === 'plane' ? Math.min(YARD_R - 2.6, Math.max(camLim.y0 + hdrH / cp + 1.6, YARD_R - 5 - rnd() * 2.5)) : YARD_R - 2.2 - rnd() * 2.5, u = ph / dur;   // 飛行機はずっと高い所（ただし見える空の中。ヘッダーの下に隠れない）
   return { n, kind, dir, x: dir > 0 ? -2 + u * (COLS + 4) : COLS + 2 - u * (COLS + 4), y: y0 };
 }
 function skyTap(wx, wy) {   // 空の物をタップ
-  const p = skyPos(); if (!p || (skyFx && skyFx.n === p.n)) return false;
+  const p = skyPos(); if (!p) return false;
+  const L = tx().planeLines, pick = () => L[Math.floor(Math.random() * L.length)];
+  if (skyFx && skyFx.n === p.n) {   // 逃げている飛行機をもう一度押す：またしゃべる（鳥はもう飛び去った）
+    if (p.kind !== 'plane') return false;
+    const e = S.time - skyFx.t0, cx = skyFx.x + skyFx.dir * e * 0.9, cy = skyFx.y - e * 0.7;
+    if (Math.abs(wx - cx) > 1.4 || Math.abs(wy - cy) > 1) return false;
+    skyFx.text = pick(); skyFx.textT = S.time; return true;
+  }
   if (Math.abs(wx - p.x) > 1.4 || Math.abs(wy - p.y) > 1) return false;
-  const L = tx().planeLines; skyFx = { n: p.n, kind: p.kind, t0: S.time, x: p.x, y: p.y, dir: p.dir, text: L[Math.floor(Math.random() * L.length)] };
+  skyFx = { n: p.n, kind: p.kind, t0: S.time, textT: S.time, x: p.x, y: p.y, dir: p.dir, text: pick() };
   return true;
 }
 function pix(rows, x, y, u, flip) { for (let r = 0; r < rows.length; r++) for (let c = 0; c < rows[r].length; c++) if (rows[r][c] === 'x') ctx.fillRect(Math.round(x + (flip ? rows[r].length - 1 - c : c) * u), Math.round(y + r * u), Math.ceil(u), Math.ceil(u)); }
@@ -5620,8 +5627,10 @@ function drawSkyFliers() {
   const fx = skyFx && skyFx.n === p.n ? skyFx : null, e = fx ? S.time - fx.t0 : 0;
   if (p.kind === 'plane') {
     let x = p.x * cell, y = p.y * cell;
-    if (fx) { x = (fx.x + fx.dir * e * 0.9) * cell; y = (fx.y - e * 0.7) * cell; if (e < 2.2) drawBubble(x + 6 * u, y - u, fx.text); }   // 斜め上へ逃げる
-    const up = Math.max(0.8, cell * 0.022); pix(PLANE_PIX, x - 3.5 * up, y - 1.5 * up, up, p.dir > 0);
+    const up = Math.max(0.8, cell * 0.022);
+    if (fx) { x = (fx.x + fx.dir * e * 0.9) * cell; y = (fx.y - e * 0.7) * cell; }   // 斜め上へ逃げる
+    pix(PLANE_PIX, x - 3.5 * up, y - 1.5 * up, up, p.dir > 0);
+    if (fx && S.time - (fx.textT ?? fx.t0) < 2.2) drawBubble(x, y - 2 * up, fx.text);   // しっぽの先は機体の真上。少しして消える（押すとまた）
   } else {
     for (let i = 0; i < 5; i++) {
       let bx = p.x - p.dir * i * 0.22 - p.dir * Math.abs(i - 2) * 0.05, by = p.y + Math.abs(i - 2) * 0.1 + Math.sin(S.time * 3 + i) * 0.03;
