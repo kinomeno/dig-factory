@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.66（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.67（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.66';
+const VERSION = '1.67';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -1035,7 +1035,8 @@ for (const l of ['hira', 'en']) for (const k of Object.keys(TXT.kanji)) {
 
 function loadLang() {
   try { const v = localStorage.getItem('saikutsu.lang'); if (TXT[v]) return v; } catch (e) { /* 保存できない環境 */ }
-  return (navigator.language || '').toLowerCase().startsWith('ja') ? 'kanji' : 'en';
+  const ls = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || '']).map(x => String(x).toLowerCase());
+  return ls[0].startsWith('ja') ? 'kanji' : 'en';   // 端末のいちばん目の言語が日本語なら漢字、それ以外は英語（選び直したら覚える）
 }
 let lang = loadLang();
 const tx = () => TXT[lang];
@@ -6398,6 +6399,8 @@ function say(t, ms, mood, at, who) {
 }
 
 function setupText() {
+  document.title = lang === 'en' ? 'Dig Factory Tycoon' : 'ほりほり工場';   // 共有・ホーム画面の名前も言語に合わせる
+  { const m = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (m) m.content = lang === 'en' ? 'Dig Factory' : 'ほりほり工場'; }
   const T = tx();
   document.documentElement.lang = lang === 'en' ? 'en' : 'ja';
   document.title = T.title;
@@ -7208,6 +7211,7 @@ function openHome() {
   const ol = $('homeSteps'); ol.innerHTML = '';
   if (!isStandalone()) for (const st of T.homeSteps[ios ? 'ios' : android ? 'android' : 'pc']) { const li = document.createElement('li'); li.textContent = st; ol.append(li); }
   const ib = $('homeInstall'); ib.hidden = !installEvt || isStandalone(); ib.textContent = T.homeInstallB;
+  $('homeImg').hidden = !(ios && lang !== 'en' && !isStandalone());   // iPhone（日本語）：共有メニューの絵
   $('homeBox').hidden = false;
 }
 $('tHome').addEventListener('click', openHome);
@@ -7447,7 +7451,15 @@ setupText();
 resize();
 resetCam();
 showTitle();
-window.__game = { tapAt: p => tapAt(p), bossFatFrame: (f, e) => bossFatFrame(f, e), key: (c, r) => key(c, r), updateMachines: dt => updateMachines(dt), itemSprite: (k, of) => itemSprite(k, of), ITEMS: () => ITEMS, get YARD_R() { return YARD_R; }, get OFFICE_C() { return OFFICE_C; }, get SKY() { return SKY; }, // 動作確認用
+window.__game = { specDump: () => {   // 開発用：今の仕様（解放の順番・物・機械・研究・説明文）を書き出す
+    const T = tx(), toolIds = Object.keys(TXT.kanji.toolDesc || {});
+    return { co: CO_UNLOCK, cosk: CO_SK, stage: RES_STAGE, rare: RARE, br: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(BR), cost: COST, offCost: OFFICE_LV.cost,
+      items: Object.entries(ITEMS).map(([k, v]) => ({ k, name: T.items[k], v: v.v, raw: RAW_NOTE[k] || '' })),
+      machines: Object.entries(MACHINES).map(([m, d]) => ({ m, name: (T.mach || {})[m], cost: d.cost, time: d.time, recipe: unlockDesc('m:' + m) })),
+      fac: FAC_IDS.map(f => ({ f, name: T.fac[f], desc: (T.facDesc || {})[f] || '' })),
+      tools: toolIds.map(t => ({ t, name: T[t] || t, desc: unlockDesc('t:' + t) })),
+      research: allResIds().map(id => { let d = {}; try { d = resDef(id); } catch (e) { } return { id, name: d.name, cost: d.cost, months: d.months, desc: unlockDesc(id) || d.desc || '' }; }) };
+  }, tapAt: p => tapAt(p), bossFatFrame: (f, e) => bossFatFrame(f, e), key: (c, r) => key(c, r), updateMachines: dt => updateMachines(dt), itemSprite: (k, of) => itemSprite(k, of), ITEMS: () => ITEMS, get YARD_R() { return YARD_R; }, get OFFICE_C() { return OFFICE_C; }, get SKY() { return SKY; }, // 動作確認用
   get S() { return S; }, draw: () => draw(), openPop: t => openPop(t), launchAt: e => { launchT = performance.now() - e * 1000; }, tutTarget: () => tutTarget(), closePop: () => closePop(), tripStart: () => tripStart(), cappedAllDone: () => cappedAllDone(), TRIP_NEED, toggle: id => togglePanel(id), openCatT: c => { openCat = c; renderSub(); updateUI(); }, tutStart: () => startTutorial(), tutSet: st => tutSet(st), setNoDraw: v => { noDraw = !!v; }, BAL, openBalance, balChanged, TUNE, OFFICE_LV, AI_W, BELT_CAP, fpsCtl, row, canPlaceAt, officeUp, buyFork, finishResearch, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
   setTool: t => setTool(t), setDir: d => { dir = d; }, pause: () => { running = false; },
   checkStage, resAvail, buildCost, allResIds, resDef, autoSave, catchUp, showTitle, leaveTitle, autoPlay, autoStep, workNeed,
