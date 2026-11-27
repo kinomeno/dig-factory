@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.17（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.18（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.17';
+const VERSION = '1.18';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -4558,7 +4558,7 @@ function draw() {
     if (w.state === 'work' && w.target && w.target.type === 'fac') continue;   // 地上の施設の中
     if (w.state === 'work' && w.target && isStation(w.target)) {   // ドリル・機械で作業中は、そのマスの右上に頭だけ
       const k = stKey.has(w.target) ? stKey.get(w.target) : -1;
-      if (k >= 0 && !out(cOf(k), rOf(k)) && isBelt(w.target)) { drawBeltWorker(cOf(k) * cell, rOf(k) * cell, w.target); continue; }   // コンベア：上半身
+      if (k >= 0 && !out(cOf(k), rOf(k)) && isBelt(w.target)) { drawBeltWorker(cOf(k) * cell, rOf(k) * cell, w.target, w.boss); continue; }   // コンベア：上半身
       if (k >= 0 && !out(cOf(k), rOf(k))) { const st2 = S.st.get(k), [ox, oy] = st2 && st2.type === 'drill' ? drillShift(k, st2) : [0, 0]; drawWorkerHead((cOf(k) + ox) * cell, (rOf(k) + oy) * cell, st2, w); }
       continue;
     }
@@ -4915,11 +4915,12 @@ const WORKER_FR = workerFrames(WORKER_COL);
 const BELT_PIX = ['...aa...', '...bb...', '..cccc..', '..cccc..', '..bccb..'];   // コンベアについた作業員の上半身（8×5）：気を付け（動かない）
 const BELT_FR = (() => { const c2 = document.createElement('canvas'); c2.width = 8; c2.height = 5; const g = c2.getContext('2d'); BELT_PIX.forEach((rw, y) => [...rw].forEach((ch, x) => { if (WORKER_COL[ch]) { g.fillStyle = WORKER_COL[ch]; g.fillRect(x, y, 1, 1); } })); return c2; })();
 // コンベアの横の縁に立つ：縦のコンベアは右の縁、横のコンベアは奥（上）の縁から上半身がのぞく
-function drawBeltWorker(x, y, s) {
+function drawBeltWorker(x, y, s, boss) {
   const u = cp * 0.42 / 8, w = 8 * u, h = 5 * u, vert = s && (s.dir === 'up' || s.dir === 'down');
   const px = vert ? x + cp - w * 0.75 : x + cp / 2 - w / 2, py = vert ? y + cp / 2 - h / 2 : y + cp * 0.14 - h * 0.55;
-  ctx.imageSmoothingEnabled = false; ctx.drawImage(BELT_FR, Math.round(px), Math.round(py), w, h); ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingEnabled = false; ctx.drawImage(boss ? BELT_BOSS : BELT_FR, Math.round(px), Math.round(py), w, h); ctx.imageSmoothingEnabled = true;
 }
+const BELT_BOSS = (() => { const col = { ...WORKER_COL, a: '#d8402c' }, c2 = document.createElement('canvas'); c2.width = 8; c2.height = 5; const g = c2.getContext('2d'); BELT_PIX.forEach((rw, y) => [...rw].forEach((ch, x) => { if (col[ch]) { g.fillStyle = col[ch]; g.fillRect(x, y, 1, 1); } })); return c2; })();   // 38：社長は赤いヘルメット
 const BOSS_FR = workerFrames({ ...WORKER_COL, a: '#d8402c' });   // 社長：赤いヘルメット
 // お客さん：ヘルメットではなく髪。服と髪の色は人ごとにいろいろ（色の組み合わせごとに1回だけ作る）
 const GUEST_HAIR = ['#2b2420', '#5e4026', '#8a5a2a', '#c9a46e', '#9a9a9a', '#2a2a2a'];
@@ -4935,10 +4936,31 @@ function drawGuest(cx, footY, size, frame, car) {
 }
 // 社長の横幅：画面の本当のドット単位で、じわじわ広がる
 const bossW = size => { const dpr = window.devicePixelRatio || 1; return Math.round(size * (1 + (S.bossFat || 0)) * dpr) / dpr; };
+const BOSS_FAT_FR = new Map();
+function bossFatFrame(frame, e) {   // 服（c）だけを左右に e ドットずつ広げた社長の絵（顔・手・足はそのまま）
+  const id = frame + ':' + e; if (BOSS_FAT_FR.has(id)) return BOSS_FAT_FR.get(id);
+  const col = { ...WORKER_COL, a: '#d8402c' }, c2 = document.createElement('canvas'); c2.width = 8 + 2 * e; c2.height = 8; const g = c2.getContext('2d');
+  WORKER_PIX[frame].forEach((rw, y) => {
+    let row = '.'.repeat(e) + rw + '.'.repeat(e);
+    const a = rw.indexOf('c'), b = rw.lastIndexOf('c');
+    if (y >= 3 && y <= 5 && a >= 0) {   // 胴（首は広げない）：服の左右に e 個ずつ足し、手（b）は外へ押し出す
+      const left = rw.slice(0, a), mid = rw.slice(a, b + 1), right = rw.slice(b + 1);
+      const lb = left.replace(/\.+$/, ''), rb = right.replace(/^\.+/, '');
+      const body = lb.slice(-1) === 'b' ? 'b' : '', body2 = rb[0] === 'b' ? 'b' : '';
+      const core = 'c'.repeat(e) + mid + 'c'.repeat(e);
+      const inner = (body ? 'b' : '') + core + (body2 ? 'b' : ''), pad = 8 + 2 * e - inner.length, lp = a - (body ? 1 : 0);
+      row = '.'.repeat(Math.max(0, lp)) + inner; row = row + '.'.repeat(Math.max(0, 8 + 2 * e - row.length)); row = row.slice(0, 8 + 2 * e);
+    }
+    [...row].forEach((ch, x) => { if (col[ch]) { g.fillStyle = col[ch]; g.fillRect(x, y, 1, 1); } });
+  });
+  BOSS_FAT_FR.set(id, c2); return c2;
+}
 function drawWorkerSprite(cx, footY, size, frame, alpha, boss) {
   ctx.save(); ctx.imageSmoothingEnabled = false; if (alpha < 1) ctx.globalAlpha = alpha;
-  const w = boss ? bossW(size) : size;
-  ctx.drawImage((boss ? BOSS_FR : WORKER_FR)[frame], cx - w / 2, Math.round(footY - size), w, size);
+  if (boss && (S.bossFat || 0) > 0.06) {   // 37：太っても顔と手は太らない
+    const e = Math.min(4, Math.round((S.bossFat || 0) * 3.4)), u = size / 8;
+    ctx.drawImage(bossFatFrame(frame, e), Math.round(cx - (8 + 2 * e) * u / 2), Math.round(footY - size), (8 + 2 * e) * u, size);
+  } else ctx.drawImage((boss ? BOSS_FR : WORKER_FR)[frame], cx - size / 2, Math.round(footY - size), size, size);
   ctx.restore();
 }
 // 作業中の印：作業員の頭（ヘルメットと顔）だけを、マスの中の右上に小さく
@@ -6968,7 +6990,7 @@ setupText();
 resize();
 resetCam();
 showTitle();
-window.__game = { tapAt: p => tapAt(p), key: (c, r) => key(c, r), updateMachines: dt => updateMachines(dt), itemSprite: (k, of) => itemSprite(k, of), ITEMS: () => ITEMS, get YARD_R() { return YARD_R; }, get OFFICE_C() { return OFFICE_C; }, get SKY() { return SKY; }, // 動作確認用
+window.__game = { tapAt: p => tapAt(p), bossFatFrame: (f, e) => bossFatFrame(f, e), key: (c, r) => key(c, r), updateMachines: dt => updateMachines(dt), itemSprite: (k, of) => itemSprite(k, of), ITEMS: () => ITEMS, get YARD_R() { return YARD_R; }, get OFFICE_C() { return OFFICE_C; }, get SKY() { return SKY; }, // 動作確認用
   get S() { return S; }, draw: () => draw(), openPop: t => openPop(t), launchAt: e => { launchT = performance.now() - e * 1000; }, tutTarget: () => tutTarget(), closePop: () => closePop(), tripStart: () => tripStart(), cappedAllDone: () => cappedAllDone(), TRIP_NEED, toggle: id => togglePanel(id), openCatT: c => { openCat = c; renderSub(); updateUI(); }, tutStart: () => startTutorial(), tutSet: st => tutSet(st), setNoDraw: v => { noDraw = !!v; }, BAL, openBalance, balChanged, TUNE, OFFICE_LV, AI_W, BELT_CAP, fpsCtl, row, canPlaceAt, officeUp, buyFork, finishResearch, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
   setTool: t => setTool(t), setDir: d => { dir = d; }, pause: () => { running = false; },
   checkStage, resAvail, buildCost, allResIds, resDef, autoSave, catchUp, showTitle, leaveTitle, autoPlay, autoStep, workNeed,
