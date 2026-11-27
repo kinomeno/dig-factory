@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.42（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.43（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.42';
+const VERSION = '1.43';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -2552,7 +2552,7 @@ function deserialize(json) {
   d.dock = d.dock || {}; d.forks = d.forks || [Object.assign(newFork(), { x: PARK_X })];
   d.stage = d.stage || stageOf(d.deepest); d.history = d.history || []; d.moneyMark = d.moneyMark || 0;
   d.boost = d.boost || { priceT: 0, wageM: 0, speedUntil: 0 };
-  d.fac = (d.fac || []).filter(f => f.f !== 'vend'); d.vends = d.vends || {}; d.tank = d.tank || { oil: 0, hot: 0 };   // v1.35：自販機は地下の設備になった d.cars = d.cars || []; d.stVer = d.stVer || 0;
+  d.fac = (d.fac || []).filter(f => f.f !== 'vend'); d.vends = d.vends || {}; d.tank = d.tank || { oil: 0, hot: 0 }; d.cars = d.cars || []; d.stVer = d.stVer || 0;   // v1.35：自販機は地下の設備になった（v1.43：コメントに飲まれていた cars・stVer を戻す）
   if (d.landL === undefined) {   // v0.39までのセーブ：土地はぜんぶ持っている。ヤードが1マスになったので、そこにある物はずらす
     d.landL = 0; d.landR = COLS - 1; d.skills = d.skills || {}; d.skills.land = LAND_MAX; delete d.land;
     const busy = c => (d.lab && d.lab.built && d.lab.c === c) || (d.fac || []).some(x => x.c === c) || c === OFFICE_C || c === OFFICE_C + 1 || c === YARD_C;
@@ -3304,7 +3304,8 @@ function metrics() {
   const worldW = COLS * cp;
   if (worldW <= cw) { offX = (cw - worldW) / 2; cam.x = 0; camLim.x0 = camLim.x1 = 0; }
   else { offX = 0; camLim.x0 = 0; camLim.x1 = COLS - cw / cp; cam.x = clamp(cam.x, 0, camLim.x1); }
-  camLim.y0 = Math.min(camTop() - 0.7, SKY - ch / cp + 0.6);   // v1.23：地上の線が画面の下に来るくらいまで上を見られる camLim.y1 = Math.max(camLim.y0, S.deepest - hdrH / cp);   // いちばん深い所が、画面のいちばん上に見える所まで
+  camLim.y0 = Math.min(camTop() - 0.7, SKY - ch / cp + 0.6);   // v1.23：地上の線が画面の下に来るくらいまで上を見られる
+  camLim.y1 = Math.max(camLim.y0, S.deepest - hdrH / cp);   // いちばん深い所が、画面のいちばん上に見える所まで（v1.43：v1.23でこの行がコメントに飲まれ、下へ動かせなかった）
   if (!inTitle) cam.y = clamp(cam.y, camLim.y0, camLim.y1);
 }
 function resetCam() {
