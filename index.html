@@ -18,7 +18,7 @@
 <meta property="og:locale" content="ja_JP">
 <meta property="og:site_name" content="ほりほり工場 / Dig Factory Tycoon">
 <meta name="twitter:card" content="summary">
-<link rel="stylesheet" href="style.css?v=0.96b">
+<link rel="stylesheet" href="style.css?v=0.97">
 <!-- 広告（準備だけ。まだ動かしていない）：Google の H5 ゲーム広告を使う時に、下のコメントを外し、ca-pub-XXXX を自分の番号にする。main.js の AD_ON も true に
 <script async data-ad-client="ca-pub-8328461906614341" data-adbreak-test="on" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js" crossorigin="anonymous"></script>
 <script>window.adsbygoogle = window.adsbygoogle || []; var adBreak = adConfig = function (o) { adsbygoogle.push(o); }; adConfig({ preloadAdBreaks: 'on', sound: 'on' });</script>
@@ -108,10 +108,11 @@
 <!-- 引き出しの取っ手（開いている引き出しの左上に付く） -->
 <div id="dHandle" hidden><b></b><i></i></div>
 <!-- 引き出しを閉じる（右上の×） -->
-<button id="dClose" class="x" aria-label="close" hidden>✕</button>
+<button id="dClose" class="x" aria-label="close" hidden><svg viewBox="0 0 16 10" width="16" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2l6 6 6-6"/></svg></button>
 
 <!-- 資金：ゲーム画面の左上に直接（白いふちで、どんな背景でも読める） -->
 <div id="fpsHud"></div>
+<div id="cmBox" hidden></div>
 <div id="moneyHud"><span data-t="money">資金</span><b id="money">0</b><small id="goalHud"></small><small id="monthHud"></small><small id="boostHud"></small><small id="aiTime"></small><small id="aiHud"></small></div>
 
 <p id="msg" class="msg"></p>
@@ -267,7 +268,7 @@
   </div>
 </div>
 
-<script src="sprites.js?v=0.96b"></script>
-<script src="main.js?v=0.96b"></script>
+<script src="sprites.js?v=0.97"></script>
+<script src="main.js?v=0.97"></script>
 </body>
 </html>

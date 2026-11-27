@@ -525,3 +525,24 @@ body.dash #subMenu { max-height: calc(100% - var(--hdr) - var(--dash) - 40px); }
 #popFilters .pfHead { font-size: 11px; color: var(--sub); padding: 4px 0 2px; cursor: pointer; user-select: none; border-bottom: 1px solid var(--line); margin-bottom: 3px; }
 #popFilters .pfHead::before { content: '▸ '; } #popFilters .pfHead.open::before { content: '▾ '; }
 #popFilters .pfList { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 4px; }
+/* v0.97：メッセージ（どこをタップしても消える・大きい画面では文字を大きく） */
+.msg { pointer-events: auto; cursor: pointer; }
+@media (min-width: 760px) and (min-height: 600px) { .msg { font-size: 15.5px; } .msg .secIcon { width: 38px; height: 38px; } #tutMsg { font-size: 15.5px; } }
+@media (min-width: 1100px) and (min-height: 760px) { .msg { font-size: 17px; } .msg .secIcon { width: 42px; height: 42px; } #tutMsg { font-size: 17px; } }
+/* ヘッダーをもっと透かす */
+#hdr { background: rgba(250, 250, 248, .58); }
+/* 横に広い画面：下のメニューと引き出しは 720px まで（真ん中に寄せる）。それより狭い時は画面いっぱい */
+@media (min-width: 721px) {
+  body.dash #dash { left: calc(50% - 360px); right: calc(50% - 360px); }
+  body.dash #subMenu, body.dash .panel.bottom { left: calc(50% - 360px); right: calc(50% - 360px); }
+}
+/* 引き出しを閉じる「∨」：引き出しの右上にくっつく */
+#dClose { display: flex; align-items: center; justify-content: center; width: 44px; height: 24px; padding: 0; color: var(--sub); }
+#dClose[hidden] { display: none; }
+/* CM の効果：上の真ん中に、角丸の枠で */
+#cmBox { position: fixed; top: calc(var(--hdr) + 6px); left: 50%; transform: translateX(-50%); z-index: 41; pointer-events: none;
+  padding: 3px 12px; border: 2px solid #d0a020; border-radius: 8px; background: rgba(255, 250, 230, .95); box-shadow: 0 0 0 2px rgba(255,255,255,.8), 0 2px 6px rgba(0,0,0,.12);
+  font-size: 13px; font-weight: 600; letter-spacing: .06em; color: #7a5a00; font-variant-numeric: tabular-nums; white-space: nowrap; }
+#cmBox[hidden] { display: none; }
+body.cmOn .msg { top: calc(var(--hdr) + 40px); }
+body.title #cmBox { display: none; }

@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.96（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.97（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.96';
+const VERSION = '0.97';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -106,8 +106,8 @@ const ITEMS = {
   brick:    { v: 3,   c: ['#c0583c', '#6e2a18'], s: 'rect' },
   ironbar:  { v: 22,  c: ['#c9d2de', '#4c5664'], s: 'bar' },
   goldbar:  { v: 65,  c: ['#ffd34d', '#7a5a00'], s: 'bar' },
-  tool:     { v: 60,  c: ['#8fa0b6', '#2f3a48'], s: 'square' },
-  jewel:    { v: 170, c: ['#ffcf3a', '#8a5a00'], s: 'square' },
+  tool:     { v: 60,  c: ['#8fa0b6', '#2f3a48'], s: 'hammer' },
+  jewel:    { v: 170, c: ['#ffcf3a', '#8a5a00'], s: 'ring' },
   diaClean: { v: 80,  c: ['#d8f3ff', '#3d7896'], s: 'gem' },
   diaCut:   { v: 120, c: ['#e9f9ff', '#2d6886'], s: 'gem' },
   gem:      { v: 200, c: ['#f2fcff', '#1f5a7a'], s: 'gem' },
@@ -121,36 +121,36 @@ const ITEMS = {
   decoIron:  { v: 320, c: ['#c9d2de', '#d0661f'], s: 'gem' },      // 高級装飾品（鉄）：鉄の延べ棒＋宝石
   decoGold:  { v: 420, c: ['#ffd34d', '#b0306a'], s: 'gem' },      // 高級装飾品（金）：金の延べ棒＋宝石
   // 珍しい資源（深い所でまれに掘り当てる。博物館に飾れる）
-  ammonite:  { v: 2000,  c: ['#d8c9a0', '#6d5f3c'], s: 'circle' },
+  ammonite:  { v: 2000,  c: ['#d8c9a0', '#6d5f3c'], s: 'shell' },
   fossil:    { v: 3000,  c: ['#ece6d4', '#7d776b'], s: 'bone' },
-  haniwa:    { v: 5000,  c: ['#c98a5a', '#6e3a18'], s: 'square' },
+  haniwa:    { v: 5000,  c: ['#c98a5a', '#6e3a18'], s: 'haniwa' },
   rareMin:   { v: 8000,  c: ['#b79be6', '#3d2a66'], s: 'gem' },
-  relic:     { v: 15000, c: ['#ffd34d', '#5e4026'], s: 'square' },
+  relic:     { v: 15000, c: ['#ffd34d', '#5e4026'], s: 'cup' },
   // v0.83 新しい資源（粘土・銅・石炭・石英・銀）と、その製品
   clay:      { v: 2,    c: ['#c9a27a', '#6e4a2a'], s: 'circle' },   // 粘土（5〜15m）
   copper:    { v: 25,   c: ['#d98a4a', '#6a3a14'], s: 'circle' },   // 銅（10m〜）
   coal:      { v: 8,    c: ['#4a4a52', '#141418'], s: 'circle' },   // 石炭（20m〜）
   quartz:    { v: 60,   c: ['#eef4f8', '#7a92a6'], s: 'gem' },      // 石英（30m〜）
   silver:    { v: 70,   c: ['#dfe4ea', '#5a6270'], s: 'circle' },   // 銀（40m〜）
-  kawara:    { v: 12,   c: ['#6a6f78', '#3a3d44'], s: 'rect' },     // 瓦（粘土を焼く）
-  pottery:   { v: 40,   c: ['#e8d8bc', '#8a6a48'], s: 'square' },   // 陶器（レンガ＋タイル）
+  kawara:    { v: 12,   c: ['#6a6f78', '#3a3d44'], s: 'wave' },     // 瓦（粘土を焼く）
+  pottery:   { v: 40,   c: ['#e8d8bc', '#8a6a48'], s: 'jar' },   // 陶器（レンガ＋タイル）
   copperBar: { v: 300,  c: ['#e0955a', '#6a3a14'], s: 'bar' },
   silverBar: { v: 1000, c: ['#e6eaf0', '#5a6270'], s: 'bar' },
   steel:     { v: 650,  c: ['#7c8896', '#2f3a48'], s: 'bar' },      // 鋼（鉄の延べ棒＋石炭）
-  ironPlate: { v: 280,  c: ['#b8c2ce', '#4c5664'], s: 'rect' },
-  copperPlate: { v: 420, c: ['#e0955a', '#6a3a14'], s: 'rect' },
-  glass:     { v: 30,   c: ['#cfe8ef', '#6a9aa8'], s: 'square' },
+  ironPlate: { v: 280,  c: ['#b8c2ce', '#4c5664'], s: 'plate' },
+  copperPlate: { v: 420, c: ['#e0955a', '#6a3a14'], s: 'plate' },
+  glass:     { v: 30,   c: ['#cfe8ef', '#6a9aa8'], s: 'cup' },
   luxGlass:  { v: 400,  c: ['#f2fbff', '#5a8aa0'], s: 'gem' },      // 高級ガラス（純粋な石英から）
-  ironPot:   { v: 350,  c: ['#6a6f78', '#2a2d33'], s: 'square' },
-  copperPot: { v: 480,  c: ['#d98a4a', '#6a3a14'], s: 'square' },
-  wireMesh:  { v: 750,  c: ['#9aa3ae', '#3c4450'], s: 'square' },   // 金網（ワイヤー2本）
-  silverware: { v: 2600, c: ['#eef1f5', '#6a7280'], s: 'square' },  // 銀食器
-  steelPart: { v: 1100, c: ['#8a96a8', '#2f3a48'], s: 'square' },   // 鋼の部品
-  concrete:  { v: 15,   c: ['#b8b4aa', '#6d675d'], s: 'rect' },     // コンクリートブロック
+  ironPot:   { v: 350,  c: ['#6a6f78', '#2a2d33'], s: 'pot' },
+  copperPot: { v: 480,  c: ['#d98a4a', '#6a3a14'], s: 'pot' },
+  wireMesh:  { v: 750,  c: ['#9aa3ae', '#3c4450'], s: 'mesh' },   // 金網（ワイヤー2本）
+  silverware: { v: 2600, c: ['#eef1f5', '#6a7280'], s: 'cutlery' },  // 銀食器
+  steelPart: { v: 1100, c: ['#8a96a8', '#2f3a48'], s: 'gear' },   // 鋼の部品
+  concrete:  { v: 15,   c: ['#b8b4aa', '#6d675d'], s: 'block' },     // コンクリートブロック
   copperWire: { v: 380, c: ['#e0955a', '#6a3a14'], s: 'coil' },     // 銅線
   cable:     { v: 900,  c: ['#3a3a40', '#d98a4a'], s: 'coil' },     // 電線
   goldTile:  { v: 2200, c: ['#ffe27a', '#8a8478'], s: 'square' },   // 金縁タイル
-  mummy:     { v: 25000, c: ['#e8dcc0', '#5e5040'], s: 'rect' },
+  mummy:     { v: 25000, c: ['#e8dcc0', '#5e5040'], s: 'mummy' },
 };
 const ITEM_ORDER = Object.keys(ITEMS);
 const RARE = [['ammonite', 20], ['fossil', 30], ['haniwa', 40], ['rareMin', 50], ['relic', 60], ['mummy', 70]];   // 珍しい資源と、出始める深さ（m）
@@ -1131,7 +1131,7 @@ const hireLv = () => Math.min(2, sk('hr'));   // 雇う人のレベル（人事�
 function gainExp(w, dt) {
   if (!w.ex) w.ex = 0.7 + Math.random() * 0.6;   // 覚えの速さ（人ごと。レベルがばらける）
   w.exp += w.ex * dt * (sk('veteran') ? 2 : 1) * (1 + 0.25 * sk('treasure'));   // 人間国宝見学：経験がたまる速さ+25%ずつ
-  if (w.lv < maxWorkerLv() && w.exp >= expNeed(w.lv)) { w.lv++; w.stamina = Math.min(w.stamina + 10, maxStamina(w)); pop(tx().lvUpW(w.lv), w.x, w.y - 0.5, 'sale'); }
+  if (w.lv < maxWorkerLv() && w.exp >= expNeed(w.lv)) { w.lv++; w.stamina = Math.min(w.stamina + 10, maxStamina(w)); bubble(w, 'Lv' + w.lv + '!'); }   // v0.97：頭の上に吹き出し
 }
 
 function newGame() {
@@ -2908,6 +2908,9 @@ function apply(c, r, dragging) {
     openPop({ type: 'pend', c, r, dir: pdir0, tid: toolId(), filter: s && s.type === 'sort' ? s.filter : f0, side: s && s.type === 'sort' ? s.side : (memGet('sort.s') || 'left') });
     return;
   }
+  if (tool === 'conv' && !dragging && s && s.type === 'conv') {   // もう一度押すと向きが回る（お金はかからない）
+    const order = ['up', 'right', 'down', 'left']; s.dir = order[(order.indexOf(s.dir) + 1) % 4]; dir = s.dir; S.stVer++; updateUI(); return;
+  }
   const pdir = s && s.dir && s.type !== 'drill' && !dragging ? s.dir : ed;   // 上書きは、下の物と同じ向きで置く
   // 上書き：今ある物を撤去（半額戻る）してから置く。コンベア・パイプ以外は確認してから（なぞっている時は上書きしない）
   if (s && !isLineLike(s)) { if (dragging) return; askConfirm(tx().overwriteQ, () => { removeAt(k); placeAt(c, r, cost, pdir); updateUI(); }); return; }
@@ -4152,11 +4155,12 @@ function holeDeco(c, r, a, x, y) {
   if (vn) { ctx.globalAlpha = 0.14 + 0.2 * vn[1]; ctx.fillStyle = ITEMS[vn[0]].c[0]; ctx.fillRect(x, y, cp, cp); ctx.globalAlpha = 1; }
   const up = r - 1 >= SKY && !!blk(c, r - 1), lf = c > 0 && !!a[c - 1], rt = c < COLS - 1 && !!a[c + 1], rk = !!layerAt(r - SKY);
   if (!up && !lf && !rt && !rk) return;
-  ctx.drawImage(cachedCell(`sh${+up}${+lf}${+rt}${+rk}`, () => {
-    const k = cp;
-    if (up) { ctx.fillStyle = 'rgba(0,0,0,.38)'; ctx.fillRect(0, 0, k, k * 0.09); ctx.fillStyle = 'rgba(0,0,0,.17)'; ctx.fillRect(0, k * 0.09, k, k * 0.09); }
-    if (lf) { ctx.fillStyle = 'rgba(0,0,0,.26)'; ctx.fillRect(0, 0, k * 0.07, k); }
-    if (rt) { ctx.fillStyle = 'rgba(0,0,0,.15)'; ctx.fillRect(k * 0.94, 0, k * 0.06, k); }
+  const vr = (c * 7 + r * 3) % 3;   // ギザギザの形は3通り（となりと同じにならない）
+  ctx.drawImage(cachedCell(`sh${+up}${+lf}${+rt}${+rk}${vr}`, () => {
+    const k = cp, u = k / 16, rnd = seeded(900 + vr * 17);   // v0.97：影は太く・ふちはドット絵のギザギザ（16分割）
+    if (up) for (let i = 0; i < 16; i++) { const d = 3 + Math.floor(rnd() * 3); ctx.fillStyle = 'rgba(0,0,0,.36)'; ctx.fillRect(i * u, 0, u + 0.5, d * u); ctx.fillStyle = 'rgba(0,0,0,.15)'; ctx.fillRect(i * u, d * u, u + 0.5, (1 + Math.floor(rnd() * 2)) * u); }
+    if (lf) for (let i = 0; i < 16; i++) { const d = 2 + Math.floor(rnd() * 2); ctx.fillStyle = 'rgba(0,0,0,.24)'; ctx.fillRect(0, i * u, d * u, u + 0.5); }
+    if (rt) for (let i = 0; i < 16; i++) { const d = 1 + Math.floor(rnd() * 2); ctx.fillStyle = 'rgba(0,0,0,.13)'; ctx.fillRect(k - d * u, i * u, d * u, u + 0.5); }
     if (rk) { ctx.fillStyle = 'rgba(40,42,48,.75)'; ctx.fillRect(0, 0, k, Math.max(1.5, k * 0.04)); ctx.fillRect(0, k - Math.max(1.5, k * 0.04), k, Math.max(1.5, k * 0.04)); }
   }), x, y, cp, cp);
 }
@@ -4406,6 +4410,8 @@ function draw() {
       ctx.fillText(digCost(blk(hover.c, hover.r)), hover.c * cell + cell / 2, hover.r * cell + cell / 2);
     }
   }
+  for (const [bx, by, bt] of bubbles) drawBubble(bx, by, bt);   // 吹き出し（いちばん前に）
+  bubbles = [];
   const now = performance.now();
   S.pops = S.pops.filter(q => now - q.t0 < 1800);
   for (const q of S.pops) {
@@ -4413,7 +4419,7 @@ function draw() {
     ctx.globalAlpha = Math.min(1, a * 1.5);
     ctx.fillStyle = q.kind === 'cost' ? THEME.cost : THEME.sale;
     ctx.strokeStyle = THEME.popLine; ctx.lineWidth = 3;
-    ctx.font = `bold ${Math.round(cell * (q.kind === 'sale' ? 0.55 : 0.42))}px sans-serif`;
+    ctx.font = `bold ${Math.round(Math.min(cell * (q.kind === 'sale' ? 0.55 : 0.42), q.kind === 'sale' ? 20 : 15))}px sans-serif`;   // v0.97：控えめに（大きい画面でも20pxまで）
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     const yy = (q.wy - (1 - a) * 1.2) * cell;
     ctx.strokeText(q.text, q.wx * cell, yy); ctx.fillText(q.text, q.wx * cell, yy);
@@ -4645,11 +4651,18 @@ function hatch(x, y, cell) {
   ctx.stroke();
   ctx.restore();
 }
+// レベルの印の色の並び：100ごとに金・10ごとに青・残りはふつう
+function lvMarks(lv) {
+  const a = [];
+  for (let i = 0; i < Math.floor(lv / 100); i++) a.push('#e0b020');
+  for (let i = 0; i < Math.floor((lv % 100) / 10); i++) a.push('#3a7bd5');
+  for (let i = 0; i < lv % 10; i++) a.push(THEME.level);
+  return a;
+}
 function drawLvPix(x, y, w, lv) {   // x,y＝並べ始め、w＝本体の幅
   if (!lv) return;
-  const d = Math.max(1 / (window.devicePixelRatio || 1), cp / 48), n = Math.min(lv, Math.floor(w / (d * 3)));   // 小さい時はモニターの1ドット、拡大すると車体に合わせて大きく
-  ctx.fillStyle = THEME.level;
-  for (let i = 0; i < n; i++) ctx.fillRect(x + i * d * 3, y, d, d);
+  const mk = lvMarks(lv), d = Math.max(1 / (window.devicePixelRatio || 1), cp / 48), n = Math.min(mk.length, Math.floor(w / (d * 3)));   // 小さい時はモニターの1ドット、拡大すると車体に合わせて大きく
+  for (let i = 0; i < n; i++) { ctx.fillStyle = mk[i]; ctx.fillRect(x + i * d * 3, y, d, d); }
 }
 // コンベアのレベル：小さな四角を、縦のコンベアなら縦に、横なら横に並べる（左上の端に沿って）
 // 1マスの大きさの絵を一度だけ作って覚えておく（同じ印を毎回1つずつ描くと、スマホでは重い）
@@ -4678,11 +4691,11 @@ function drawBeltLv(x, y, s) {
 }
 function drawLevel(x, y, lv) {
   if (!lv) return;
-  const n = Math.min(lv, 8);
-  ctx.drawImage(cachedCell('lv' + n, () => {
-    const cell = cp, r = Math.max(1.5, cell * 0.055);
-    ctx.fillStyle = THEME.level; ctx.strokeStyle = THEME.levelLine; ctx.lineWidth = 1;
-    for (let i = 0; i < n; i++) { ctx.beginPath(); ctx.arc(cell * 0.14 + i * r * 2.6, cell * 0.14, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+  const mk = lvMarks(lv).slice(0, 9), n = mk.length;
+  ctx.drawImage(cachedCell('lv' + lv, () => {
+    const cell = cp, r = Math.max(1.2, cell * 0.042);   // v0.97：丸は小さく
+    ctx.strokeStyle = THEME.levelLine; ctx.lineWidth = 1;
+    for (let i = 0; i < n; i++) { ctx.fillStyle = mk[i]; ctx.beginPath(); ctx.arc(cell * 0.12 + i * r * 2.6, cell * 0.12, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
   }), x, y, cp, cp);
 }
 // 作業員：「i」の形（丸い頭＋縦の体）。疲れると頭の色がくすむ
@@ -4742,6 +4755,17 @@ function drawWorkerHead(x, y, st, w2) {
   ctx.drawImage((w2 && w2.boss ? BOSS_FR : WORKER_FR)[1], 3, 0, 2, 2, hx, hy, s, s);   // 8×8の絵のうち、頭の2×2ドット
   ctx.restore();
 }
+// 吹き出し（作業員などの頭の上。数秒で消える）
+function bubble(o, text, sec = 2.2) { o.bub = { text, until: performance.now() + sec * 1000 }; }
+function drawBubble(x, y, text) {   // x,y＝吹き出しのしっぽの先（画面座標）
+  const fs = Math.round(clamp(cp * 0.26, 10, 15)); ctx.font = `bold ${fs}px sans-serif`;
+  const w = ctx.measureText(text).width + fs * 0.9, h = fs * 1.5, bx = x - w / 2, by = y - h - fs * 0.45;
+  ctx.fillStyle = '#fff'; ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx, by, w, h, h * 0.35) : ctx.rect(bx, by, w, h); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x - fs * 0.3, by + h - 0.5); ctx.lineTo(x, y); ctx.lineTo(x + fs * 0.3, by + h - 0.5); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x - fs * 0.3, by + h); ctx.lineTo(x, y); ctx.lineTo(x + fs * 0.3, by + h); ctx.stroke();
+  ctx.fillStyle = '#333'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, x, by + h / 2 + 0.5);
+}
 function drawWorker(x, y, w) {   // x,y＝マスの中心（画面座標）。小さく表示
   const tgt = S.time - (w.vT || -9) < 0.4 ? -0.5 : 0;   // 縦の移動中は、マスの左の線へ（なめらかに寄せる）
   w.lx = (w.lx || 0) + (tgt - (w.lx || 0)) * 0.25; if (Math.abs(w.lx) < 0.01) w.lx = 0;
@@ -4750,7 +4774,9 @@ function drawWorker(x, y, w) {   // x,y＝マスの中心（画面座標）。�
   const f = fpsCtl.lite >= 1 ? 0 : moving || working ? Math.floor(S.time / 0.17) % 2 : 1;   // 重い時は大の字（1枚）のまま動く
   const tired = w.stamina / maxStamina(w) < 0.25;
   drawWorkerSprite(x, y + cp * 0.48, cp * 0.42, f, tired ? 0.6 : 1, w.boss);
+  if (w.bub) { if (performance.now() > w.bub.until) w.bub = null; else bubbles.push([x, y + cp * 0.48 - cp * 0.42 * 1.05, w.bub.text]); }   // 吹き出しは最後にまとめて描く
 }
+let bubbles = [];
 // 資源・製品のドット絵（16×16）。形ごとの型に、資源の色（ふち・本体・光）を塗る
 const SPR_CACHE = new Map();
 function shade(hex, k) {   // 明るく（k>0）・暗く（k<0）
@@ -4770,6 +4796,20 @@ function shapeMask(sh) {
     else if (sh === 'bone') on = (y >= 7 && y <= 8 && x >= 4 && x <= 11) || [[3.5, 5.6], [3.5, 9.6], [12, 5.6], [12, 9.6]].some(([cx, cy]) => (X - cx) ** 2 + (Y - cy) ** 2 <= 3.2);   // 骨（化石）
     else if (sh === 'coil') { const rr = Math.hypot(X - 8, Y - 8.5); on = (rr >= 3.2 && rr <= 5.6) || (x >= 12 && x <= 14 && y === 4); }   // 巻いたワイヤー
     else if (sh === 'gem') on = Math.abs(X - 8) * 1.05 + Math.abs(Y - 8) * (Y < 6.5 ? 2.2 : 0.95) <= 7 && Y > 2.5;
+    else if (sh === 'pot') on = (y >= 7 && y <= 13 && ((X - 8) ** 2) / 30 + ((Y - 7) ** 2) / 42 <= 1) || (y === 6 && x >= 2 && x <= 13) || ((x === 1 || x === 14) && y >= 7 && y <= 8) || ((x === 0 || x === 15) && y === 7);   // 鍋（取っ手つき）
+    else if (sh === 'plate') on = y >= 6 && y <= 10 && x >= 1 + (10 - y) * 0.6 && x <= 12 + (10 - y) * 0.6;   // 板（ななめから見た薄い板）
+    else if (sh === 'mesh') on = x >= 2 && x <= 13 && y >= 2 && y <= 13 && ((x - 2) % 3 === 0 || (y - 2) % 3 === 0 || x === 13 || y === 13);   // 金網
+    else if (sh === 'cutlery') on = (x === 4 && y >= 6 && y <= 14) || (y >= 2 && y <= 5 && (x === 3 || x === 5) ) || (y === 5 && x === 4) || ((X - 11) ** 2 / 4.5 + (Y - 4.5) ** 2 / 7 <= 1) || (x === 11 && y >= 7 && y <= 14);   // フォークとスプーン
+    else if (sh === 'gear') { const rr = Math.hypot(X - 8, Y - 8), th = Math.atan2(Y - 8, X - 8); on = rr >= 2 && (rr <= 4.8 || (rr <= 6.8 && Math.cos(th * 8) > 0.25)); }   // 歯車
+    else if (sh === 'jar') on = (x >= 6 && x <= 9 && y >= 2 && y <= 4) || (y === 2 && x >= 5 && x <= 10) || ((X - 8) ** 2 / 28 + (Y - 9.5) ** 2 / 22 <= 1);   // 陶器（つぼ）
+    else if (sh === 'cup') on = (y >= 3 && y <= 11 && x >= 3 + (y - 3) * 0.3 && x <= 12 - (y - 3) * 0.3) || (y >= 12 && y <= 13 && x >= 7 && x <= 8) || (y === 14 && x >= 5 && x <= 10);   // 杯
+    else if (sh === 'block') on = x >= 2 && x <= 13 && y >= 4 && y <= 12 && !((x >= 4 && x <= 6 || x >= 9 && x <= 11) && y >= 7 && y <= 9);   // 穴あきブロック
+    else if (sh === 'wave') on = x >= 1 && x <= 14 && y >= 6 + Math.round(Math.sin(x / 1.6) * 1.2) && y <= 10 + Math.round(Math.sin(x / 1.6) * 1.2);   // 瓦（波形）
+    else if (sh === 'hammer') on = (x >= 3 && x <= 12 && y >= 3 && y <= 6) || (x >= 7 && x <= 8 && y >= 7 && y <= 14);   // かなづち
+    else if (sh === 'ring') { const rr = Math.hypot(X - 8, Y - 9.5); on = (rr >= 2.6 && rr <= 4.9) || Math.abs(X - 8) + Math.abs(Y - 3.5) <= 2.4; }   // 指輪
+    else if (sh === 'shell') { const rr = Math.hypot(X - 8, Y - 8.5); on = rr <= 6 && !(rr > 1.5 && rr < 2.6 && Math.atan2(Y - 8.5, X - 8) > -1.2) && !(rr > 3.6 && rr < 4.4 && Math.atan2(Y - 8.5, X - 8) < 1.8); }   // アンモナイト（うず）
+    else if (sh === 'haniwa') on = ((X - 8) ** 2 / 14 + (Y - 4.5) ** 2 / 10 <= 1 && !((x === 6 || x === 9) && y === 4) && !(x >= 7 && x <= 8 && y === 6)) || (x >= 5 && x <= 10 && y >= 7 && y <= 14) || ((x === 3 || x === 12) && y >= 8 && y <= 10);   // 埴輪（目と口の穴）
+    else if (sh === 'mummy') on = x >= 5 && x <= 10 && y >= 1 && y <= 14 && !(y === 1 && (x === 5 || x === 10));   // ミイラ（包帯は下で）
     else if (sh === 'bag') on = (((X - 8) ** 2) / 30 + ((Y - 10) ** 2) / 22 <= 1) || (x >= 6 && x <= 9 && y >= 2 && y <= 5);
     m.push(on);
   }
@@ -4790,6 +4830,11 @@ function itemSprite(k, of) {
     if (!at(x + 1, y + 1) && at(x - 1, y)) col = shade(base, -0.22);                                        // 右下の影
     if (sh === 'rect' && !edge && y === 8) col = shade(base, -0.3);                                        // レンガの目地
     if (sh === 'gem' && !edge && (x === 8 || y === 6)) col = shade(base, 0.6);                             // 宝石の面
+    if (sh === 'pot' && y === 6) col = shade(base, -0.35);                                                 // 鍋のふち
+    if (sh === 'plate' && y === 10) col = shade(base, -0.3);                                               // 板の厚み
+    if (sh === 'mummy' && (y % 3 === 0)) col = shade(base, -0.25);                                         // 包帯の線
+    if (sh === 'ring' && Math.abs(x + 0.5 - 8) + Math.abs(y + 0.5 - 3.5) <= 2.4) col = y < 3 ? '#e8f8ff' : '#9fd6f0';   // 指輪の石
+    if (sh === 'cup' && k === 'glass' && !edge) col = shade(base, 0.25);                                  // ガラスは明るく
     g.fillStyle = col; g.fillRect(x, y, 1, 1);
   }
   if (k === 'bag' && of) { g.fillStyle = ITEMS[of].c[0]; g.fillRect(6, 9, 4, 3); g.fillStyle = ITEMS[of].c[1]; g.fillRect(6, 12, 4, 1); }   // 中身の色
@@ -5151,9 +5196,7 @@ function drawLand(g0, r1) {
   for (const fx of [S.landL, S.landR + 1]) {
     if (fx <= 0 || fx >= COLS) continue;
     const x = fx * cell, top = (YARD_R + 0.55) * cell;
-    ctx.fillRect(x - 1.5, top, 3, SKY * cell - top);                                   // 柱
-    ctx.fillRect(x - cell * 0.22, top + cell * 0.1, cell * 0.44, 2);                    // 横木
-    ctx.fillRect(x - cell * 0.22, top + cell * 0.26, cell * 0.44, 2);
+    ctx.fillRect(x - 1.5, top, 3, SKY * cell - top);                                   // 杭（v0.97：横木はなし）
   }
 }
 // 橋：地表の段（地下1段目）が掘られた所。床は地面と同じ高さ（フォークリフトの高さは変わらない）。両端に橋台
@@ -5415,7 +5458,7 @@ function syncDash() {
   }
   const dc = $('dClose');   // 引き出しを閉じる「×」（右上）
   dc.hidden = hd.hidden;
-  if (!dc.hidden) dc.style.top = (drawer.offsetTop - 26) + 'px';
+  if (!dc.hidden) { dc.style.top = (drawer.offsetTop - 24) + 'px'; dc.style.right = 'auto'; dc.style.left = (drawer.offsetLeft + drawer.offsetWidth - dc.offsetWidth - 8) + 'px'; }
 }
 // メッセージをタップ：関係する所へ画面を動かし、そのメニューを開く
 function jumpTo(at) {
@@ -5430,7 +5473,7 @@ $('tutSkip').addEventListener('click', () => {   // はじめの手順をとば�
   if (![...S.st.values()].some(x => x.type === 'drill')) { const c = OFFICE_C - 1; row(SKY)[c] = null; S.digVer++; S.st.set(key(c, SKY), { type: 'drill', tid: 'drill', dir: 'down', lv: 0, t: 0, hit: -99, op: null, no: 1 }); S.stVer++; }
   tutEnd(); updateUI();
 });
-$('msg').addEventListener('pointerup', () => { if (msgAt) { const a = msgAt; say(''); jumpTo(a); updateUI(); } });
+$('msg').addEventListener('pointerup', () => { const a = msgAt; say(''); if (a) { jumpTo(a); updateUI(); } });   // タップで消える（飛べる物は飛ぶ）
 $('curTool').addEventListener('pointerup', e => { e.preventDefault(); tool = 'none'; closePop(); updateUI(); });
 function updateUI() {
   const T = tx(), m = $('money');
@@ -5802,6 +5845,7 @@ function fitHeader() {
   for (const c of ['c1', 'c2', 'c3', 'c4', 'c5']) { if (!over()) break; h.classList.add(c); }   // c4：「ズーム」の字と区切りを消す・c5：さらに詰める
 }
 window.addEventListener('resize', fitHeader);
+for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(ev, e => e.preventDefault(), { passive: false });   // iOS：ページ全体の拡大を止める
 function setFold(f) {
   document.body.classList.toggle('hfold', f);
   $('unfoldBtn').hidden = !f;
@@ -6293,6 +6337,13 @@ function dealLeft(id) {
   if (id === 'speed10' && Date.now() < B.speedUntil) return T.leftT(fmtDur((B.speedUntil - Date.now()) / 1000));
   return '';
 }
+const mmss = sec => { sec = Math.max(0, Math.ceil(sec)); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s2 = sec % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(s2).padStart(2, '0'); };
+function cmBoxText() {   // 時間で切れる効果（売値2倍・速さ10倍）
+  const T = tx(), B = S.boost, a = [];
+  if (B.priceT > 0) a.push(`${T.deal.price2[2]} ${mmss(B.priceT)}`);
+  if (Date.now() < B.speedUntil) a.push(`${T.deal.speed10[2]} ${mmss((B.speedUntil - Date.now()) / 1000)}`);
+  return a.join('　');
+}
 function boostText() {
   const T = tx(), a = [];
   for (const d of DEALS) { const l = dealLeft(d.id); if (l) a.push(`${T.deal[d.id][2]} ${l}`); }
@@ -6413,7 +6464,9 @@ function frame(now) {
   if ((panelTick = (panelTick + 1) % 15) === 0) {
     for (const id of ['powerPanel', 'office', 'skillPanel', 'tradePanel']) if (!$(id).hidden && !panelBusy($(id))) renderPanel(id);
     $('aiTime').textContent = autoLive ? playTimeText() : '';   // 自動プレイ（見る）：実際に遊ぶと何日何時間か
-    $('boostHud').textContent = (autoLive ? tx().adm.liveTag + (boostText() ? '・' : '') : '') + boostText();
+    const cmT = cmBoxText(), bt = boostText().split('・').filter(x => x && !cmT.includes(x.split(' ')[0])).join('・');   // 時間の効果は上の枠へ
+    $('boostHud').textContent = (autoLive ? tx().adm.liveTag + (bt ? '・' : '') : '') + bt;
+    $('cmBox').textContent = cmT; $('cmBox').hidden = !cmT; document.body.classList.toggle('cmOn', !!cmT);
     if (!$('info').hidden) renderInfo();
     if (popTarget) updatePop();
     syncDash();
@@ -6554,7 +6607,7 @@ setupText();
 resize();
 resetCam();
 showTitle();
-window.__game = { tapAt: p => tapAt(p), get YARD_R() { return YARD_R; }, get OFFICE_C() { return OFFICE_C; }, get SKY() { return SKY; }, // 動作確認用
+window.__game = { tapAt: p => tapAt(p), itemSprite: (k, of) => itemSprite(k, of), ITEMS: () => ITEMS, get YARD_R() { return YARD_R; }, get OFFICE_C() { return OFFICE_C; }, get SKY() { return SKY; }, // 動作確認用
   get S() { return S; }, draw: () => draw(), openPop: t => openPop(t), launchAt: e => { launchT = performance.now() - e * 1000; }, tutTarget: () => tutTarget(), closePop: () => closePop(), tripStart: () => tripStart(), cappedAllDone: () => cappedAllDone(), TRIP_NEED, toggle: id => togglePanel(id), openCatT: c => { openCat = c; renderSub(); updateUI(); }, tutStart: () => startTutorial(), tutSet: st => tutSet(st), setNoDraw: v => { noDraw = !!v; }, BAL, openBalance, balChanged, TUNE, OFFICE_LV, AI_W, BELT_CAP, fpsCtl, row, canPlaceAt, officeUp, buyFork, finishResearch, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
   setTool: t => setTool(t), setDir: d => { dir = d; }, pause: () => { running = false; },
   checkStage, resAvail, buildCost, allResIds, resDef, autoSave, catchUp, showTitle, leaveTitle, autoPlay, autoStep, workNeed,
