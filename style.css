@@ -653,3 +653,9 @@ body.moneyFold #goalHud, body.moneyFold #monthHud, body.moneyFold #aiHud, body.m
 #cutBub[hidden] { display: none; }
 #cutBub::after { content: ''; position: absolute; left: calc(var(--tail, 50%) - 5px); bottom: -6px; border: 6px solid transparent; border-bottom: 0; border-top-color: #fff; }
 #cutBub::before { content: ''; position: absolute; left: calc(var(--tail, 50%) - 6px); bottom: -7px; border: 7px solid transparent; border-bottom: 0; border-top-color: rgba(0,0,0,.45); }
+/* v1.58 33：機械のメニュー下部は「見出し：中身」の表（「：」をそろえ、中身は右の列で折り返す） */
+#popInfo .kv { display: grid; grid-template-columns: max-content max-content 1fr; column-gap: 2px; row-gap: 2px; }
+#popInfo .kv .k { color: #7a7a80; white-space: nowrap; }
+#popInfo .kv .v { white-space: pre-wrap; min-width: 0; overflow-wrap: anywhere; }
+#popInfo .kv .c { color: #7a7a80; }
+#popLevel { white-space: pre-line; }   /* レベル・効果は1行ずつ */

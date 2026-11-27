@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.57（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.59（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.57';
+const VERSION = '1.59';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -288,7 +288,7 @@ const TXT = {
     lidDesc: 'ふたの上には物を置けます。上の物を撤去しても、ふたは残ります。ふたをしている間は湧きません。',
     filter: '選ぶ資源', side: '出す側', left: '左', right: '右',
     sortInfo: '選んだ資源だけを横に出します。他はまっすぐ進みます。',
-    outDir: '出す向き（前）', making: '加工中', waiting: '材料待ち', inBuf: '材料',
+    outDir: '出す向き（前）', kv: { rec: '作り方', out: '出す向き', inp: '材料', st: '状況', op: '作業員', none: 'なし（止まっています）', front: '前' }, making: '加工中', waiting: '材料待ち', inBuf: '材料',
     truck: 'トラック', loaded: '積んだ数', worth: '売値', depart: '今すぐ出発', away: '出発中', yard: 'ヤード',
     lv: n => `レベル${n}`, levelUp: 'レベルアップ',
     pw: { drill: '掘る力', belt: '速さ', machine: '加工の速さ', truck: '積める数', fork: '積める数' },
@@ -442,7 +442,7 @@ const TXT = {
     lidDesc: 'ふたの うえには ものを おけます。うえの ものを とりのぞいても、ふたは のこります。ふたを して いる あいだは わきません。',
     filter: 'えらぶ もの', side: 'だす ほう', left: 'ひだり', right: 'みぎ',
     sortInfo: 'えらんだ ものだけを よこに だします。ほかは まっすぐ すすみます。',
-    outDir: 'だす むき（まえ）', making: 'つくっている', waiting: 'ざいりょう まち', inBuf: 'ざいりょう',
+    outDir: 'だす むき（まえ）', kv: { rec: 'つくりかた', out: 'だす むき', inp: 'ざいりょう', st: 'ようす', op: 'さぎょういん', none: 'なし（とまっています）', front: 'まえ' }, making: 'つくっている', waiting: 'ざいりょう まち', inBuf: 'ざいりょう',
     truck: 'トラック', loaded: 'つんだ かず', worth: 'うりね', depart: 'いますぐ しゅっぱつ', away: 'しゅっぱつちゅう', yard: 'おきば',
     lv: n => `レベル${n}`, levelUp: 'レベルアップ',
     pw: { drill: 'ほる ちから', belt: 'はやさ', machine: 'つくる はやさ', truck: 'つめる かず', fork: 'つめる かず' },
@@ -587,7 +587,7 @@ const TXT = {
     lidDesc: 'You can build on the lid. Removing what is on it leaves the lid. Nothing flows while it is covered.',
     filter: 'Picks', side: 'Out to', left: 'Left', right: 'Right',
     sortInfo: 'Sends the chosen item out to the side. Everything else goes straight.',
-    outDir: 'Output (front)', making: 'Working', waiting: 'Waiting', inBuf: 'Input',
+    outDir: 'Output (front)', kv: { rec: 'Recipes', out: 'Output', inp: 'Input', st: 'Status', op: 'Operator', none: 'None (stopped)', front: 'front' }, making: 'Working', waiting: 'Waiting', inBuf: 'Input',
     truck: 'Truck', loaded: 'Loaded', worth: 'Value', depart: 'Leave now', away: 'Away', yard: 'Yard',
     lv: n => `Lv ${n}`, levelUp: 'Level up',
     pw: { drill: 'Power', belt: 'Speed', machine: 'Work speed', truck: 'Capacity', fork: 'Capacity' },
@@ -3388,8 +3388,9 @@ function popCell() {
   return k < 0 ? null : { c: cOf(k), r: rOf(k) };
 }
 let popAnchor = null;   // メニューを開いた時の位置（中身の行数が変わっても、ボタンが動かないように）
-function openPop(t) { closePanels(); if (cutBub && cutBub.kind === 'fac') { cutBub = null; $('cutBub').hidden = true; } popTarget = t; popAnchor = null; $('popView').hidden = true; buildPop(); $('pop').hidden = false; placePop(); }
+function openPop(t) { closePanels(); $('popInfo').dataset.sig = ''; if (cutBub && cutBub.kind === 'fac') { cutBub = null; $('cutBub').hidden = true; } popTarget = t; popAnchor = null; $('popView').hidden = true; buildPop(); $('pop').hidden = false; placePop(); }
 function buildPop() {
+  $('popInfo').dataset.sig = '';
   const t = popTarget, T = tx();
   const isTruck = t === 'truck', isFork = t.type === 'fork';
   if (t.type === 'elevPlace') {   // 物の上にエレベーターを置くか、下の物を見るか
@@ -3550,7 +3551,11 @@ function popInfoText() {
       : def.recipes.map(x => `${recIn(x)} → ${T.items[x.out]}`).join(' / ');
     const have = def.bag ? (Object.entries(t.bags || {}).map(([k2, n]) => `${T.items[k2]}×${n}`).join(' ') || '-')
       : Object.entries(t.buf).filter(([, n]) => n > 0).map(([k2, n]) => `${T.items[k2]}×${n}`).join(' ') || '-';
-    return `${rule}\n${T.outDir}：${ARROW[t.dir]}　${T.inBuf}：${have}　${t.cur ? T.making : T.waiting}${opLine}`;
+    const K = T.kv, rows = [];
+    if (def.bag || def.src) rows.push(['', rule]); else rows.push([K.rec, def.recipes.map(x => `${recIn(x)} → ${T.items[x.out]}`).join('\n')]);   // 作り方は1行に1つ
+    rows.push([K.out, `${ARROW[t.dir]}`], [K.inp, have], [K.st, t.cur ? T.making : T.waiting]);
+    if (isStation(t)) rows.push([K.op, opW ? `Lv${opW.lv}` : K.none]);
+    return { kv: rows };
   }
   return opLine.trim();
 }
@@ -3591,10 +3596,16 @@ function updatePop() {
   document.querySelectorAll('#pop [data-pp]').forEach(b => b.classList.toggle('active', t !== 'truck' && +b.dataset.pp === (t.prio === undefined ? 1 : t.prio)));
   const info = popInfoText();
   $('popInfo').hidden = !info;
-  $('popInfo').innerText = info;
+  if (info && info.kv) {   // 見出し（固定の列）＋中身（右で折り返す）
+    const box = $('popInfo'), sig = JSON.stringify(info.kv);
+    if (box.dataset.sig !== sig) { box.dataset.sig = sig; box.innerHTML = ''; const gr = document.createElement('div'); gr.className = 'kv';
+      for (const [k2, v] of info.kv) { const a = document.createElement('span'); a.className = 'k'; a.textContent = k2; const cn = document.createElement('span'); cn.className = 'c'; cn.textContent = k2 ? '：' : ''; const b = document.createElement('span'); b.className = 'v'; b.textContent = v; if (k2) gr.append(a, cn, b); else { b.style.gridColumn = '1 / -1'; gr.append(b); } }   // 「：」は自分の列（位置がそろう）
+      box.append(gr); }
+  } else { $('popInfo').dataset.sig = ''; $('popInfo').innerText = info; }
   const g = grpOf(t), lv = lvOf(t), cost = nextCost(t), unit = T.pwUnit[g];
   const showPw = g !== 'drill';   // ドリルの掘る強さは小数になるので、レベルだけ
-  $('popLevel').textContent = `${T.lv(lv)}` + (showPw ? `　${T.pw[g]} ${unit(lvVal(g, lv))}` + (cost !== null ? ` → ${unit(lvVal(g, lv + 1))}` : '') : '')
+  $('popLevel').textContent = `${T.lv(lv)}` + (showPw ? `
+${T.pw[g]} ${unit(lvVal(g, lv))}` + (cost !== null ? ` → ${unit(lvVal(g, lv + 1))}` : '') : '')
     + (g === 'belt' ? `\n${T.beltCapT} ${capTxt(BELT_CAP[lv])}` + (cost !== null ? ` → ${capTxt(BELT_CAP[lv + 1])}` : '') : '')
     + (g === 'machine' && t.m && !MACHINES[t.m].src ? `\n${T.valueUp} ×${fmtMul(valueMul({ lv }))}` + (cost !== null ? ` → ×${fmtMul(valueMul({ lv: lv + 1 }))}` : '') : '')
     ;
@@ -7223,6 +7234,10 @@ function frame(now) {
   metrics();
   placePop();
   if (!$('office').hidden) drawCutaway($('officeView'), 'office');   // 断面図（開いている時だけ）
+  if (cutBub) {   // 吹き出しの持ち主（断面図・施設の絵）が閉じたら、吹き出しも消す
+    const own = cutBub.kind === 'office' ? $('office') : cutBub.kind === 'lab' ? $('skillPanel') : $('pop');
+    if (own.hidden || (cutBub.kind === 'fac' && $('popView').hidden)) { cutBub = null; $('cutBub').hidden = true; }
+  }
   if (popTarget && popTarget.type === 'fac' && !$('popView').hidden) drawFacView($('popView'), popTarget);
   if (!$('skillPanel').hidden) drawCutaway($('labView'), 'lab');
   const tD = performance.now(); fpsMs('ui', tD - tU);
