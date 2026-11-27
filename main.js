@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.20（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.21（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.20';
+const VERSION = '1.21';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -213,7 +213,7 @@ const FORK_BUY = n => BAL.forkBuy0 + BAL.forkBuyStep * (n - 1);                 
 const RESEARCH_MACH = { assembler: [20000, 4], sieve: [800, 2], roller: [3000, 3], caster: [3500, 3], glassF: [2500, 3], metalwork: [6000, 4], adit: [800, 2], smelter: [600, 2], bagger: [500, 2], factory: [1500, 3], washer: [1200, 3], cutter: [1800, 3], polisher: [2500, 4], drawer: [1500, 3], atelier: [5000, 4] };
 const RESEARCH_BATCH = [800, 2];
 // 研究で増える設置物：高速ドリル・自動ドリル（ふさがると向きを変える）・T字路・交差
-const RESEARCH_TOOL = { lamp: [2000, 2], elev: [300, 1], fdrill: [800, 2], adrill: [1500, 3], tee: [300, 1], cross: [400, 2], pipe: [900, 2] };
+const RESEARCH_TOOL = { lamp: [2000, 2], elev: [300, 1], fdrill: [800, 2], adrill: [1500, 3], tee: [300, 1], cross: [400, 2], pipe: [900, 2], branch: [600, 1], tri: [900, 2] };
 const RESEARCH_FAC = { spa: [1500, 2], power: [2000, 2], refinery: [3000, 3], museum: [20000, 6] };   // 地上の施設の研究                               // まとめて強化の研究
 // スキル（研究：お金を払い、ゲーム内で何か月か待つと手に入る。研究は1つずつ）
 const SKILLS = {
@@ -399,7 +399,7 @@ const TXT = {
     confirmLoad: 'ロードしますか？（今の状態は消えます）', saveNG: 'この環境ではセーブできません',
     officeLv: '事務所', capP: n => `定員${n}人`, restSp: '休憩の速さ', full: '事務所の定員がいっぱいです', techUp: '技術UP',
     build: '設置', works: '工事', grpName: { drill: 'ドリル', belt: 'コンベア', pipe: '管', machine: '機械', other: 'その他', fac: '施設', works: '掘削・撤去' },
-    fdrill: '高速ドリル', adrill: '自動ドリル', tee: 'T字路', cross: '交差', resTool: '設置物', toolRes: 'この設置物を置けるようになります。',
+    fdrill: '高速ドリル', adrill: '自動ドリル', tee: 'T字路', cross: '交差', tri: '三叉路', branch: 'ト字路', resTool: '設置物', toolRes: 'この設置物を置けるようになります。',
     digDo: '掘削する', overwriteQ: '上書きしますか？（今ある物は撤去して半額戻ります）', advNote0: 'Lv2以上になると、地上の仕事（フォークリフト・トラック）にも就きます。',
     facility: '施設', labUnlocked: '研究所を建てられるようになりました（下のタブの「工事」から）', labWhere: '研究所は地上の空いているマスに置けます', labOne: '研究所はもう建っています',
     labName: '研究所', needLab: '研究所が必要です（事務所レベル2で建てられます）', labBuilt: '研究所が建ちました',
@@ -544,7 +544,7 @@ const TXT = {
     confirmLoad: 'ロード しますか？（いまの じょうたいは きえます）', saveNG: 'ここでは セーブ できません',
     officeLv: 'じむしょ', capP: n => `ていいん${n}にん`, restSp: 'やすむ はやさ', full: 'じむしょが いっぱい です', techUp: 'うでまえUP',
     build: 'おく', works: 'こうじ', grpName: { drill: 'ドリル', belt: 'コンベア', pipe: 'くだ', machine: 'きかい', other: 'そのほか', fac: 'しせつ', works: 'ほる・どける' },
-    fdrill: 'はやい ドリル', adrill: 'じどう ドリル', tee: 'Tじろ', cross: 'こうさ', resTool: 'おく もの', toolRes: 'これを おけるように なります。',
+    fdrill: 'はやい ドリル', adrill: 'じどう ドリル', tee: 'Tじろ', cross: 'こうさ', tri: 'さんさろ', branch: 'トじろ', resTool: 'おく もの', toolRes: 'これを おけるように なります。',
     digDo: 'ほる', overwriteQ: 'うわがき しますか？（いまの ものは とりのぞいて はんがく もどります）', advNote0: 'Lv2いじょうに なると、ちじょうの しごと（フォークリフト・トラック）も します。',
     facility: 'しせつ', labUnlocked: 'けんきゅうじょを たてられるように なりました（したの タブの「しせつ」から）', labWhere: 'けんきゅうじょは ちじょうの あいている マスに おけます', labOne: 'けんきゅうじょは もう たっています',
     labName: 'けんきゅうじょ', needLab: 'けんきゅうじょが ひつよう です（じむしょ レベル2で たてられます）', labBuilt: 'けんきゅうじょが たちました',
@@ -689,7 +689,7 @@ const TXT = {
     confirmLoad: 'Load this save? (current game will be lost)', saveNG: 'Saving is not available here',
     officeLv: 'Office', capP: n => `${n} staff max`, restSp: 'Rest speed', full: 'The office is full', techUp: 'Skill up',
     build: 'Build', works: 'Works', grpName: { drill: 'Drills', belt: 'Conveyors', pipe: 'Pipes', machine: 'Machines', other: 'Other', fac: 'Facilities', works: 'Dig / Remove' },
-    fdrill: 'Fast drill', adrill: 'Auto drill', tee: 'T-junction', cross: 'Crossing', resTool: 'Equipment', toolRes: 'Lets you place this equipment.',
+    fdrill: 'Fast drill', adrill: 'Auto drill', tee: 'T-junction', cross: 'Crossing', tri: '3-way splitter', branch: 'Side splitter', resTool: 'Equipment', toolRes: 'Lets you place this equipment.',
     digDo: 'Dig', overwriteQ: 'Replace it? (the current one is removed for a half refund)', advNote0: 'From Lv2, workers also take surface jobs (forklifts, trucks).',
     facility: 'Facilities', labUnlocked: 'You can now build the Lab (Works tab)', labWhere: 'Place the Lab on a free surface cell', labOne: 'The Lab is already built',
     labName: 'Lab', needLab: 'You need a Lab (available at office level 2)', labBuilt: 'The Lab has been built',
@@ -735,7 +735,7 @@ const TXT_ADD = {
     yard: 'トラックヤード', elevPut: 'エレベーターを置く', seeBelow: '下の物を見る', truckAddT: 'トラック増車', truckAddN: n => `今 ${n}台（交代で出発。何台でも増やせます）`, truckAddB: '1台増やす', truckAdded: n => `トラックを増車（${n}台）`,
     hFacs: '地上の施設', hTools: '設置物', hMachs: '機械', hRes: '資源・製品（今手に入る物）', labDesc: '研究をする建物です（会社レベル2で建てられます）。研究室を増やすと、同時に研究できます。',
     toolDesc: { drill: '地面を掘り進みます。掘った資源は後ろに出ます。', fdrill: '速く掘るドリル。', adrill: 'ふさがると自分で向きを変えるドリル。', conv: '資源を運びます。なぞって続けて置けます。',
-      sort: '選んだ資源だけを横へ出します。', tee: '真ん中で左右に振り分けます。', cross: '2つの流れを交差させます。', pipe: '湧き口と地上のタンクをつなぎます。', elev: '作業員が上り下りする時、とても速くなります（ほかの物の上にも置けます）。' },
+      sort: '選んだ資源だけを横へ出します。', tee: '真ん中で左右に振り分けます。', cross: '2つの流れを交差させます。', tri: 'まっすぐ・左・右に、順番に均等に分けます。', branch: 'まっすぐと横に、順番に均等に分けます（横は左か右を選べます）。', pipe: '湧き口と地上のタンクをつなぎます。', elev: '作業員が上り下りする時、とても速くなります（ほかの物の上にも置けます）。' },
     rareFound: n => `珍しい物を掘り当てました：${n}！`, museumNew: n => `博物館に新しく展示：${n}`,
     lamp: '照明', lampDesc: 'ほかの物と別の層に置けます（機械やコンベアの上にも）。周り2マスの作業が少し速くなります。', museumCol: (n, m) => `展示 ${n}/${m}種類（2つ目からは売店で1.5倍で売ります）`, elev: 'エレベーター', elevDesc: 'ほかの物と別の層に置けます（コンベアや機械の上にも）。作業員が上り下りする時、とても速くなります。撤去で外せます。',
     pickT: 'どちらを選ぶ？', granted: n => `新しく使えるようになりました：${n}`,
@@ -894,7 +894,7 @@ const TXT_ADD = {
     yard: 'Truck yard', elevPut: 'Place elevator', seeBelow: 'Open the one below', truckAddT: 'Extra truck', truckAddN: n => `${n} now (they take turns; add as many as you like)`, truckAddB: 'Add one', truckAdded: n => `Added a truck (${n})`,
     hFacs: 'Surface facilities', hTools: 'Placeables', hMachs: 'Machines', hRes: 'Resources & products (available now)', labDesc: 'Where research happens (build at company level 2). More rooms = more research at once.',
     toolDesc: { drill: 'Digs forward; mined items come out behind.', fdrill: 'A faster drill.', adrill: 'Turns by itself when blocked.', conv: 'Carries items. Drag to lay many.',
-      sort: 'Sends only the chosen item to the side.', tee: 'Splits left and right.', cross: 'Lets two flows cross.', pipe: 'Connects wells to the surface tanks.', elev: 'Workers climb much faster here (can sit over other things).' },
+      sort: 'Sends only the chosen item to the side.', tee: 'Splits left and right.', cross: 'Lets two flows cross.', tri: 'Splits evenly straight, left and right in turn.', branch: 'Splits evenly straight and to one side in turn.', pipe: 'Connects wells to the surface tanks.', elev: 'Workers climb much faster here (can sit over other things).' },
     rareFound: n => `Found something rare: ${n}!`, museumNew: n => `New exhibit at the museum: ${n}`,
     lamp: 'Lamp', lampDesc: 'Sits on its own layer (over machines and conveyors too). Work within 2 cells runs a little faster.', museumCol: (n, m) => `Exhibits ${n}/${m} kinds (duplicates sell at the shop ×1.5)`, elev: 'Elevator', elevDesc: 'Sits on its own layer (over conveyors and machines too). Workers climb much faster here. Remove to take it away.',
     pickT: 'Which one?', granted: n => `Now available: ${n}`,
@@ -988,10 +988,10 @@ const rand = (a, b) => a + Math.random() * (b - a);
 const randi = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const inB = (c, r) => c >= S.landL && c <= S.landR && r >= 0;   // 自分の土地の中か
-const isBelt = s => !!s && (s.type === 'conv' || s.type === 'sort' || s.type === 'tee' || s.type === 'cross');
+const isBelt = s => !!s && (s.type === 'conv' || s.type === 'sort' || s.type === 'tee' || s.type === 'cross' || s.type === 'tri' || s.type === 'branch');
 const isLineLike = s => isBelt(s) || (!!s && s.type === 'pipe');   // コンベア・パイプ：撤去・上書きを尋ねない
 const isDrillTool = t => t === 'drill' || t === 'fdrill' || t === 'adrill';
-const isStation = s => !!s && (s.type === 'drill' || s.type === 'machine' || s.type === 'conv' || s.type === 'sort' || s.type === 'tee' || s.type === 'cross');   // 作業員がつく物（コンベア類も）
+const isStation = s => !!s && (s.type === 'drill' || s.type === 'machine' || isBelt(s));   // 作業員がつく物（コンベア類も）
 const isYard = (c, r) => r === YARD_R && c === YARD_C;
 const isOffice = (c, r) => r === YARD_R && (c === OFFICE_C || c === OFFICE_C + 1);
 const isLab = (c, r) => S.lab.built && c === S.lab.c && r <= YARD_R && r >= YARD_R + 1 - Math.ceil(0.95 + (labRooms() - 1) * 0.42 + 0.2);   // 増室して上に積んだ階も   // 研究所（1マス・地上のどこでも）
@@ -1220,7 +1220,7 @@ function newGame() {
 // 設備を置けるマス
 const isOpen = (c, r) => inB(c, r) && r >= SKY && blk(c, r) === null && !S.st.has(key(c, r));   // 地下の空いたマス
 // 設置する道具を選んでいるか／そのマスに置けるか（ドリルは地上にも、コンベア・機械は地下だけ）
-const isBuildTool = () => isDrillTool(tool) || tool === 'elev' || tool === 'lamp' || tool === 'yard' || tool === 'conv' || tool === 'sort' || tool === 'tee' || tool === 'cross' || tool === 'machine' || tool === 'lab' || tool === 'pipe' || isFacTool(tool);
+const isBuildTool = () => isDrillTool(tool) || tool === 'elev' || tool === 'lamp' || tool === 'yard' || tool === 'conv' || tool === 'sort' || tool === 'tee' || tool === 'cross' || tool === 'tri' || tool === 'branch' || tool === 'machine' || tool === 'lab' || tool === 'pipe' || isFacTool(tool);
 // そのマスに置けるか
 // ・研究所：地上の段、施設の無いマス
 // ・ドリル：地下1段目より下。空いたマス、または地上とつながった穴の隣の土・石（上書きして置く）
@@ -1232,7 +1232,7 @@ function canPlaceAt(c, r) {
   const b = blk(c, r);
   if (isDrillTool(tool) && b) return diggable().has(key(c, r));   // 岩盤にも置ける（レベル不足ならとても遅い）
   // 機械・コンベア類・パイプも、坑道に隣接した土なら上書きして置ける（中の資源はなくなる）。破れない岩盤は不可
-  if (b && (tool === 'machine' || tool === 'conv' || tool === 'sort' || tool === 'tee' || tool === 'cross' || tool === 'pipe')) return diggable().has(key(c, r)) && !(b.mat === 'rock' && false);
+  if (b && (tool === 'machine' || tool === 'conv' || tool === 'sort' || tool === 'tee' || tool === 'cross' || tool === 'tri' || tool === 'branch' || tool === 'pipe')) return diggable().has(key(c, r)) && !(b.mat === 'rock' && false);
   const s0 = S.st.get(key(c, r));
   if (s0 && s0.type === 'well') return false;   // 温泉・油井の上には何も置けない
   if (tool === 'machine' && machSel === 'adit' && !aditFree(c, r)) return false;   // 横穴掘削口は、岩盤と岩盤の間に1つだけ
@@ -1275,7 +1275,7 @@ const SK_STAGE = { speed: [3, 7, 9], welfare: [3, 7], hr: [4, 7], beltMax: [8, 9
 const CO_UNLOCK = {
   'm:crusher': 2, 'm:adit': 2, 'sk:autoHire': 2,
   'm:smelter': 3, 'm:sieve': 3, 'sk:hr': 3, 'sk:away': 3,
-  'm:bagger': 4, 't:tee': 4, 'sk:secAdv': 4, 'sk:bored': 4,
+  'm:bagger': 4, 't:tee': 4, 't:branch': 5, 't:tri': 6, 'sk:secAdv': 4, 'sk:bored': 4,
   't:elev': 5, 'm:roller': 5, 'sk:land': 5, 'sk:autoUpg': 5,
   't:lamp': 6, 'm:drawer': 6, 'sk:autoPrice': 6, 'sk:vein': 6,
   't:pipe': 7, 'm:factory': 7, 'f:spa': 7, 'sk:statue': 7,
@@ -2017,6 +2017,14 @@ function updateItems(dt) {
       }
       if (it.tk === k) md = it.ts === 'left' ? CCW[s.dir] : CW[s.dir];
     }
+    if (s.type === 'tri' || s.type === 'branch') {   // 73：三叉路・ト：順番に均等に分ける（ランダムではない）
+      if (it.tk !== k) {
+        const [ddx, ddy] = DIRS[s.dir];
+        const along = ddx ? (it.x - (c + 0.5)) * ddx : (it.y - (r + 0.5)) * ddy;
+        if (along >= 0) { it.tk = k; const outs = s.type === 'tri' ? ['fwd', 'left', 'right'] : ['fwd', s.side || 'right']; s.rr = ((s.rr || 0) + 1) % outs.length; it.ts = outs[s.rr]; }
+      }
+      if (it.tk === k) md = it.ts === 'fwd' ? s.dir : it.ts === 'left' ? CCW[s.dir] : CW[s.dir];
+    }
     if (s.type === 'sort' && sortHit(s, it.k)) {
       if (it.tk !== k) {
         const [dx, dy] = DIRS[s.dir];
@@ -2402,7 +2410,7 @@ function unlockCard(gIds, rIds) {
   $('unlockTitle').textContent = T.unlockT(coLv());
   const add = (id, sub) => {
     const row = document.createElement('div'); row.className = 'ulRow';
-    let pic = null; try { if (id.startsWith('m:') || isDrillTool(id) || ['tee', 'cross', 'pipe', 'elev', 'lamp'].includes(id) || isFacTool(id)) pic = thumb(id); } catch (e) { }
+    let pic = null; try { if (id.startsWith('m:') || isDrillTool(id) || ['tee', 'cross', 'tri', 'branch', 'pipe', 'elev', 'lamp'].includes(id) || isFacTool(id)) pic = thumb(id); } catch (e) { }
     const pc = document.createElement('canvas'); pc.width = pc.height = 48; pc.className = 'ulPic'; if (pic) pc.getContext('2d').drawImage(pic, 0, 0); else { const g = pc.getContext('2d'); g.fillStyle = '#e8eef2'; g.fillRect(4, 4, 40, 40); g.fillStyle = '#5a6a78'; g.fillRect(20, 10, 8, 12); g.beginPath(); g.moveTo(20, 22); g.lineTo(12, 38); g.lineTo(36, 38); g.lineTo(28, 22); g.closePath(); g.fill(); g.fillStyle = '#9fd0f0'; g.fillRect(16, 30, 16, 6); }   // 研究：フラスコ
     const tx2 = document.createElement('div'); const b = document.createElement('b'); b.textContent = id.startsWith('m:') ? T.mach[id.slice(2)] : resDef(id.includes(':') ? id : 't:' + id).name; const sm = document.createElement('small'); sm.textContent = sub; tx2.append(b, sm);
     row.append(pc, tx2); list.append(row);
@@ -2994,7 +3002,7 @@ const effDir = (c, r, dragging) => (dragging && dragDir ? dragDir : dir === 'aut
 function memSet(k, v) { S.opts = S.opts || {}; S.opts.dirMem = S.opts.dirMem || {}; S.opts.dirMem[k] = v; }
 const memGet = k => ((S.opts || {}).dirMem || {})[k];
 // 続けて置くかもしれない道具（選んだまま）。それ以外（ドリル・機械・施設）は1つ置くと選択が外れる
-const isRepeatTool = t => ['conv', 'sort', 'tee', 'cross', 'pipe', 'elev', 'lamp', 'dig', 'remove'].includes(t);
+const isRepeatTool = t => ['conv', 'sort', 'tee', 'cross', 'tri', 'branch', 'pipe', 'elev', 'lamp', 'dig', 'remove'].includes(t);
 const isDragTool = t => t === 'conv' || t === 'pipe' || t === 'elev' || t === 'remove';   // なぞって続けて置ける（なぞっても画面は動かない）
 function apply(c, r, dragging) {
   if (!inB(c, r) || tool === 'pan' || tool === 'none') return;
@@ -3047,7 +3055,7 @@ function apply(c, r, dragging) {
   const cost = buildCost(toolId());
   if (S.money < cost) { if (!dragging) say(tx().noMoney); return; }
   if (isDrillTool(tool) && !dragging) { openPop({ type: 'pend', c, r, dir: 'down', tid: tool }); return; }   // ドリル：仮置き → 向きを選んで「設置する」
-  if (!dragging && (tool === 'machine' || tool === 'sort' || tool === 'tee' || tool === 'cross')) {   // 機械・仕分けなども：仮置き → 向き・選ぶ資源 → 「設置する」
+  if (!dragging && (tool === 'machine' || tool === 'sort' || tool === 'tee' || tool === 'cross' || tool === 'tri' || tool === 'branch')) {   // 機械・仕分けなども：仮置き → 向き・選ぶ資源 → 「設置する」
     const pdir0 = s && s.dir && s.type !== 'drill' ? s.dir : ed;
     const mf = memGet('sort.f'), f0 = mf && sortChoices('').includes(mf) ? mf : (sortChoices('')[0] || 'soil');
     openPop({ type: 'pend', c, r, dir: pdir0, tid: toolId(), filter: s && s.type === 'sort' ? s.filter : f0, side: s && s.type === 'sort' ? s.side : (memGet('sort.s') || 'left') });
@@ -3092,7 +3100,7 @@ function placePend2(pd) {
   if (blk(pd.c, pd.r)) { row(pd.r)[pd.c] = null; S.digVer++; }   // 土を上書きして置く
   if (pd.tid.startsWith('m:')) { S.st.set(k, { type: 'machine', m: pd.tid.slice(2), dir: pd.dir, lv: 0, buf: {}, bags: {}, cur: null, prog: 0, op: null }); if (tool === 'machine') tool = 'none'; }   // 機械は1つ置いたら選択を外す
   else if (pd.tid === 'sort') S.st.set(k, { type: 'sort', dir: pd.dir, lv: 0, filter: pd.filter, filters: pd.filters || [], side: pd.side, inv: !!pd.inv });
-  else S.st.set(k, { type: pd.tid, dir: pd.dir, lv: 0 });
+  else S.st.set(k, pd.tid === 'branch' ? { type: 'branch', dir: pd.dir, lv: 0, side: pd.side || 'right' } : { type: pd.tid, dir: pd.dir, lv: 0 });
   dir = pd.dir; memSet(pd.tid, pd.dir);   // 次に置く時も同じ向きから（道具ごとに覚える）
   if (pd.tid === 'sort') { memSet('sort.f', pd.filter); memSet('sort.s', pd.side); }
   return true;
@@ -3303,7 +3311,7 @@ function buildPop() {
     const drillP = isDrillTool(t.tid);
     $('popTitle').textContent = t.tid.startsWith('m:') ? T.mach[t.tid.slice(2)] : t.tid === 'sort' ? T.sortTitle : T[t.tid];
     for (const id of ['popLevel', 'popLvUp', 'popRemove', 'popPrioRow']) $(id).hidden = true;
-    $('popFilterRow').hidden = $('popSideRow').hidden = t.tid !== 'sort';
+    $('popFilterRow').hidden = t.tid !== 'sort'; $('popSideRow').hidden = t.tid !== 'sort' && t.tid !== 'branch';   // ト字路も横の向きを選ぶ
     if (t.tid === 'sort') {
       buildFilterBox($('popFilters'), t);
     }
@@ -3327,11 +3335,11 @@ function buildPop() {
   }
   for (const id of ['popInfo', 'popLevel', 'popLvUp']) $(id).hidden = false;
   $('popTitle').textContent = isTruck ? T.truck : isFork ? T.forkName
-    : t.type === 'drill' ? T[t.tid || 'drill'] + (t.no ? ' ' + t.no : '') : t.type === 'sort' ? T.sortTitle : t.type === 'tee' || t.type === 'cross' ? T[t.type]
+    : t.type === 'drill' ? T[t.tid || 'drill'] + (t.no ? ' ' + t.no : '') : t.type === 'sort' ? T.sortTitle : t.type === 'tee' || t.type === 'cross' || t.type === 'tri' || t.type === 'branch' ? T[t.type]
     : t.type === 'machine' ? T.mach[t.m] : T.convDir;
   $('popDirs').hidden = isTruck || isFork;
   $('popPrioRow').hidden = !(t !== 'truck' && (isStation(t) || t.type === 'fac'));
-  $('popFilterRow').hidden = $('popSideRow').hidden = !(t !== 'truck' && t.type === 'sort');
+  $('popFilterRow').hidden = !(t !== 'truck' && t.type === 'sort'); $('popSideRow').hidden = !(t !== 'truck' && (t.type === 'sort' || t.type === 'branch'));
   $('popAction').hidden = !isTruck && t.type !== 'drill';
   $('popAction').textContent = isTruck ? T.depart : t.off ? T.drillOff : T.drillOn;
   $('popRemove').hidden = isTruck || isFork;
@@ -3533,7 +3541,7 @@ $('popClose').addEventListener('click', closePop);
 let menuOpen = false, openCat = null, openGrp = null;
 // 設置の中の3つの項目と、その種類（研究したものだけ。レベル1では追加要素は見せない）
 const grpList = g => g === 'drill' ? ['drill', ...['fdrill', 'adrill'].filter(t => S.unlock[t])]
-  : g === 'belt' ? ['conv', 'sort', ...['tee', 'cross'].filter(t => S.unlock[t])]
+  : g === 'belt' ? ['conv', 'sort', ...['tee', 'branch', 'tri', 'cross'].filter(t => S.unlock[t])]
   : g === 'pipe' ? (S.unlock.pipe ? ['pipe'] : [])
   : g === 'other' ? ['elev', 'lamp'].filter(t => S.unlock[t])
   : g === 'fac' ? (S.office.lv >= 1 ? facTools() : [])
@@ -3566,7 +3574,7 @@ function thumb(id) {
   try {
     if (id.startsWith('m:')) drawMachine(0, 0, { m: id.slice(2), dir: 'right', cur: null });
     else if (isDrillTool(id)) drawDrill(0, 0, { dir: 'down', tid: id });
-    else if (id === 'conv' || id === 'sort' || id === 'tee' || id === 'cross') drawBeltCell(0, 0, { type: id, dir: id === 'tee' ? 'up' : 'right', filter: 'iron', side: 'left' }, 0, true);
+    else if (id === 'conv' || id === 'sort' || id === 'tee' || id === 'cross' || id === 'tri' || id === 'branch') drawBeltCell(0, 0, { type: id, dir: id === 'tee' || id === 'tri' || id === 'branch' ? 'up' : 'right', filter: 'iron', side: 'left' }, 0, true);
     else if (id === 'lab') { ctx.translate(0, -YARD_R * cp); drawLabAt(0, true); }
     else if (isFacTool(id)) { ctx.imageSmoothingEnabled = false; ctx.drawImage(sprite(id), 0, 0, 48, 48); }
     else if (id === 'pipe') drawPipe(0, 0, -9, -9, true);
@@ -4786,6 +4794,7 @@ function drawBeltCell(x, y, s, speed, ghost, c, r) {
   let ph = null;
   if (!ghost) { ph = (beltPh.get(s) || 0) + drawDt * speed * 16; if (!isFinite(ph)) ph = 0; beltPh.set(s, ph % 4000); }   // 数でなくなったら0から
   if (s.type === 'tee') { drawTee(x, y, s, speed, ph); return; }
+  if (s.type === 'tri' || s.type === 'branch') { drawArms(x, y, s, speed, ph, s.type === 'tri' ? ['fwd', 'left', 'right'] : ['fwd', s.side || 'right']); return; }
   const side = ghost ? null : curveSide(c, r, s);
   if (side) {
     const f0 = Math.floor(ph !== null ? ph : S.time * speed * 16), f = isFinite(f0) ? ((f0 % 4) + 4) % 4 : 0;
@@ -4829,6 +4838,24 @@ function drawTee(x, y, s, speed, ph) {
   ctx.fillStyle = THEME.arrow; const t = cell * 0.09;
   const tri = (px, py, dx, dy) => { ctx.beginPath(); ctx.moveTo(px + dx * t, py + dy * t); ctx.lineTo(px - dx * t - dy * t, py - dy * t + dx * t); ctx.lineTo(px - dx * t + dy * t, py - dy * t - dx * t); ctx.closePath(); ctx.fill(); };
   tri(-cell * 0.33, 0, -1, 0); tri(cell * 0.33, 0, 1, 0); tri(0, cell * 0.3, 0, -1);
+  ctx.restore();
+}
+// 三叉路・ト：入口の軸と、出口（まっすぐ・左・右）の腕を描く。T字路と見分けやすいよう、まん中に丸
+function drawArms(x, y, s, speed, ph, arms) {
+  const cell = cp, cx = x + cell / 2, cy = y + cell / 2, w = cell * 0.56, a = CONV_ROT[s.dir];
+  const part = (rx, ry, rw, rh, d) => { ctx.save(); ctx.translate(cx, cy); ctx.rotate(a); ctx.beginPath(); ctx.rect(rx, ry, rw, rh); ctx.rotate(-a); ctx.translate(-cx, -cy); ctx.clip(); drawConvSprite(x, y, d, speed, ph); ctx.restore(); };
+  part(-w / 2, -w / 2, w, cell / 2 + w / 2, s.dir);   // 入口と、まっすぐ
+  if (arms.includes('fwd')) part(-w / 2, -cell / 2, w, cell / 2, s.dir);
+  if (arms.includes('left')) part(-cell / 2, -w / 2, cell / 2, w, CCW[s.dir]);
+  if (arms.includes('right')) part(0, -w / 2, cell / 2, w, CW[s.dir]);
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(a);
+  ctx.fillStyle = THEME.arrow; const t = cell * 0.09;
+  const tri = (px, py, dx, dy) => { ctx.beginPath(); ctx.moveTo(px + dx * t, py + dy * t); ctx.lineTo(px - dx * t - dy * t, py - dy * t + dx * t); ctx.lineTo(px - dx * t + dy * t, py - dy * t - dx * t); ctx.closePath(); ctx.fill(); };
+  if (arms.includes('fwd')) tri(0, -cell * 0.33, 0, -1);
+  if (arms.includes('left')) tri(-cell * 0.33, 0, -1, 0);
+  if (arms.includes('right')) tri(cell * 0.33, 0, 1, 0);
+  ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.strokeStyle = 'rgba(0,0,0,.45)'; ctx.lineWidth = Math.max(1, cell * 0.03);
+  ctx.beginPath(); ctx.arc(0, 0, cell * 0.08, 0, Math.PI * 2); ctx.fill(); ctx.stroke();   // まん中の丸（均等に分ける印）
   ctx.restore();
 }
 function drawConvSprite(x, y, d, speed, ph) {
@@ -5248,7 +5275,7 @@ function drawGhost(x, y) {
   if (tool === 'elev') { drawElev(x, y); return; }
   const gd = dir === 'auto' ? (tool === 'conv' ? autoDir(Math.round(x / cp), Math.round(y / cp)) : 'right') : dir;
   if (tool === 'machine') { drawMachine(x, y, { m: machSel, dir: gd, cur: null }); return; }
-  if (!['conv', 'sort', 'tee', 'cross'].includes(tool)) return;
+  if (!['conv', 'sort', 'tee', 'cross', 'tri', 'branch'].includes(tool)) return;
   drawBeltCell(x, y, { type: tool, dir: gd, filter: 'iron', side: 'left' }, 0, true);
 }
 // ドリルのドット絵（16×16・下向き）：上が本体、下が刃。掘っている時は刃の模様が回る
@@ -5827,7 +5854,7 @@ function xAvoidMsg() {
 // ---- 111 コレクション：画面で見た物が格子に並ぶ（まだの物は灰色の影絵・タップでぶるぶる） ----
 const colIds = () => [
   'p:boss', 'p:worker', 'v:fork', 'v:bossFork', 'v:truck', 'b:office', 'lab', ...FAC_IDS,
-  'drill', 'fdrill', 'adrill', 'conv', 'sort', 'tee', 'cross', 'pipe', 'elev', 'lamp',
+  'drill', 'fdrill', 'adrill', 'conv', 'sort', 'tee', 'branch', 'tri', 'cross', 'pipe', 'elev', 'lamp',
   ...MACHINE_ORDER.map(m => 'm:' + m), ...ITEM_ORDER.filter(k => k !== 'bag').map(k => 'i:' + k)];
 function colScan() {   // 見た物を覚える（なくなっても数える）
   const c = S.col || (S.col = {}), on = id => { c[id] = 1; };
@@ -5839,7 +5866,7 @@ function colScan() {   // 見た物を覚える（なくなっても数える）
   for (const k in S.seenIt || {}) if (k !== 'bag') on('i:' + k);
   for (const st of S.st.values()) {
     if (st.type === 'machine') on('m:' + st.m); else if (st.type === 'drill') on(st.tid || 'drill');
-    else if (['conv', 'sort', 'tee', 'cross', 'pipe'].includes(st.type)) on(st.type);
+    else if (['conv', 'sort', 'tee', 'cross', 'tri', 'branch', 'pipe'].includes(st.type)) on(st.type);
   }
   if (Object.keys(S.elev || {}).length) on('elev');
   if (Object.keys(S.lamps || {}).length) on('lamp');
@@ -5849,7 +5876,7 @@ function colPic(id) {   // 48×48 の絵（ゲームの絵をそのまま使う�
   if (colCache.has(id)) return colCache.get(id);
   let c2;
   if (id.startsWith('i:')) { c2 = document.createElement('canvas'); c2.width = c2.height = 48; const g = c2.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(itemSprite(id.slice(2)), 4, 4, 40, 40); }
-  else if (id.startsWith('m:') || isDrillTool(id) || ['conv', 'sort', 'tee', 'cross', 'pipe', 'elev', 'lamp', 'lab'].includes(id) || isFacTool(id)) { const t = thumb(id); c2 = document.createElement('canvas'); c2.width = c2.height = 48; c2.getContext('2d').drawImage(t, 0, 0); }
+  else if (id.startsWith('m:') || isDrillTool(id) || ['conv', 'sort', 'tee', 'cross', 'tri', 'branch', 'pipe', 'elev', 'lamp', 'lab'].includes(id) || isFacTool(id)) { const t = thumb(id); c2 = document.createElement('canvas'); c2.width = c2.height = 48; c2.getContext('2d').drawImage(t, 0, 0); }
   else {
     c2 = document.createElement('canvas'); c2.width = c2.height = 48;
     const saved = [ctx, cp]; ctx = c2.getContext('2d'); ctx.imageSmoothingEnabled = false;
@@ -5912,7 +5939,7 @@ function updateUI() {
   $('skillBtn').hidden = !S.lab.built;
   $('tradeBtn').hidden = S.office.lv < 1;
   const curName = tool === 'none' || tool === 'pan' ? '' : tool === 'machine' ? T.mach[machSel] : tool === 'lab' ? T.labName : T[tool];
-  const dirTool = tool === 'conv' || tool === 'sort' || tool === 'tee' || tool === 'cross' || tool === 'machine';
+  const dirTool = tool === 'conv' || tool === 'sort' || tool === 'tee' || tool === 'cross' || tool === 'tri' || tool === 'branch' || tool === 'machine';
   $('menuCur').textContent = curName ? `（${curName}）` : '';
   // 選択中の道具（左下に表示）：名前・向き・費用
   const ct = $('curTool');
