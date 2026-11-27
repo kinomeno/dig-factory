@@ -638,3 +638,5 @@ body.hideUI #hdr, body.hideUI #dash, body.hideUI #catBar, body.hideUI #menuBtn, 
 #tutGoal { top: calc(var(--hdr) + 14px); font-size: 13px; padding: 4px 14px; }
 #fpsHud[hidden] { display: none; }
 #tutGoal { width: max-content; max-width: calc(100vw - 24px); }
+/* v1.50（32）コレクションの名前の行は、スクロールしても見える */
+#colName { position: sticky; top: 26px; z-index: 2; background: var(--paper2, #fbfaf7); padding: 3px 0; }

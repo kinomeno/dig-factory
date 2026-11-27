@@ -475,6 +475,24 @@ window.DF_SPRITES = {
    ".kssskccccksssk.",
    ".kkkkkkkkkkkkkk.",
    "................"
+  ],
+  "chem": [
+   "..........kk....",
+   "..........kdk...",
+   "..kkkk....kdk...",
+   ".kbBBbk...kdk...",
+   ".kbccbk..kkdkk..",
+   ".kbccbkkkkddddk.",
+   ".kbBBbkGGkddddk.",
+   ".kkkkkkGGkkkkkk.",
+   ".kssssssssssssk.",
+   ".kskkksskkksssk.",
+   ".kskoksskbkssskk",
+   ".kskkksskkksssk.",
+   ".kssssssssssssk.",
+   ".kddddddddddddk.",
+   ".kkkkkkkkkkkkkk.",
+   "................"
   ]
  }
 };
