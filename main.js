@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.36（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.37（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.36';
+const VERSION = '1.37';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -965,6 +965,50 @@ for (const l of Object.keys(TXT_ADD)) {
     else TXT[l][k] = a[k];
   }
 }
+// v1.37 遊び方を今の決まりに合わせて書き直し（97）
+const HELP_V2 = {
+  kanji: {
+    topics: [
+      ['操作', '画面は、手のひらでつかんで動かすか、画面の端（▲▼◀▶）を押すと動きます。2本指・Ctrl＋ホイール・＋－で拡大縮小、「地図」で全体を見られます。\n下のタブ（設置・研究・強化・情報・取引）を押すと引き出しが開きます。選んだ道具は、もう一度押すと解除できます。置いた物をタップすると、向き・レベルアップ・撤去ができます。右上のボタンで、ヘッダーと下のメニューを隠せます。'],
+      ['掘る', 'ドリルは地下に置きます（坑道の隣の土なら、上書きして置けます）。掘った資源は、ドリルの後ろの出口から出ます。地面は1マス3mです。\n普通の層が5つ続くと、硬い岩盤があります（岩盤0は15m、そのあとは18mごと）。岩盤はドリルを強化すると破れます。強化の上限は会社レベルで上がります。岩盤を20秒で破れるドリルでも、次の岩盤には約24時間かかるほど硬くなります。破るまでの間も資源は出続け、破るとご褒美が地上に出ます。\n資源は岩盤1より下から増えていきます（「資源の出る深さ」）。1マスから出る資源の数は決まっているので、深く掘るほど新しい資源に出会えます。'],
+      ['運ぶ', 'コンベアで資源を運びます。仕分けコンベアは選んだ資源を横へ（改良すると「以外」も選べます）、T字路は左右へ、三叉路・ト字路は順番に均等に分けます。交差は2つの流れを交差させます。\n地上に出た資源はその場に積もり、フォークリフト（運転手が必要）がヤードへ運びます。トラックはヤードに並んで積み、出発して帰ってくると売上になります。'],
+      ['加工', '機械は、前以外の方向から材料を入れると、前に製品を出します。作り方がいくつもある機械は、材料のそろった物から並行して作ります。材料は種類ごとに500個まで中で待ち、いっぱいの材料は通り抜けます。メニューの「材料を排出」で中の材料を出せます。\n加工の段が増えるほど高く売れます（最後の段は組立機）。'],
+      ['作業員', '事務所で雇います。作業員はドリル・機械・フォークリフトなどへ歩いて行って働き、仕事をするほどレベルが上がります（暇な時は上がりません）。\n機械とフォークリフトは、作業員がいないと止まります（研究「自動化」で、わずかに動くようになります）。ドリルは人がいなくても少しずつ掘ります。疲れると休憩室で休みます。給料は毎月で、上級ほど・会社が大きいほど高くなります。'],
+      ['事務所と研究所', '事務所で会社レベルを上げると、新しい機械や研究が出てきます（カードで知らせます）。定員・フォークリフトの台数・ドリルの強化の上限も上がります。\n研究所は会社レベル2から建てられます（設置 → 施設）。研究室は最大6室まで増やせ、研究員がいると速く進みます。研究「秘書の提案」で、右下の秘書が困りごとを教えてくれます。'],
+      ['お金', '売上はトラックが帰ってきた時に入ります。お金が少なく売上も無い時は、銀行が融資してくれます（売上から少しずつ返します）。\n「情報」で経営の様子をグラフで見られます。ゲームは自動でセーブされます。'],
+      ['石油と温泉', '岩盤4より深い所では、掘り抜くと温泉が湧くことがあります（岩盤5より深いと石油も）。湧き口の上には何も置けません。湧き口はパイプラインでつなぎ、地下1段目まで届くと地上のタンクにたまります。\n地上には温泉・発電所・製油所などを建てられます。地上の施設は作業員がいると速く動きます。土地が足りなければ、研究「土地買収」で広げられます。'],
+    ],
+    levelHelp: '強化（下のタブ）：お金で、ドリル・機械・コンベア・トラック・フォークリフトのレベルや、資源の売値を上げます。置いた物をタップしても強化できます。\n研究（研究所）：時間をかけて、高級な機械・地上の施設・会社の力（スキル）を手に入れます。研究員がいると速く進みます。\n機械や道具の多くは、会社レベルが上がると研究なしで使えるようになります。',
+  },
+  hira: {
+    topics: [
+      ['そうさ', 'がめんは、てのひらで つかんで うごかすか、がめんの はし（▲▼◀▶）を おすと うごきます。2ほんゆびや ＋－で おおきく・ちいさく、「ちず」で ぜんたいを みられます。\nしたの タブを おすと ひきだしが ひらきます。おいた ものを タップすると、むき・レベルアップ・どける が できます。'],
+      ['ほる', 'ドリルは ちかに おきます。ほった ものは ドリルの うしろの でぐちから でます。じめんは 1マス 3mです。\nふつうの そうが 5つ つづくと、かたい がんばんが あります。がんばんは ドリルを つよく すると われます。つぎの がんばんは、とても かたく なります。われるまでも しげんは でつづけ、わると ごほうびが でます。\nしげんは がんばん1より したから ふえて いきます（「しげんの でる ふかさ」）。'],
+      ['はこぶ', 'コンベアで はこびます。しわけコンベアは えらんだ ものを よこへ、Tじろは さゆうへ、さんさろ・トじろは じゅんばんに わけます。\nちじょうに でた ものは フォークリフト（うんてんしゅが いる）が ヤードへ はこびます。トラックが つんで でかけ、かえって くると うりあげに なります。'],
+      ['かこう', 'きかいは、まえ いがいから ざいりょうを いれると、まえに せいひんを だします。つくりかたが いくつも ある きかいは、いっしょに つくります。「ざいりょうを だす」で なかの ものを だせます。\nかこうを かさねるほど たかく うれます。'],
+      ['さぎょういん', 'じむしょで やといます。さぎょういんは あるいて いって はたらき、しごとを するほど レベルが あがります。\nきかいと フォークリフトは、ひとが いないと とまります（けんきゅう「じどうか」で すこし うごきます）。ドリルは ひとが いなくても すこし ほります。つかれると やすみます。'],
+      ['じむしょと けんきゅうしょ', 'じむしょで かいしゃ レベルを あげると、あたらしい きかいや けんきゅうが でて きます。\nけんきゅうしょは かいしゃ レベル2から たてられます（おく → しせつ）。'],
+      ['おかね', 'うりあげは トラックが かえって きた ときに はいります。おかねが たりない ときは、ぎんこうが かして くれます。\nゲームは じどうで セーブされます。'],
+      ['せきゆと おんせん', 'がんばん4より ふかい ところでは、ほりぬくと おんせんが わくことが あります（がんばん5より ふかいと せきゆも）。わきぐちは パイプで つなぎ、ちか1だんめまで とどくと ちじょうの タンクに たまります。\nちじょうには おんせん・はつでんしょ などを たてられます。'],
+    ],
+    levelHelp: 'つよくする（したの タブ）：おかねで、ドリル・きかい・コンベア・トラック・フォークリフトの レベルや、ねだんを あげます。\nけんきゅう（けんきゅうしょ）：じかんを かけて、あたらしい きかいや ちからを てに いれます。\nきかいや どうぐの おおくは、かいしゃ レベルが あがると つかえるように なります。',
+  },
+  en: {
+    topics: [
+      ['Controls', 'Drag with the hand tool or press the screen edges (▲▼◀▶) to move. Pinch, Ctrl+wheel or +/− to zoom; Map shows everything.\nThe bottom tabs (Build, Research, Upgrade, Info, Deals) open drawers. Tap a selected tool again to put it down. Tap a placed thing to turn, upgrade or remove it. The top-right button hides the header and menu.'],
+      ['Digging', 'Place drills underground (they can replace soil next to a tunnel). Mined items come out of the opening at the back. One cell is 3m.\nEvery five normal layers there is hard bedrock (bedrock 0 at 15m, then every 18m). Upgrade the drill to break it; the upgrade limit rises with company level. Even a drill that breaks one bedrock in 20s needs about a day for the next. Resources keep coming meanwhile, and breaking through gives a bonus.\nNew resources appear below bedrock 1 (see "Where resources appear"). Each cell holds a fixed number of items, so dig deeper to find more.'],
+      ['Moving', 'Conveyors carry items. Sorters send picked items sideways (or everything else, after research); T-junctions split left/right; 3-way and side splitters share evenly in turn; crossings let flows cross.\nItems reaching the surface pile up; forklifts (they need a driver) bring them to the yard. Trucks load side by side, leave, and you get paid when they return.'],
+      ['Processing', 'Machines take materials from any side but the front and output products to the front. Machines with several recipes work on them in parallel. Up to 500 of each material wait inside; extra ones pass through. "Eject materials" empties a machine.\nThe more steps of processing, the higher the price (the Assembler is the last step).'],
+      ['Workers', 'Hire at the office. Workers walk to drills, machines and forklifts and level up by working (not while idle).\nMachines and forklifts stop without a worker (the Automation research lets them move a little). Drills dig slowly even unstaffed. Tired workers rest in the break room. Wages are monthly and higher for senior staff and bigger companies.'],
+      ['Office & Lab', 'Raising the company level unlocks new machines and research (a card shows them). It also raises staff limits, forklift count and the drill upgrade limit.\nYou can build the Lab from company level 2 (Build → Facilities). Up to 6 lab rooms. The Secretary tips research adds helpful hints at the bottom right.'],
+      ['Money', 'You get paid when a truck returns. If you are short of money with no sales, the bank lends you some (repaid from sales).\nInfo shows charts of your business. The game saves automatically.'],
+      ['Oil & hot springs', 'Below bedrock 4, digging out a cell may reveal a hot spring (oil below bedrock 5). Nothing can be built on a source. Connect it with pipes up to the first underground row to fill the surface tank.\nOn the surface you can build a Hot spring, Power plant, Refinery and more. Surface facilities run faster with workers.'],
+    ],
+    levelHelp: 'Upgrades (bottom tab): spend money to level up drills, machines, conveyors, the truck and forklifts, and raise prices. You can also tap a placed thing to upgrade it.\nResearch (Lab): takes time; gives advanced machines, surface facilities and company skills. Faster with researchers.\nMany machines and tools become available as the company level rises, without research.',
+  },
+};
+for (const l of Object.keys(HELP_V2)) if (TXT[l]) { TXT[l].helpTopics = HELP_V2[l].topics; TXT[l].levelHelp = HELP_V2[l].levelHelp; }
+
 for (const l of ['hira', 'en']) for (const k of Object.keys(TXT.kanji)) if (TXT[l][k] === undefined) TXT[l][k] = TXT.kanji[k];
 // 中の言葉（研究の名前・管理メニューなど）も、足りない物は漢字の言葉で補う
 for (const l of ['hira', 'en']) for (const k of Object.keys(TXT.kanji)) {
@@ -4114,7 +4158,7 @@ function renderPanel(id) {
     const topics = [[T.greetT, T.greet, 'greet'], [T.hBasic, H[0][1], 0], [T.hDig, H[1][1] + '\n' + H[2][1], 1], [T.hMake, H[3][1] + '\n' + H[6][1], 3],
       [H[4][0], H[4][1], 4], [T.hLevel, T.levelHelp + '\n' + H[5][1], 5]];
     if (S.stage >= 2 && T.aditHelp) topics.push([T.aditHelp[0], T.aditHelp[1], 'adit']);   // 横穴掘削口（段階2から）
-    if (S.stage >= 5) topics.push([H[7][0], H[7][1], 7]);                                  // 石油と温泉（段階5から）
+    if (S.stage >= 5 || S.deepest - SKY > BR(4)) topics.push([H[7][0], H[7][1], 7]);                                  // 石油と温泉（段階5から）
     topics.push([T.hDepth, depthTable(), 'depth']);   // 81：資源の出る深さ（まだ見ていない物は？）
     topics.push([T.hItems, '', 'items'], [T.pleaseT, T.please, 'please']);
     nav.append(mark);
