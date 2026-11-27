@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.60（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.61（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.60';
+const VERSION = '1.61';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -7052,10 +7052,12 @@ let adBusy = false;
 // 本物にする時：index.html の広告スクリプト（Google の H5 ゲーム広告＝adBreak など）を有効にし、AD_ON を true にする（広告の準備.txt を参照）
 const AD_ON = false;   // 広告サービスの用意ができたら true
 let adLastAt = 0;      // 前に広告を見た時刻（短い間に何度も出さない）
+let adBusyAt = 0;
 function showAd(done) {
+  if (adBusy && $('adBox').hidden && performance.now() - adBusyAt > 1500) adBusy = false;   // 46：見えていないのに「CM中」のまま残っていたら、やり直せるように
   if (adBusy) return;
   if (AD_ON && typeof window.adBreak === 'function') {   // 本物の広告（報酬つき）
-    adBusy = true; let got = false;
+    adBusy = true; adBusyAt = performance.now(); let got = false;
     window.adBreak({
       type: 'reward', name: 'deal',
       // 広告の用意ができた：「広告を見る」ボタンを出し、押した時に広告を出す（広告は、遊ぶ人が押した操作の中で出す決まり）
@@ -7083,7 +7085,7 @@ function adAsk(onWatch, onCancel) {
   mk(T.adWatch, onWatch); mk(T.adCancel, onCancel);
 }
 function fakeAd(done) {   // CM（仮）：5秒待つ
-  if (adBusy) return; adBusy = true;
+  if (adBusy) return; adBusy = true; adBusyAt = performance.now();
   const box = $('adBox'), T = tx(), len = 5;
   box.hidden = false; let t = 0;
   if ($('adAsk')) $('adAsk').hidden = true;
@@ -7091,6 +7093,7 @@ function fakeAd(done) {   // CM（仮）：5秒待つ
     $('adMsg').textContent = T.adWait(Math.ceil(len - t));
     $('adBar').style.width = (100 * t / len) + '%';
     if (t >= len) { box.hidden = true; adBusy = false; done(); return; }
+    box.hidden = false;   // 途中でほかの処理に隠されても、また出す
     t = Math.min(len, t + 0.1); setTimeout(tick, 100);
   };
   tick();
