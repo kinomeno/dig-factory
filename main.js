@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.52（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.53（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.52';
+const VERSION = '1.53';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -3794,6 +3794,7 @@ function closePanels() {
   PANELS.forEach(x => { $(x).hidden = true; });
 }
 function togglePanel(id) {
+  if ($('cutBub')) $('cutBub').hidden = true;
   const show = $(id).hidden;
   closePanels(); closePop();
   if (id === 'skillPanel') resShown = new Set();
@@ -3869,10 +3870,11 @@ function cutRooms(kind) {
   const T = tx(), rooms = [];
   if (kind === 'office') {
     const bs = bossOf();
-    rooms.push({ key: 'boss', name: T.roomBoss, n: bs && (!S.bossWork || bs.state === 'idle' || bs.state === 'off') ? 1 : 0, boss: true, desk: true });
-    if (secOn()) rooms.push({ key: 'sec', name: T.roomSec, n: 1, who: 'sec', desk: true });
+    const bossSleep = !!(bs && bs.state === 'rest');
+    rooms.push({ key: 'boss', name: T.roomBoss, n: bs && (!S.bossWork || bs.state === 'idle' || bs.state === 'off' || bossSleep) ? 1 : 0, boss: true, desk: !bossSleep, sleep: bossSleep, poster: true });
+    if (secOn()) rooms.push({ key: 'sec', name: T.roomSec, n: 1, who: 'sec', desk: false, walk: true });   // 40：秘書は左右にうろうろ
     if (sk('autoHire')) rooms.push({ key: 'hr', name: T.sk.autoHire[0], n: (S.opts || {}).autoHire !== false ? 2 : 0, desk: true });
-    if (sk('autoUpg')) rooms.push({ key: 'tech', name: T.sk.autoUpg[0], n: (S.opts || {}).autoUpg !== false ? 2 : 0, desk: true });
+    if (sk('autoUpg')) rooms.push({ key: 'tech', name: T.sk.autoUpg[0], n: (S.opts || {}).autoUpg !== false ? 2 : 0, desk: false, machine: true });   // 38：技術部は机ではなく機械をいじる
     if (sk('autoPrice')) rooms.push({ key: 'sales', name: T.sk.autoPrice[0], n: (S.opts || {}).autoPrice !== false ? 2 : 0, desk: true, phone: true });   // 83：営業部は電話中
     const exh = [...RARE.map(x => x[0]).filter(k => S.seenIt && S.seenIt[k]), ...ITEM_ORDER.filter(k => S.seenIt && S.seenIt[k] && !RAW_KINDS.has(k) && !isRare(k) && k !== 'bag').sort((a2, b2) => ITEMS[b2].v - ITEMS[a2].v)].slice(0, 6);
     if (exh.length) rooms.push({ key: 'exhibit', name: T.roomExhibit, n: 0, exhibit: exh });   // 23：展示室
@@ -3891,8 +3893,8 @@ function cutTap(cv2, kind, e) {
   const r = cv2.getBoundingClientRect(), rooms = cutRooms(kind), cols = kind === 'lab' ? 2 : 3, rw = (r.width - 8) / cols, rh = 46;
   const i = Math.floor((e.clientX - r.left - 4) / rw) + cols * Math.floor((e.clientY - r.top - 5) / rh);
   const rm = rooms[i]; if (!rm) return;
-  const L = tx().roomLines[rm.key] || [], text = rm.n || rm.exhibit ? (L.length ? L[Math.floor(Math.random() * L.length)] : '...') : tx().roomEmpty;
-  cutBub = { kind, i, text, until: performance.now() + 2600 };
+  const L = rm.sleep ? ['zzz…', 'むにゃ…', '…ロケット…'] : tx().roomLines[rm.key] || [], text = rm.n || rm.exhibit ? (L.length ? L[Math.floor(Math.random() * L.length)] : '...') : tx().roomEmpty;
+  cutBub = { kind, i, text, until: performance.now() + 2600, who: Math.floor(Math.random() * 6) };   // しゃべる人はランダム
 }
 $('officeView').addEventListener('click', e => cutTap($('officeView'), 'office', e));
 $('labView').addEventListener('click', e => cutTap($('labView'), 'lab', e));
@@ -3926,11 +3928,23 @@ function drawCutaway(cv2, kind) {
       if (rm.n > 8) { g.fillStyle = '#5a5248'; g.font = '9px sans-serif'; g.fillText('×' + rm.n, x + w - 22, y + 2); }
       return;
     }
+    if (rm.poster) { g.fillStyle = '#1d2b5c'; g.fillRect(x + w - 16, y + 4, 11, 8); g.fillStyle = '#e8ecff'; g.fillRect(x + w - 13, y + 6, 1, 1); g.fillRect(x + w - 9, y + 8, 1, 1); g.fillStyle = '#3a78c8'; g.fillRect(x + w - 11, y + 9, 3, 2); }   // 39：宇宙のポスター（小さく）
+    if (rm.sleep) {   // 22：社長は社長室で寝ている
+      g.save(); g.translate(x + w * 0.5, y + h - 9); g.rotate(-Math.PI / 2); g.drawImage(BOSS_FR[1], -9, -9, 18, 18); g.restore();
+      g.fillStyle = '#5a5248'; g.font = 'bold 9px sans-serif'; g.fillText('z', x + w * 0.5 + 10, y + h - 24 - (Math.floor(t / 600) % 2) * 3);
+      rm.heads = [[x + w * 0.5 + 6, y + h - 14]]; return;
+    }
+    if (rm.machine) { g.fillStyle = '#8a909a'; g.fillRect(x + w * 0.38, y + h - 18, w * 0.24, 14); g.fillStyle = '#5a5e66'; g.fillRect(x + w * 0.42, y + h - 15, w * 0.16, 4); g.fillStyle = '#e8c34a'; g.fillRect(x + w * 0.47, y + h - 9, 3, 3); }   // 技術部の機械
     const n = Math.min(rm.n, rm.desk ? 2 : 6), sz = 20;
+    rm.heads = [];
     for (let j = 0; j < n; j++) {   // 人（机の部屋は机の向こうで働く・休憩室と待機はならぶ）
       const f = anim ? Math.floor(t / 420 + j * 0.7 + i) % 2 : 1, px = rm.desk ? x + w * (n > 1 ? 0.3 + 0.32 * j : 0.45) - sz / 2 : x + 4 + j * ((w - sz - 8) / Math.max(1, n - 1));
       const fr = rm.boss ? BOSS_FR[f] : WORKER_FR[f];
-      g.drawImage(fr, Math.round(px), Math.round(y + h - 4 - sz), sz, sz);
+      let px2 = px; if (rm.walk) px2 = x + 4 + (0.5 + 0.5 * Math.sin(t / 1400 + j)) * (w - sz - 8);   // 40：うろうろ
+      if (rm.machine) px2 = x + w * (j ? 0.62 : 0.14);   // 機械の左右で作業
+      const flip = rm.phone ? false : rm.walk ? Math.cos(t / 1400 + j) < 0 : Math.floor(t / 4000 + j * 1.7 + i) % 3 === 0;   // 38：ときどき向きが変わる
+      if (flip) { g.save(); g.translate(Math.round(px2) + sz, 0); g.scale(-1, 1); g.drawImage(fr, 0, Math.round(y + h - 4 - sz), sz, sz); g.restore(); } else g.drawImage(fr, Math.round(px2), Math.round(y + h - 4 - sz), sz, sz);
+      rm.heads.push([px2 + sz / 2, y + h - 4 - sz + 2]);
       if (rm.phone) {   // 受話器を耳に当てて、手で持つ（8×8の絵の1ドット＝sz/8）
         const u = sz / 8, top = y + h - 4 - sz, hx = px + u * 5, hy = top + u * 0.6;
         g.fillStyle = '#2b2b2e'; g.fillRect(Math.round(hx), Math.round(hy), Math.max(2, Math.round(u)), Math.round(u * 2.6));   // 受話器
@@ -3942,15 +3956,15 @@ function drawCutaway(cv2, kind) {
     if (rm.n > (rm.desk ? 2 : 6)) { g.fillStyle = '#5a5248'; g.font = '9px sans-serif'; g.fillText('×' + rm.n, x + w - 22, y + 2); }
     if (rm.prog !== null && rm.prog !== undefined) { g.fillStyle = 'rgba(0,0,0,.12)'; g.fillRect(x + 3, y + h - 3, w - 6, 2); g.fillStyle = '#d0661f'; g.fillRect(x + 3, y + h - 3, (w - 6) * rm.prog, 2); }
   });
-  if (cutBub && cutBub.kind === kind) {   // 13：吹き出し（部屋の上に。閉じると一緒に消える）
-    if (t > cutBub.until || !rooms[cutBub.i]) cutBub = null;
-    else {
-      const i = cutBub.i, x = 4 + (i % cols) * rw, y = 5 + Math.floor(i / cols) * rh;
-      g.font = 'bold 10px sans-serif'; const tw = Math.min(W - 8, g.measureText(cutBub.text).width + 10), bx = clamp(x + rw / 2 - tw / 2, 2, W - tw - 2), by = y + 12;
-      g.fillStyle = '#fff'; g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineWidth = 1; g.fillRect(bx, by, tw, 16); g.strokeRect(bx + 0.5, by + 0.5, tw - 1, 15);
-      g.fillStyle = '#333'; g.textBaseline = 'middle'; g.fillText(cutBub.text, bx + 5, by + 8.5, tw - 10);
-    }
-  }
+  const bubEl = $('cutBub');   // 15：吹き出しは画面の上に重ねる（断面図からはみ出してよい）。▽はしゃべる人の頭に向く
+  if (cutBub && cutBub.kind === kind && t <= cutBub.until && rooms[cutBub.i]) {
+    const rm = rooms[cutBub.i], hs = rm.heads && rm.heads.length ? rm.heads : null, cr = cv2.getBoundingClientRect();
+    const i = cutBub.i, rx = 4 + (i % cols) * rw + rw / 2, ry = 5 + Math.floor(i / cols) * rh + 14;
+    const [hx, hy] = hs ? hs[cutBub.who % hs.length] : [rx, ry];
+    bubEl.textContent = cutBub.text; bubEl.hidden = false;
+    const bw = bubEl.offsetWidth, bh = bubEl.offsetHeight, left = clamp(cr.left + hx - bw / 2, 4, window.innerWidth - bw - 4);
+    bubEl.style.left = left + 'px'; bubEl.style.top = (cr.top + hy - bh - 8) + 'px'; bubEl.style.setProperty('--tail', (cr.left + hx - left) + 'px');
+  } else if (!bubEl.hidden && (!cutBub || cutBub.kind === kind)) { bubEl.hidden = true; if (cutBub && t > cutBub.until) cutBub = null; }
 }
 function renderPanel(id) {
   const T = tx();

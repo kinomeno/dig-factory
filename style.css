@@ -648,3 +648,8 @@ body.moneyFold #goalHud, body.moneyFold #monthHud, body.moneyFold #aiHud, body.m
 #hdr .title { font-family: 'DotGothic16', sans-serif; font-weight: 400; }
 #tutGoal { top: calc(var(--hdr) + 36px) !important; }   /* 資金の行の下（重ならない） */
 .modal.space { transition: opacity 3s ease !important; }   /* 26：最後の絵はもっとゆっくり出てくる */
+/* v1.53 断面図の吹き出し（▽は話す人の頭へ） */
+#cutBub { position: fixed; z-index: 47; padding: 3px 9px; background: #fff; border: 1px solid rgba(0,0,0,.45); border-radius: 8px; font-size: 11px; font-weight: 600; color: #333; pointer-events: none; white-space: nowrap; }
+#cutBub[hidden] { display: none; }
+#cutBub::after { content: ''; position: absolute; left: calc(var(--tail, 50%) - 5px); bottom: -6px; border: 6px solid transparent; border-bottom: 0; border-top-color: #fff; }
+#cutBub::before { content: ''; position: absolute; left: calc(var(--tail, 50%) - 6px); bottom: -7px; border: 7px solid transparent; border-bottom: 0; border-top-color: rgba(0,0,0,.45); }
