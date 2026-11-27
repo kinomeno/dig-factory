@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.15（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.16（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.15';
+const VERSION = '1.16';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -3661,11 +3661,11 @@ function togglePanel(id) {
   updateUI();
 }
 // 畳める見出し：押すと開く・閉じる（最初は畳んである。開け閉めは覚える）。案内で使う所は開いておく
-function foldSec(box, key, title, pid) {
+function foldSec(box, key, title, pid, defOpen) {
   S.opts = S.opts || {}; S.opts.fold = S.opts.fold || {};
-  const open = !!S.opts.fold[key] || !!(S.tut2 && ((S.tut2.step === 'office' && key === 'co')));
+  const fv = S.opts.fold[key], open = (fv === undefined ? !!defOpen : !!fv) || !!(S.tut2 && ((S.tut2.step === 'office' && key === 'co')));
   const h = secEl(title); h.classList.add('fold'); h.classList.toggle('open', open);
-  h.addEventListener('click', () => { S.opts.fold[key] = !open; renderPanel(pid); });
+  h.addEventListener('click', () => { S.opts.fold[key] = !open; renderPanel(pid); });   // 開閉を覚える
   const body = document.createElement('div'); body.className = 'foldBody'; body.hidden = !open;
   box.append(h, body); return body;
 }
@@ -3803,15 +3803,15 @@ function renderPanel(id) {
   const T = tx();
   if (id === 'colPanel') { renderCol(); return; }
   if (id === 'powerPanel') {
-    const box = $('powerItems'); box.innerHTML = '';
-    box.append(secEl(T.secCo));
+    const box0 = $('powerItems'); box0.innerHTML = '';
+    let box = foldSec(box0, 'pCo', T.secCo, 'powerPanel', true);   // 101：見出しで畳める
     {   // 会社レベル（事務所をタップした時と同じ）
       const ol = S.office.lv;
       let ob;
       ob = costBtn(T.levelUp, offCost(ol), () => { officeUp(); renderPanel('powerPanel'); updateUI(); });
       box.append(rowEl(`${T.companyLv}　${T.lv(ol + 1)}`, `${T.capP(offCap(ol))}・${T.forksMax(offForks(ol))}`, ob));
     }
-    box.append(secEl(T.secVeh));
+    box = foldSec(box0, 'pVeh', T.secVeh, 'powerPanel', true);
     // フォークリフト購入（台数の上限は会社のレベル）
     const fn = S.forks.length, fm = forkMax();
     let fb;
@@ -3823,7 +3823,7 @@ function renderPanel(id) {
       box.append(rowEl(T.truckAddT, T.truckAddN(S.fleet.length), costBtn(T.truckAddB, tc, () => { addTruck(); renderPanel('powerPanel'); updateUI(); })));
     }
     for (const g of ['truck', 'drill', 'belt', 'machine', 'fork']) {
-      if (g === 'drill') { if (!S.unlock.batch) break; box.append(secEl(T.secBatch)); }
+      if (g === 'drill') { if (!S.unlock.batch) break; box = foldSec(box0, 'pBatch', T.secBatch, 'powerPanel', true); }
       if (g !== 'truck' && !S.unlock.batch) continue;
       const ts = groupTargets(g), total = groupCost(g);
       const name = g === 'truck' ? `${T.grp.truck}　${T.lv(S.truck.lv + 1)}` : T.allUp(T.grp[g], ts.length);
@@ -3836,7 +3836,7 @@ function renderPanel(id) {
     // 売値アップ：売ったことのある資源だけ。加工した物にも同じ倍率が掛かる
     const roots = ROOT_ORDER.filter(r => S.sold && S.sold['@' + r]);
     if (roots.length) {
-      const h = document.createElement('div'); h.className = 'secT'; h.textContent = T.priceSec; box.append(h);
+      box = foldSec(box0, 'pPrice', T.priceSec, 'powerPanel', true);
       const nt = document.createElement('div'); nt.className = 'sub'; nt.textContent = T.priceNote; box.append(nt);
       for (const r of roots) {
         const prods = ITEM_ORDER.filter(k => k !== r && ROOT[k] === r && S.sold[k]).map(k => T.items[k]).join('・');
@@ -3906,7 +3906,7 @@ function renderPanel(id) {
       wBox.append(el);
     }
   } else if (id === 'skillPanel') {
-    const box = $('skillBody'); box.innerHTML = '';
+    const box = $('skillBody'), box0 = box; box.innerHTML = '';
     if (S.seenRes === null) { S.seenRes = {}; for (const id2 of allResIds()) if (resAvail(id2)) S.seenRes[id2] = 1; }   // 前からのセーブ：今ある研究は見たことに
     if (!S.lab.built) { const n = document.createElement('div'); n.className = 'sub'; n.textContent = T.needLab; box.append(n); return; }
     const staff = labStaff();
@@ -3929,7 +3929,8 @@ function renderPanel(id) {
       const list = ids.filter(id => S.opts.resAll ? (resAvail(id) || resDef(id).done || (id.startsWith('sk:') && sk(id.slice(3)) > 0)) && !isGrant(id) && id !== 'sk:dragPlus' && id !== 'sk:truck2'
         : resAvail(id) && !resDef(id).done);
       if (!list.length) return;
-      const h = document.createElement('div'); h.className = 'secT'; h.textContent = title; box.append(h);
+      list.sort((a2, b2) => coNeedOf(a2) - coNeedOf(b2));   // 101：出る会社レベルの順
+      const body = foldSec(box0, 'r' + title, title, 'skillPanel', true);   // 101：見出しで畳める
       for (const id of list) {
         const d = resDef(id);
         const title2 = id === 'sk:digLv' ? d.name + (d.lv ? T.digUpTo(d.lv - 1) : '') : d.max > 50 ? `${d.name}　Lv${d.lv}` : d.max > 1 ? `${d.name}　${d.lv}/${d.max}` : d.name;
@@ -3939,7 +3940,7 @@ function renderPanel(id) {
         else { btn = costBtn(`${T.startRes}（${d.months}${T.months}）`, d.cost, () => { startResearch(id); renderPanel('skillPanel'); updateUI(); }); if (S.researches.length >= labRooms() || S.researches.some(r => r.id === id)) btn.disabled = true; }
         const re = rowEl(title2, d.desc, btn);
         if (S.seenRes && !S.seenRes[id] && !d.done) { const nt = document.createElement('small'); nt.className = 'newtag'; nt.textContent = 'new'; re.querySelector('.name').append(nt); }
-        resShown.add(id); box.append(re);
+        resShown.add(id); body.append(re);
       }
     };
     section(T.resTool, Object.keys(RESEARCH_TOOL).map(t => 't:' + t));
