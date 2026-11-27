@@ -640,3 +640,10 @@ body.hideUI #hdr, body.hideUI #dash, body.hideUI #catBar, body.hideUI #menuBtn, 
 #tutGoal { width: max-content; max-width: calc(100vw - 24px); }
 /* v1.50（32）コレクションの名前の行は、スクロールしても見える */
 #colName { position: sticky; top: 26px; z-index: 2; background: var(--paper2, #fbfaf7); padding: 3px 0; }
+/* v1.51 資金はタップで開く／畳む（13 ヘッダーの字もドット絵風） */
+#moneyHud { pointer-events: auto; cursor: pointer; flex-wrap: wrap; }
+#moneyHud .mfold { font-style: normal; font-size: 9px; color: #8a8a90; margin-right: -2px; transition: transform .15s; }
+body:not(.moneyFold) #moneyHud .mfold { transform: rotate(180deg); }
+body.moneyFold #goalHud, body.moneyFold #monthHud, body.moneyFold #aiHud, body.moneyFold #aiTime { display: none !important; }
+#hdr .title { font-family: 'DotGothic16', sans-serif; font-weight: 400; }
+#tutGoal { top: calc(var(--hdr) + 36px) !important; }   /* 資金の行の下（重ならない） */
