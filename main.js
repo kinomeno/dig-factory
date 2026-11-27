@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.01（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.02（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.01';
+const VERSION = '1.02';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -5639,9 +5639,12 @@ function updateUI() {
   mh.textContent = `${T.monthNet} ${mn > 0 ? '+' : ''}${fmt(mn)}`; mh.className = mn > 0 ? 'pos' : mn < 0 ? 'neg' : '';
   const month = Math.floor(S.time / TUNE.month);
   $('date').textContent = T.date(Math.floor(month / 12) + 1, month % 12 + 1);
-  $('playBtn').textContent = running ? T.pause : T.play;
-  $('speedBtn').textContent = '▶'.repeat(speedIdx + 1); $('speedBtn').title = '×' + speeds()[speedIdx];   // 速いほど ▶ が増える（数字は出さない）
-  $('speedBtn').hidden = speeds().length < 2;   // 速くできるようになるまで「×1」は出さない
+  const pTxt = running ? T.pause : T.play; if ($('playBtn').textContent !== pTxt) { $('playBtn').textContent = pTxt; fitHeader(); }   // 字が変わったら、はみ出しを測り直す
+  const spN = speedIdx + 1, spB = $('speedBtn');   // 速いほど ▶ が増える（数字は出さない）。文字だと iPhone で絵文字になって幅が変わるので、三角を描く
+  if (spB.dataset.n !== String(spN)) { spB.dataset.n = spN; const W = 16, tw = 6, step = spN > 1 ? (W - tw) / (spN - 1) : 0, x0 = spN > 1 ? 0 : (W - tw) / 2;   // いつも同じ幅（16）に収める。数が多いほど詰める
+    spB.innerHTML = `<svg viewBox="0 0 ${W} 8" width="20" height="10" fill="currentColor" aria-hidden="true">${[...Array(spN)].map((_, i) => `<path d="M${x0 + i * step} 0L${x0 + i * step + tw} 4L${x0 + i * step} 8Z"/>`).join('')}</svg>`; }
+  spB.title = spB.ariaLabel = '×' + speeds()[speedIdx];
+  const spHide = speeds().length < 2; if ($('speedBtn').hidden !== spHide) { $('speedBtn').hidden = spHide; fitHeader(); }   // 速くできるようになるまで出さない（出た時は、はみ出しを測り直す）
   // 端まで来た向きの▲▼◀▶は消す
   $('mvUp').hidden = cam.y <= camLim.y0 + 0.02; $('mvDown').hidden = cam.y >= camLim.y1 - 0.02;
   $('mvLeft').hidden = cam.x <= camLim.x0 + 0.02; $('mvRight').hidden = cam.x >= camLim.x1 - 0.02;
@@ -5778,7 +5781,7 @@ function setupText() {
     el.append(who, k, n);
   });
   for (const id of PANELS) if (!$(id).hidden) renderPanel(id);
-  updateUI();
+  updateUI(); fitHeader();   // 言葉を変えたら、ヘッダーのはみ出しを測り直す
 }
 
 // ---- 入力 ----
@@ -6499,7 +6502,8 @@ function cmBoxText() {   // 時間で切れる効果（売値2倍・速さ10倍�
   const T = tx(), B = S.boost, a = [];
   if (B.priceT > 0) a.push(`${T.deal.price2[2]} ${mmss(B.priceT)}`);
   if (Date.now() < B.speedUntil) a.push(`${T.deal.speed10[2]} ${mmss((B.speedUntil - Date.now()) / 1000)}`);
-  return a.join('　');
+  if (B.wageM > 0) a.push(`${T.deal.wage0[2]} ${B.wageM}${T.months}`);   // 給料カットは残りの月数
+  return a.join('\n');
 }
 function boostText() {
   const T = tx(), a = [];
@@ -6621,9 +6625,12 @@ function frame(now) {
   if ((panelTick = (panelTick + 1) % 15) === 0) {
     for (const id of ['powerPanel', 'office', 'skillPanel', 'tradePanel']) if (!$(id).hidden && !panelBusy($(id))) renderPanel(id);
     $('aiTime').textContent = autoLive ? playTimeText() : '';   // 自動プレイ（見る）：実際に遊ぶと何日何時間か
-    const cmT = cmBoxText(), bt = boostText().split('・').filter(x => x && !cmT.includes(x.split(' ')[0])).join('・');   // 時間の効果は上の枠へ
+    const cmT = cmBoxText(), bt = boostText().split('・').filter(x => x && !cmT.includes(x.split(' ')[0])).join('・');   // 上の枠に出した物は、資金の下には出さない   // 時間の効果は上の枠へ
     $('boostHud').textContent = (autoLive ? tx().adm.liveTag + (bt ? '・' : '') : '') + bt;
-    $('cmBox').textContent = cmT; $('cmBox').hidden = !cmT; document.body.classList.toggle('cmOn', !!cmT);
+    const cb = $('cmBox');
+    if (cb.dataset.t !== cmT) { cb.dataset.t = cmT; cb.innerHTML = ''; for (const x of cmT ? cmT.split('\n') : []) { const sp = document.createElement('span'); sp.textContent = x; cb.append(sp); } }   // 効果ごとに1つ（狭い画面では折り返す）
+    cb.hidden = !cmT; document.body.classList.toggle('cmOn', !!cmT);
+    if (cmT) document.body.style.setProperty('--cmH', cb.offsetHeight + 'px');
     if (!$('info').hidden) renderInfo();
     if (popTarget) updatePop();
     syncDash();
