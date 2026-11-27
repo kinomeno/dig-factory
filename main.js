@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.02（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.03（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.02';
+const VERSION = '1.03';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -1519,7 +1519,7 @@ function updateForks(dt) {
     if (f.state === 'loading') {
       const pile = S.dock[f.tc] || [];
       f.acc += dt * FORK.rate;
-      while (f.acc >= 1 && pile.length && f.load.length < valOf(f)) { f.load.push(pile.shift()); f.acc--; }
+      while (f.acc >= 1 && pile.length && f.load.length < valOf(f)) { f.load.push(pile.pop()); f.acc--; }   // v1.02：新しく溜まった物（山の上）から取る
       if (!pile.length) delete S.dock[f.tc];
       if (f.load.length >= valOf(f) || !pile.length) {
         const c = f.load.length < valOf(f) ? pickDock(f) : null;   // まだ積めるなら、ほかの山にも寄る
@@ -4677,7 +4677,7 @@ function drawBeltCell(x, y, s, speed, ghost, c, r) {
   if (!side) drawChevron(x, y, s.dir, THEME.arrow);
   if (s.type === 'sort') {
     const sd = s.side === 'left' ? CCW[s.dir] : CW[s.dir], [sx, sy] = DIRS[sd];
-    drawItemShape({ k: s.filter }, x + cell / 2 + sx * cell * 0.3, y + cell / 2 + sy * cell * 0.3, 0.8);
+    drawItemShape({ k: s.filter === 'rare' ? 'ammonite' : s.filter }, x + cell / 2 + sx * cell * 0.3, y + cell / 2 + sy * cell * 0.3, 0.8);
   }
 }
 // T字路の絵：向き（↑なら下から入る）の軸と、左右へ流れる横棒。┴ を上下にした「T」の形
@@ -4895,6 +4895,8 @@ function shapeMask(sh) {
   return m;
 }
 function itemSprite(k, of) {
+  if (!ITEMS[k]) { if (!itemSprite.warned) { itemSprite.warned = 1; console.warn('unknown item', k); } k = 'stone'; }   // 知らない資源でも画面が止まらないように
+  if (of && !ITEMS[of]) of = undefined;
   const id = k + (of || '');
   if (SPR_CACHE.has(id)) return SPR_CACHE.get(id);
   const def = ITEMS[k], sh = def.s;
