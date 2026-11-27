@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.35（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.36（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.35';
+const VERSION = '1.36';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -156,7 +156,7 @@ const ITEMS = {
   mummy:     { v: 25000, c: ['#e8dcc0', '#5e5040'], s: 'mummy' },
   // v1.06 多段の加工の最後の段
   lens:       { v: 1000, c: ['#e8f6ff', '#4a7a96'], s: 'lens' },        // レンズ（高級ガラスを研磨）
-  engine:     { v: 3500, c: ['#6a7480', '#c0392b'], s: 'gear' },        // 機械（鋼の部品＋鉄板）
+  engine:     { v: 3500, c: ['#6a7480', '#c0392b'], s: 'engine' },        // 機械（鋼の部品＋鉄板）
   switchboard: { v: 3200, c: ['#8a96a8', '#d98a4a'], s: 'board' },     // 配電盤（電線＋銅板）
   decoPanel:  { v: 5500, c: ['#f4f1ea', '#d0a020'], s: 'board' },      // 装飾パネル（金縁タイル＋つやタイル）
   telescope:  { v: 3600, c: ['#d98a4a', '#3a3d44'], s: 'scope' },      // 望遠鏡（レンズ＋銅板）
@@ -4839,7 +4839,7 @@ function curveSide(c, r, s) {
     const [ax, ay] = DIRS[sd === 'left' ? CCW[s.dir] : CW[s.dir]];
     if (feedsInto(c + ax, r + ay, c, r)) { side = sd; n++; }
   }
-  return n === 1 ? side : null;
+  return n === 1 ? side : n === 2 ? 'both' : null;   // 両側から：合流の形
 }
 const beltPh = new WeakMap();   // コンベアごとの縞々の進み具合（保存しない）
 let drawDt = 0;                 // 前の画面からのゲームの時間（止めている間は0）
@@ -4850,7 +4850,13 @@ function drawBeltCell(x, y, s, speed, ghost, c, r) {
   if (s.type === 'tee') { drawTee(x, y, s, speed, ph); return; }
   if (s.type === 'tri' || s.type === 'branch') { drawArms(x, y, s, speed, ph, s.type === 'tri' ? ['fwd', 'left', 'right'] : ['fwd', s.side || 'right']); return; }
   const side = ghost ? null : curveSide(c, r, s);
-  if (side) {
+  if (side === 'both') {   // 84：合流（左右から入って、真ん中でまっすぐへ）
+    const cx = x + cell / 2, cy = y + cell / 2, w = cell * 0.56, a = CONV_ROT[s.dir];
+    const part = (rx, ry, rw, rh, d) => { ctx.save(); ctx.translate(cx, cy); ctx.rotate(a); ctx.beginPath(); ctx.rect(rx, ry, rw, rh); ctx.rotate(-a); ctx.translate(-cx, -cy); ctx.clip(); drawConvSprite(x, y, d, speed, ph); ctx.restore(); };
+    part(-cell / 2, -w / 2, cell / 2, w, CW[s.dir]);   // 左から入る腕
+    part(0, -w / 2, cell / 2, w, CCW[s.dir]);          // 右から入る腕
+    part(-w / 2, -cell / 2, w, cell / 2 + w / 2, s.dir);   // 真ん中から前へ
+  } else if (side) {
     const f0 = Math.floor(ph !== null ? ph : S.time * speed * 16), f = isFinite(f0) ? ((f0 % 4) + 4) % 4 : 0;
     ctx.save(); ctx.imageSmoothingEnabled = false;
     ctx.translate(x + cell / 2, y + cell / 2); ctx.rotate(CONV_ROT[s.dir]); if (side === 'left') ctx.scale(-1, 1);
@@ -5125,6 +5131,7 @@ function shapeMask(sh) {
     else if (sh === 'shell') { const rr = Math.hypot(X - 8, Y - 8.5); on = rr <= 6 && !(rr > 1.5 && rr < 2.6 && Math.atan2(Y - 8.5, X - 8) > -1.2) && !(rr > 3.6 && rr < 4.4 && Math.atan2(Y - 8.5, X - 8) < 1.8); }   // アンモナイト（うず）
     else if (sh === 'haniwa') on = ((X - 8) ** 2 / 14 + (Y - 4.5) ** 2 / 10 <= 1 && !((x === 6 || x === 9) && y === 4) && !(x >= 7 && x <= 8 && y === 6)) || (x >= 5 && x <= 10 && y >= 7 && y <= 14) || ((x === 3 || x === 12) && y >= 8 && y <= 10);   // 埴輪（目と口の穴）
     else if (sh === 'mummy') on = x >= 5 && x <= 10 && y >= 1 && y <= 14 && !(y === 1 && (x === 5 || x === 10));   // ミイラ（包帯は下で）
+    else if (sh === 'engine') on = (x >= 2 && x <= 13 && y >= 8 && y <= 13) || ((x >= 3 && x <= 5 || x >= 7 && x <= 9) && y >= 4 && y <= 7) || (x >= 11 && x <= 12 && y >= 3 && y <= 7);   // 機械（エンジン）
     else if (sh === 'lens') on = ((X - 8) ** 2) / 30 + ((Y - 8) ** 2) / 12 <= 1;   // レンズ（横から見た凸レンズ）
     else if (sh === 'board') on = x >= 2 && x <= 13 && y >= 3 && y <= 12 && !((x === 5 || x === 10) && y >= 5 && y <= 10 && y % 2 === 1);   // 板に部品（配電盤・パネル）
     else if (sh === 'scope') on = Math.abs((X - 8) - (Y - 8) * -1.1) <= 2.2 && X >= 2 && X <= 14 && Y >= 2 && Y <= 14 || (x >= 6 && x <= 9 && y >= 12 && y <= 14);   // 望遠鏡（ななめの筒）
