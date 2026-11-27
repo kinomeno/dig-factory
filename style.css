@@ -604,3 +604,5 @@ body.hideUI { --hdr: 0px; --dash: 0px; }
 body.hideUI #hdr, body.hideUI #dash, body.hideUI #catBar, body.hideUI #menuBtn, body.hideUI #subMenu, body.hideUI #dHandle, body.hideUI #dClose, body.hideUI #unfoldBtn { display: none !important; }
 #unhideBtn { position: fixed; top: 6px; right: 6px; z-index: 46; width: 30px; height: 26px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(250,250,248,.75); border: 1px solid var(--line2); border-radius: 6px; color: #555; }
 #unhideBtn[hidden] { display: none; }
+/* v1.31 タイトルの字：ドット絵風（飾りはつけない）。読めない時はふつうの字 */
+#title .tname { font-family: 'DotGothic16', sans-serif; font-weight: 400; letter-spacing: .1em; }
