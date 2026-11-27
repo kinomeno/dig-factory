@@ -589,3 +589,13 @@ body.cmOn .msg { top: calc(var(--hdr) + 12px + var(--cmH, 28px)); }
 .colCell.wig canvas { animation: colWig .45s ease-out; }
 @keyframes colWig { 0% { transform: rotate(0); } 20% { transform: rotate(-9deg) scale(1.06); } 45% { transform: rotate(8deg) scale(1.06); } 70% { transform: rotate(-4deg); } 100% { transform: rotate(0); } }
 #colName { min-height: 1.5em; margin: 2px 0 6px; }
+/* v1.15 解放カード */
+#unlockCard { position: fixed; top: calc(var(--hdr) + 10px); left: 50%; transform: translateX(-50%); z-index: 44; width: min(340px, calc(100vw - 24px)); max-height: calc(100vh - var(--hdr) - 120px); overflow-y: auto;
+  background: #fffdf6; border: 2px solid #d0a020; border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,.2); padding: 8px 10px; cursor: pointer; }
+#unlockCard[hidden] { display: none; }
+#unlockCard .ulHead { display: flex; justify-content: space-between; align-items: center; font-size: 13px; margin-bottom: 6px; color: #7a5a00; }
+#unlockCard .ulX { color: #999; font-size: 12px; }
+#unlockCard .ulRow { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-top: 1px solid rgba(0,0,0,.06); }
+#unlockCard .ulPic { width: 40px; height: 40px; image-rendering: pixelated; flex: none; }
+#unlockCard .ulRow b { display: block; font-size: 13px; } #unlockCard .ulRow small { color: var(--sub); font-size: 11px; }
+body.title #unlockCard { display: none; }
