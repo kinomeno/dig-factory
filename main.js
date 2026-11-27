@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.99（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.00（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.99';
+const VERSION = '1.00';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -378,14 +378,14 @@ const TXT = {
     needDig: n => `掘削レベル${n}が必要です（スキル）`,
     rockHint: n => `硬い岩盤：掘削レベル${n}が無いと、とても遅くしか掘れません（研究所で研究）`,
     quit: '給料が払えず、作業員が1人やめました',
-    autoConvOpt: 'コンベア自動設置', secAdvOpt: '秘書の提案', coLvMsg: '会社レベルを上げられます（タップで事務所へ）',
+    veinFound: '鉱脈だ！', autoConvOpt: 'コンベア自動設置', secAdvOpt: '秘書の提案', coLvMsg: '会社レベルを上げられます（タップで事務所へ）',
     adv: { jam: 'コンベアが詰まっています。人をつけるか、強化しては？', buf: n => `${n}の中に材料が溜まっています`, coUp: '会社レベルを上げられます',
       truck: 'ヤードに資源が溜まっています。トラックを強化しては？', fork: '地上に資源が溜まっています。フォークリフトを増やしては？',
       useRes: (a, b) => `${a}は、${b}で加工できます`, next: '次へ', none: '今は、提案はありません' }, on: 'オン', off: 'オフ',
     saveT: 'セーブ', save: 'セーブ', load: 'ロード', slot: n => `スロット${n}`, empty: '空き', saved: 'セーブしました', loaded: 'ロードしました',
     confirmLoad: 'ロードしますか？（今の状態は消えます）', saveNG: 'この環境ではセーブできません',
     officeLv: '事務所', capP: n => `定員${n}人`, restSp: '休憩の速さ', full: '事務所の定員がいっぱいです', techUp: '技術UP',
-    build: '設置', works: '工事', grpName: { drill: 'ドリル', belt: 'コンベア', pipe: '管', machine: '機械', other: 'その他' },
+    build: '設置', works: '工事', grpName: { drill: 'ドリル', belt: 'コンベア', pipe: '管', machine: '機械', other: 'その他', fac: '施設', works: '掘削・撤去' },
     fdrill: '高速ドリル', adrill: '自動ドリル', tee: 'T字路', cross: '交差', resTool: '設置物', toolRes: 'この設置物を置けるようになります。',
     digDo: '掘削する', overwriteQ: '上書きしますか？（今ある物は撤去して半額戻ります）', advNote0: 'Lv2以上になると、地上の仕事（フォークリフト・トラック）にも就きます。',
     facility: '施設', labUnlocked: '研究所を建てられるようになりました（下のタブの「工事」から）', labWhere: '研究所は地上の空いているマスに置けます', labOne: '研究所はもう建っています',
@@ -523,14 +523,14 @@ const TXT = {
     needDig: n => `あなほり レベル${n}が ひつよう です（スキル）`,
     rockHint: n => `かたい がんばん：あなほり レベル${n}が ないと、とても ゆっくりしか ほれません`,
     quit: 'きゅうりょうが はらえず、さぎょういんが 1にん やめました',
-    autoConvOpt: 'コンベア じどう おき', secAdvOpt: 'ひしょの ていあん', coLvMsg: 'かいしゃ レベルを あげられます（タップで じむしょへ）',
+    veinFound: 'こうみゃくだ！', autoConvOpt: 'コンベア じどう おき', secAdvOpt: 'ひしょの ていあん', coLvMsg: 'かいしゃ レベルを あげられます（タップで じむしょへ）',
     adv: { jam: 'コンベアが つまっています。ひとを つけるか、つよく しては？', buf: n => `${n}の なかに ざいりょうが たまっています`, coUp: 'かいしゃ レベルを あげられます',
       truck: 'ヤードに しげんが たまっています。トラックを つよく しては？', fork: 'ちじょうに しげんが たまっています。フォークリフトを ふやしては？',
       useRes: (a, b) => `${a}は、${b}で かこう できます`, next: 'つぎへ', none: 'いまは、ていあんは ありません' }, on: 'オン', off: 'オフ',
     saveT: 'セーブ', save: 'セーブ', load: 'ロード', slot: n => `スロット${n}`, empty: 'あき', saved: 'セーブ しました', loaded: 'ロード しました',
     confirmLoad: 'ロード しますか？（いまの じょうたいは きえます）', saveNG: 'ここでは セーブ できません',
     officeLv: 'じむしょ', capP: n => `ていいん${n}にん`, restSp: 'やすむ はやさ', full: 'じむしょが いっぱい です', techUp: 'うでまえUP',
-    build: 'おく', works: 'こうじ', grpName: { drill: 'ドリル', belt: 'コンベア', pipe: 'くだ', machine: 'きかい', other: 'そのほか' },
+    build: 'おく', works: 'こうじ', grpName: { drill: 'ドリル', belt: 'コンベア', pipe: 'くだ', machine: 'きかい', other: 'そのほか', fac: 'しせつ', works: 'ほる・どける' },
     fdrill: 'はやい ドリル', adrill: 'じどう ドリル', tee: 'Tじろ', cross: 'こうさ', resTool: 'おく もの', toolRes: 'これを おけるように なります。',
     digDo: 'ほる', overwriteQ: 'うわがき しますか？（いまの ものは とりのぞいて はんがく もどります）', advNote0: 'Lv2いじょうに なると、ちじょうの しごと（フォークリフト・トラック）も します。',
     facility: 'しせつ', labUnlocked: 'けんきゅうじょを たてられるように なりました（したの タブの「しせつ」から）', labWhere: 'けんきゅうじょは ちじょうの あいている マスに おけます', labOne: 'けんきゅうじょは もう たっています',
@@ -668,14 +668,14 @@ const TXT = {
     needDig: n => `Needs dig level ${n} (skill)`,
     rockHint: n => `Hard bedrock: without dig level ${n} it is very slow (research it at the Lab)`,
     quit: 'Could not pay wages: one worker quit',
-    autoConvOpt: 'Auto conveyor', secAdvOpt: 'Secretary tips', coLvMsg: 'You can raise the company level (tap to open the office)',
+    veinFound: 'A vein!', autoConvOpt: 'Auto conveyor', secAdvOpt: 'Secretary tips', coLvMsg: 'You can raise the company level (tap to open the office)',
     adv: { jam: 'A conveyor is jammed. Add a worker or upgrade it?', buf: n => `Materials are piling up in the ${n}`, coUp: 'You can raise the company level',
       truck: 'Resources are piling up in the yard. Upgrade the truck?', fork: 'Resources are piling up on the surface. Buy more forklifts?',
       useRes: (a, b) => `${a} can be processed in the ${b}`, next: 'Next', none: 'No tips right now' }, on: 'On', off: 'Off',
     saveT: 'Save', save: 'Save', load: 'Load', slot: n => `Slot ${n}`, empty: 'Empty', saved: 'Saved', loaded: 'Loaded',
     confirmLoad: 'Load this save? (current game will be lost)', saveNG: 'Saving is not available here',
     officeLv: 'Office', capP: n => `${n} staff max`, restSp: 'Rest speed', full: 'The office is full', techUp: 'Skill up',
-    build: 'Build', works: 'Works', grpName: { drill: 'Drills', belt: 'Conveyors', pipe: 'Pipes', machine: 'Machines', other: 'Other' },
+    build: 'Build', works: 'Works', grpName: { drill: 'Drills', belt: 'Conveyors', pipe: 'Pipes', machine: 'Machines', other: 'Other', fac: 'Facilities', works: 'Dig / Remove' },
     fdrill: 'Fast drill', adrill: 'Auto drill', tee: 'T-junction', cross: 'Crossing', resTool: 'Equipment', toolRes: 'Lets you place this equipment.',
     digDo: 'Dig', overwriteQ: 'Replace it? (the current one is removed for a half refund)', advNote0: 'From Lv2, workers also take surface jobs (forklifts, trucks).',
     facility: 'Facilities', labUnlocked: 'You can now build the Lab (Works tab)', labWhere: 'Place the Lab on a free surface cell', labOne: 'The Lab is already built',
@@ -774,7 +774,7 @@ const TXT_ADD = {
       build: ['建造', '事務所を、宇宙へ行ける形に作り直します。'], depart: ['出発', '事務所に「出発」ボタンができます。'],
       conne: ['コネ採用', '雇える人数が増えます（1段ごとに+10%・最低+2人。最大200人）。'],
       treasure: ['人間国宝見学', '作業員の経験がたまる速さが上がります（1段ごとに+25%）。'], statue: ['社長像', '事務所の前に、社長の銅像が建ちます。'], garden: ['屋上庭園', '事務所の屋上が森に。休憩が少し速くなります。'],
-      vein: ['鉱脈探知', '珍しい物（化石・埴輪など）が出やすくなります（1段ごとに+25%）。'], labRoom: ['研究室の増室', '研究室が1つ増え、同時に研究できる数が増えます（最大6室）。研究所にいる研究員の数だけ、並んで進みます。'], land: ['土地買収', '自分の土地が左右に1マスずつ広がります（研究するごとに高くなる）。'], digLv: ['掘削レベル', '硬い岩盤（10mにLv1、その後は10mごと）を1段ずつ破れるようになります（Lv0は会社レベル2で破れる）。'] },
+      vein: ['鉱脈探知', '地面の中の鉱脈が、灰色の粒で見えるようになります（掘り始めると資源の色に）。珍しい物（化石・埴輪など）も出やすくなります（1段ごとに+25%）。'], labRoom: ['研究室の増室', '研究室が1つ増え、同時に研究できる数が増えます（最大6室）。研究所にいる研究員の数だけ、並んで進みます。'], land: ['土地買収', '自分の土地が左右に1マスずつ広がります（研究するごとに高くなる）。'], digLv: ['掘削レベル', '硬い岩盤（10mにLv1、その後は10mごと）を1段ずつ破れるようになります（Lv0は会社レベル2で破れる）。'] },
     deal: { land: ['地上げ', '土地買収のレベルが1つ上がります（左右に1マスずつ広がる）。', '地上げ'] },
     dealMax: '上限です',
     help0: ['操作', '画面は指（マウス）でなぞると動きます。画面の端（▲▼◀▶）を押しても動きます。2本指・Ctrl＋ホイール・＋－で拡大縮小、「地図」で全体を見られます。\n下のタブを押すと引き出しが開き、道具を選べます。ドリル・機械などは1つ置くと選択が外れます。コンベアなどは続けて置けて、左下の「×」かタブを押すと外れます。ドリルは、置く所をタップしてから掘る向きを選んで「設置する」。置いた物をタップすると、向きの変更やレベルアップができます。'],
@@ -812,7 +812,7 @@ const TXT_ADD = {
     dealMax: 'もう いっぱい',
     sk: { land: ['とちを かう', 'じぶんの とちが みぎと ひだりに 1マスずつ ひろがります（けんきゅう するたびに たかく なる）。'], digLv: ['あなほり レベル', 'かたい がんばん（5mに Lv0、そのあとは 10mごと）を 1だんずつ ふつうに ほれるように なります。'],
       labRoom: ['けんきゅうしつを ふやす', 'けんきゅうしつが 1つ ふえて、いっしょに けんきゅう できる かずが ふえます（さいだい 6しつ）。'],
-      vein: ['こうみゃく たんち', 'めずらしい もの（かせき・はにわ など）が でやすく なります。'],
+      vein: ['こうみゃく たんち', 'じめんの なかの こうみゃくが、はいいろの つぶで みえるように なります。めずらしい もの（かせき・はにわ など）も でやすく なります。'],
       autoHire: ['じんじぶ', 'ひとが たりない とき、じどうで やといます（じむしょで オン・オフ）。'],
       autoUpg: ['ぎじゅつぶ', 'おかねが たくさん ある とき、ときどき つよく します。どれを つよく するかは きまぐれ（じむしょで オン・オフ）。'],
       autoPrice: ['えいぎょうぶ', 'おかねに よゆうが ある とき、いちばん やすい ねだん アップを じどうで かいます（じむしょで オン・オフ）。'],
@@ -931,7 +931,7 @@ const TXT_ADD = {
       build: ['Construction', 'Rebuilds the office into something that can reach space.'], depart: ['Departure', 'Adds a Depart button to the office.'],
       conne: ['Connections', 'More staff you can hire (+10% per level, at least +2; up to 200).'],
       treasure: ['Master craftsman tour', 'Workers gain experience faster (+25% per level).'], statue: ['Boss statue', 'A bronze statue of the boss stands at the entrance.'], garden: ['Rooftop garden', 'A forest on the office roof. Rest is a little faster.'],
-      vein: ['Vein finder', 'Rare finds (fossils, haniwa...) appear more often (+25% per level).'], labRoom: ['Extra lab room', 'Adds a lab room so more research can run at once (up to 6). Each research needs its own researcher in the Lab.'], land: ['Land purchase', 'Your land grows by 1 cell on each side (each purchase costs more).'], digLv: ['Dig level', 'Break hard bedrock (Lv1 at 10m, then every 10m), one layer per level (Lv0 breaks at company level 2).'] },
+      vein: ['Vein finder', 'Ore veins underground show as grey specks (in colour once you dig into them). Rare finds (fossils, haniwa...) also appear more often (+25% per level).'], labRoom: ['Extra lab room', 'Adds a lab room so more research can run at once (up to 6). Each research needs its own researcher in the Lab.'], land: ['Land purchase', 'Your land grows by 1 cell on each side (each purchase costs more).'], digLv: ['Dig level', 'Break hard bedrock (Lv1 at 10m, then every 10m), one layer per level (Lv0 breaks at company level 2).'] },
     deal: { land: ['Land deal', 'Raises Land purchase by one level (1 cell wider on each side).', 'Land'] },
     dealMax: 'Maxed',
     help0: ['Controls', 'Swipe the screen to scroll (or press the screen edges). Pinch, Ctrl+wheel or +/- to zoom; "Map" shows everything.\nPick tools from the tabs at the bottom. Drills and machines are deselected after placing one; conveyors stay selected until you press the "x" (bottom left) or a tab. For a drill, tap the spot, pick a direction, then Place.'],
@@ -1094,9 +1094,17 @@ function makeVeins(upto) {
 function veinAt(c, r) {
   for (const v of S.veins || []) {
     const dd = Math.hypot(c - v.c, r - v.r); if (dd > v.rad + 0.5) continue;
-    return [v.k, 1 - dd / (v.rad + 1)];
+    return [v.k, 1 - dd / (v.rad + 1), v];
   }
   return null;
+}
+function veinDug(c, r) {   // 鉱脈のマスを掘った：その鉱脈は色が見えるようになる（初めての時は「鉱脈だ！」）
+  const vn = S.veins && S.veins.length ? veinAt(c, r) : null; if (!vn || vn[2].found) return;
+  vn[2].found = true;
+  if (catchBusy || autoBusy) return;
+  let best = null, bd = 4;
+  for (const w of S.workers) { const d = Math.hypot(w.x - (c + 0.5), w.y - (r + 0.5)); if (d < bd) { bd = d; best = w; } }
+  if (best) bubble(best, tx().veinFound, 2.6);
 }
 function row(r) {
   let a = S.rows.get(r);
@@ -2085,7 +2093,7 @@ function drillHit(k, s) {
     const d = tr - SKY, can = RARE.filter(([, md]) => d >= md);
     if (can.length && Math.random() < BAL.rareP * (1 + 0.25 * sk('vein'))) { const k2 = can[Math.floor(Math.random() * can.length)][0]; emitOre(c, r, s, k2); say(tx().rareFound(tx().items[k2]), 5000, 'good', { c: tc, r: tr }); }
   }
-  if (g.left <= 0) { row(tr)[tc] = null; S.digVer++; if (g.pocket) { makeWell(tc, tr, g.pocket); s.stuck = true; } else moveDrill(k, s, key(tc, tr)); }
+  if (g.left <= 0) { row(tr)[tc] = null; S.digVer++; veinDug(tc, tr); if (g.pocket) { makeWell(tc, tr, g.pocket); s.stuck = true; } else moveDrill(k, s, key(tc, tr)); }
 }
 // 湧き口ができる（石油・お湯）。パイプラインで地上につなぐとタンクにたまる
 function makeWell(c, r, kind) {
@@ -2490,7 +2498,7 @@ function drillsAway(sec) {
       if (g === null) { if (s.dir === 'down' && !S.st.has(key(tc, tr)) && !isYard(tc, tr) && !isOffice(tc, tr)) { moveDrill(k, s, key(tc, tr)); continue; } break; }
       const rem = (g.left - 1) * g.h + (g.h - g.p);
       if (budget < rem) { const nr = rem - budget; g.left = Math.max(1, Math.ceil(nr / g.h)); g.p = g.left * g.h - nr; budget = 0; break; }
-      budget -= rem; row(tr)[tc] = null; S.digVer++;
+      budget -= rem; row(tr)[tc] = null; S.digVer++; veinDug(tc, tr);
       if (g.pocket) { makeWell(tc, tr, g.pocket); s.stuck = true; break; }
       moveDrill(k, s, key(tc, tr));
     }
@@ -2752,7 +2760,8 @@ function updateWorkers(dt) {
         }
         else { w.x = BED + 0.5; w.y = YARD_R + 0.5; }
         w.stamina = Math.max(0, w.stamina - dt * drainMul());
-        gainExp(w, dt);
+        const vBusy = v.type === 'fork' ? !(v.state === 'idle' && !v.load.length) : (v.phase !== 'here' || S.yard.length > 0);
+        if (vBusy) gainExp(w, dt);   // v1.00：乗り物も、暇な時（荷が無く待っているだけ）は経験値が増えない
         if (w.stamina <= 0 && (v.type === 'fork' || v.phase === 'here')) goRest(w);   // トラックは戻ってから降りる
         break;
       }
@@ -2857,7 +2866,7 @@ function digAt(c, r) {
   const cost = digCost(b);
   if (S.money < cost) { say(tx().noMoney); return; }
   spend(cost, c + 0.5, r + 0.3);
-  row(r)[c] = null; S.digVer++;
+  row(r)[c] = null; S.digVer++; veinDug(c, r);
   if (b.pocket) makeWell(c, r, b.pocket);
   S.deepest = Math.max(S.deepest, r); checkStage();
 }
@@ -3416,15 +3425,15 @@ const grpList = g => g === 'drill' ? ['drill', ...['fdrill', 'adrill'].filter(t 
   : g === 'belt' ? ['conv', 'sort', ...['tee', 'cross'].filter(t => S.unlock[t])]
   : g === 'pipe' ? (S.unlock.pipe ? ['pipe'] : [])
   : g === 'other' ? ['elev', 'lamp'].filter(t => S.unlock[t])
+  : g === 'fac' ? (S.office.lv >= 1 ? facTools() : [])
+  : g === 'works' ? ['dig', 'remove', ...(YARD_C < 0 ? ['yard'] : [])]
   : MACHINE_ORDER.filter(m => S.unlock[m]).map(m => 'm:' + m);
-const BUILD_GRPS = ['drill', 'belt', 'pipe', 'machine', 'other'];
+const BUILD_GRPS = ['drill', 'belt', 'pipe', 'machine', 'other', 'fac', 'works'];   // v1.00：工事（掘削・撤去・施設）も設置の中へ
 const facTools = () => [...(!S.lab.built ? ['lab'] : []), ...FAC_IDS.filter(f => S.unlock[f])];
 const toolId = () => (tool === 'machine' ? 'm:' + machSel : tool);
 const grpOfTool = () => BUILD_GRPS.find(g => grpList(g).includes(toolId())) || null;
 function catOfTool() {
   if (grpOfTool()) return 'build';
-  if (tool === 'dig' || tool === 'remove') return 'works';
-  if (tool === 'lab' || isFacTool(tool) || tool === 'yard') return 'works';
   return null;
 }
 const NEW_BASIC = new Set(['drill', 'conv', 'sort', 'dig', 'remove', 'm:kiln']);   // 最初からある物は「new」にしない
@@ -4237,11 +4246,11 @@ function holeDeco(c, r, a, x, y) {
 // 鉱脈の粒（16×16）：強さ1〜4で粒の数が変わる。資源の色・ふちの色の2色
 function veinSpeck(k, lv, v) {
   return texOf('vs' + k + lv + ':' + v, g => {
-    const rnd = seeded(500 + v * 31 + lv * 7), [c1, c2] = ITEMS[k].c;
+    const rnd = seeded(500 + v * 31 + lv * 7), [c1, c2] = k === 'gray' ? ['#8c8a86', '#5a5854'] : ITEMS[k].c;
     for (let i = 0; i < 2 + lv * 3; i++) {
       const x = 1 + Math.floor(rnd() * 13), y = 1 + Math.floor(rnd() * 13);
       g.fillStyle = c2; g.fillRect(x - 1, y, 1, 2); g.fillRect(x, y + 1, 2, 1); g.fillStyle = c1; g.fillRect(x, y, 2, 1);
-      g.fillStyle = '#ffffff'; g.fillRect(x + 1, y, 1, 1);   // 光る点（動かない）
+      if (k !== 'gray') { g.fillStyle = '#ffffff'; g.fillRect(x + 1, y, 1, 1); }   // 光る点（動かない）
     }
   });
 }
@@ -4315,7 +4324,7 @@ function draw() {
         ctx.fillStyle = groundColor(b, r); ctx.fillRect(x + 1, y + 1, cell - 2, cell - 2);
         ctx.drawImage(groundTex(b.mat, v), x + 1, y + 1, cell - 2, cell - 2);
         const vn0 = S.veins && S.veins.length ? veinAt(c, r) : null;
-        if (vn0) ctx.drawImage(veinSpeck(vn0[0], Math.min(4, Math.ceil(vn0[1] * 4)), v), x + 1, y + 1, cell - 2, cell - 2);   // 鉱脈：資源の色の粒
+        if (vn0 && (vn0[2].found || sk('vein'))) ctx.drawImage(veinSpeck(vn0[2].found ? vn0[0] : 'gray', Math.min(4, Math.ceil(vn0[1] * 4)), v), x + 1, y + 1, cell - 2, cell - 2);   // 鉱脈：掘り始めたら資源の色・「鉱脈探知」の後は灰色で存在だけ
       }
       if (dg) ctx.restore();
       if (r === SKY && c !== YARD_C) ctx.drawImage(grassTex(v), x, y, cell, cell);   // 地表の1段目は草（ヤードの所は舗装）
@@ -5487,7 +5496,6 @@ function newCats() {
   const facs = S.office.lv >= 1 ? facTools() : [];
   return {
     build: BUILD_GRPS.some(g => grpList(g).some(isNewTool)),
-    works: facs.some(isNewTool),
     skillPanel: !!(S.lab.built && S.seenRes && allResIds().some(id => resAvail(id) && !resDef(id).done && !S.seenRes[id])),
   };
 }
