@@ -615,3 +615,19 @@ body.hideUI #hdr, body.hideUI #dash, body.hideUI #catBar, body.hideUI #menuBtn, 
 #tutGoal[hidden] { display: none; }
 /* v1.38（58）：案内の箱も、ふつうのメッセージと同じ形（左に色の線・同じ角の丸み・同じ背景）。吹き出しだけ別の形 */
 #tutMsg { background: var(--glass2); border: 1px solid var(--line2); border-left: 3px solid var(--accent); border-radius: var(--radius); box-shadow: 0 2px 8px rgba(0,0,0,.1); font-size: 14px; }
+/* v1.40 案内：目標は2行まで・スキップは右上の端・▼は点滅せず上下に動く・下のタブの枠は取っ手まで囲む */
+#tutGoal { white-space: pre-line; text-align: center; line-height: 1.45; }
+#tutSkip { top: calc(var(--hdr) + 2px) !important; right: 4px !important; z-index: 43; }
+#tutNext { animation: tutNextBob 1.1s ease-in-out infinite !important; opacity: 1 !important; display: inline-block; }
+@keyframes tutNextBob { 0%, 100% { transform: translateY(-2px); } 50% { transform: translateY(2px); } }
+#dash .dtab.tutPulse2 { animation: none !important; box-shadow: none !important; z-index: 6; }
+#dash .dtab.tutPulse2::after { content: ""; position: absolute; left: -4px; right: -4px; top: -12px; bottom: -2px; border: 2px solid rgba(208,102,31,.9); border-radius: 6px; pointer-events: none; animation: tutTabRing 1.4s ease-out infinite; }
+@keyframes tutTabRing { 0% { transform: scale(1.12); opacity: .35; } 100% { transform: scale(1); opacity: 1; } }
+/* v1.41 会社レベルのカード：画面の真ん中・大きい✕・にこにこの秘書 */
+#unlockCard { top: 50% !important; transform: translate(-50%, -50%) !important; max-height: calc(100vh - 80px); z-index: 48; }
+#unlockCard .ulHead { gap: 8px; justify-content: flex-start; }
+#unlockCard .ulHead b { flex: 1; }
+#unlockFace { width: 36px; height: 36px; image-rendering: pixelated; border-radius: 6px; background: #eef1f4; flex: none; }
+#unlockCard .ulX { width: 40px; height: 40px; padding: 0; font-size: 20px; line-height: 1; color: #666; background: #fff; border: 1px solid var(--line2); border-radius: 8px; flex: none; }
+#unlockCard .ulRow small { display: block; line-height: 1.45; }
+.msg .mx { flex: none; margin-left: 6px; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; color: #777; border: 1px solid var(--line2); border-radius: 6px; background: rgba(255,255,255,.8); }
