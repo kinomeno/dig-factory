@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.18（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.19（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.18';
+const VERSION = '1.19';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -4922,6 +4922,7 @@ function drawBeltWorker(x, y, s, boss) {
 }
 const BELT_BOSS = (() => { const col = { ...WORKER_COL, a: '#d8402c' }, c2 = document.createElement('canvas'); c2.width = 8; c2.height = 5; const g = c2.getContext('2d'); BELT_PIX.forEach((rw, y) => [...rw].forEach((ch, x) => { if (col[ch]) { g.fillStyle = col[ch]; g.fillRect(x, y, 1, 1); } })); return c2; })();   // 38：社長は赤いヘルメット
 const BOSS_FR = workerFrames({ ...WORKER_COL, a: '#d8402c' });   // 社長：赤いヘルメット
+const GOLD_BOSS = workerFrames({ a: '#e8c04a', b: '#d8a830', c: '#c99a28', d: '#8a6a18' })[1];   // 35：金色の社長像
 // お客さん：ヘルメットではなく髪。服と髪の色は人ごとにいろいろ（色の組み合わせごとに1回だけ作る）
 const GUEST_HAIR = ['#2b2420', '#5e4026', '#8a5a2a', '#c9a46e', '#9a9a9a', '#2a2a2a'];
 const GUEST_CLOTH = ['#d8543c', '#3f7cc4', '#e8c34a', '#5aa36a', '#9a7bd0', '#f08a3c', '#e86a8a', '#4a4a50', '#6fa9d6', '#eeeeea'];
@@ -5342,6 +5343,19 @@ function drawOffice() {
   ctx.fillStyle = '#ffd36a'; ctx.beginPath(); ctx.moveTo(x0 + w * 0.32, base); ctx.lineTo(x0 + w / 2, base + L * 0.6); ctx.lineTo(x0 + w * 0.68, base); ctx.closePath(); ctx.fill();
   ctx.restore();
 }
+function drawBossCar(x, base, kind) {   // 1マスの車（黒塗りの車か軽トラ）。前の席に赤いヘルメットが小さく見える
+  const cell = cp, y = base;
+  if (kind === 'sedan') {
+    ctx.fillStyle = '#1c1c20'; ctx.fillRect(x, y - cell * 0.3, cell * 0.9, cell * 0.18); ctx.fillRect(x + cell * 0.18, y - cell * 0.44, cell * 0.5, cell * 0.15);
+    ctx.fillStyle = '#7f9fb8'; ctx.fillRect(x + cell * 0.24, y - cell * 0.41, cell * 0.18, cell * 0.1); ctx.fillRect(x + cell * 0.46, y - cell * 0.41, cell * 0.18, cell * 0.1);
+    ctx.fillStyle = '#d8402c'; ctx.fillRect(x + cell * 0.27, y - cell * 0.4, cell * 0.07, cell * 0.04);   // 赤いヘルメット（前の席）
+  } else {
+    ctx.fillStyle = '#eeeeea'; ctx.fillRect(x, y - cell * 0.4, cell * 0.32, cell * 0.28); ctx.fillStyle = '#d8d8d2'; ctx.fillRect(x + cell * 0.32, y - cell * 0.24, cell * 0.58, cell * 0.12);
+    ctx.fillStyle = '#7f9fb8'; ctx.fillRect(x + cell * 0.04, y - cell * 0.36, cell * 0.2, cell * 0.1);
+    ctx.fillStyle = '#d8402c'; ctx.fillRect(x + cell * 0.1, y - cell * 0.35, cell * 0.07, cell * 0.04);
+  }
+  ctx.fillStyle = '#2b2b2e'; for (const wx of [0.2, 0.72]) { ctx.beginPath(); ctx.arc(x + cell * wx, y - cell * 0.1, cell * 0.08, 0, Math.PI * 2); ctx.fill(); }
+}
 function drawOffice0() {
   const cell = cp, T2 = THEME.office, lv = S.office.lv;
   const x = OFFICE_C * cell, base = (YARD_R + 1) * cell - Math.max(1, cell * 0.03);   // v0.96：地面の線の上に建つ
@@ -5383,10 +5397,27 @@ function drawOffice0() {
   if (sk('statue')) {   // 社長像：玄関の前（台の上に、赤いヘルメットの社長）
     const sx = x0 + w * 0.42, sb = base;
     ctx.fillStyle = '#9a958d'; ctx.fillRect(sx - cell * 0.1, sb - cell * 0.12, cell * 0.2, cell * 0.12);
-    ctx.save(); ctx.imageSmoothingEnabled = false; ctx.globalAlpha = 0.95; ctx.drawImage(BOSS_FR[1], sx - cell * 0.13 * (1 + (S.bossFat || 0)), sb - cell * 0.12 - cell * 0.26, cell * 0.26 * (1 + (S.bossFat || 0)), cell * 0.26); ctx.restore();
+    const gw = cell * 0.26 * (1 + (S.bossFat || 0));
+    ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(GOLD_BOSS, sx - gw / 2, sb - cell * 0.12 - cell * 0.26, gw, cell * 0.26); ctx.restore();   // 金色
+    const ph = (S.time % 7) / 7;   // 7秒に1回、0.8秒かけて出て消える
+    if (ph < 0.12) { const a = Math.sin(ph / 0.12 * Math.PI) * 0.8, cx2 = sx + gw * 0.25, cy2 = sb - cell * 0.32, L = cell * 0.06, t2 = Math.max(1, cell * 0.015);
+      ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = '#fff6c8'; ctx.fillRect(cx2 - L, cy2 - t2 / 2, L * 2, t2); ctx.fillRect(cx2 - t2 / 2, cy2 - L, t2, L * 2); ctx.restore(); }
   }
   const boss = bossOf();
-  if (boss && boss.state === 'off') {
+  const car = S.bossCar;
+  if (car) {   // 出かける車：事務所の前 → 左へ出ていく → しばらく → 戻ってくる
+    const e2 = S.time - car.t0, go = 4, away = 25, x1 = x0 - cell * 0.2;
+    let cx3 = null;
+    if (e2 < go) cx3 = x1 - ease(e2 / go) * (x1 + cell * 2);
+    else if (e2 < go + away) cx3 = null;
+    else if (e2 < go * 2 + away) cx3 = -cell * 2 + ease((e2 - go - away) / go) * (x1 + cell * 2);
+    else S.bossCar = null;
+    if (cx3 !== null) drawBossCar(cx3, base, car.kind);
+  }
+  if (boss && boss.state === 'off' && !S.bossCar && Math.floor(S.time / 30) !== S.carRoll) {   // 30秒に1回、ときどき出かける
+    S.carRoll = Math.floor(S.time / 30); if (Math.random() < 0.25 && !catchBusy && !autoBusy) S.bossCar = { t0: S.time, kind: Math.random() < 0.5 ? 'sedan' : 'kei' };
+  }
+  if (boss && boss.state === 'off' && !(S.bossCar && S.time - S.bossCar.t0 > 0.3)) {
     const ph = Math.floor(S.time / 25) % 3;   // 25秒ごとに：屋上（2回）か、窓
     if (ph < 2) {   // 屋上をうろうろ
       const u = (Math.sin(S.time * 0.35 + ph) + 1) / 2, bx = x0 + w * (0.12 + u * 0.76);
