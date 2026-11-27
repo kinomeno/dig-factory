@@ -659,3 +659,13 @@ body.moneyFold #goalHud, body.moneyFold #monthHud, body.moneyFold #aiHud, body.m
 #popInfo .kv .v { white-space: pre-wrap; min-width: 0; overflow-wrap: anywhere; }
 #popInfo .kv .c { color: #7a7a80; }
 #popLevel { white-space: pre-line; }   /* レベル・効果は1行ずつ */
+/* v1.66 62：ホーム画面に追加・31：タイトルの下に制作日誌 */
+#title .tlinks { margin-top: 14px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+#title .tlinks a, #title .tlinks button { font: inherit; font-size: 12px; color: #fff; background: rgba(0,0,0,.18); border: 1px solid rgba(255,255,255,.55); border-radius: 999px; padding: 4px 12px; text-decoration: none; cursor: pointer; }
+.homeBox { max-width: min(360px, calc(100vw - 32px)); text-align: left; }
+.homeBox .hhead { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.homeBox .hhead img { image-rendering: pixelated; border-radius: 10px; }
+.homeBox .hhead b { flex: 1; font-size: 15px; }
+.homeBox .hhead .x { width: 32px; height: 32px; }
+.homeBox ol { margin: 6px 0 10px; padding-left: 1.4em; font-size: 13px; line-height: 1.6; }
+.homeBox p { font-size: 13px; margin: 4px 0; }

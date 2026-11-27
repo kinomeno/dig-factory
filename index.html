@@ -8,20 +8,30 @@
 <meta name="description" content="ドリルで地面を掘り、コンベアと機械で資源を運んで加工し、トラックで売る。作業員を雇って広げていく、縦に掘り進む採掘経営ゲーム。">
 <meta name="author" content="キノメノ / Kinomeno">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
-<link rel="apple-touch-icon" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#7fb8e6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ほりほり工場">
 <!-- OGP -->
-<meta property="og:url" content="https://dig-factory.vercel.app/">
-<link rel="canonical" href="https://dig-factory.vercel.app/">
+<meta property="og:url" content="https://horihori.kinomeno.com/">
+<link rel="canonical" href="https://horihori.kinomeno.com/">
+<meta property="og:image" content="https://horihori.kinomeno.com/icons/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta property="og:title" content="ほりほり工場 / Dig Factory Tycoon">
 <meta property="og:description" content="ドリルで掘って、運んで、加工して、売る。縦に掘り進む採掘経営ゲーム。">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="ja_JP">
 <meta property="og:site_name" content="ほりほり工場 / Dig Factory Tycoon">
-<meta name="twitter:card" content="summary">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://horihori.kinomeno.com/icons/og.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
-<link rel="stylesheet" href="style.css?v=1.65">
+<link rel="stylesheet" href="style.css?v=1.66">
 <!-- 広告（準備だけ。まだ動かしていない）：Google の H5 ゲーム広告を使う時に、下のコメントを外し、ca-pub-XXXX を自分の番号にする。main.js の AD_ON も true に
 <script async data-ad-client="ca-pub-8328461906614341" data-adbreak-test="on" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js" crossorigin="anonymous"></script>
 <script>window.adsbygoogle = window.adsbygoogle || []; var adBreak = adConfig = function (o) { adsbygoogle.push(o); }; adConfig({ preloadAdBreaks: 'on', sound: 'on' });</script>
@@ -247,11 +257,21 @@
       <button id="tHelp" data-t="help">遊び方</button>
     </div>
     <div class="tlang"><button data-lang="hira">ひらがな</button><button data-lang="kanji">漢字</button><button data-lang="en">English</button></div>
+    <div class="tlinks"><a href="diary/" target="_blank" rel="noopener" data-t="diaryLink">制作日誌</a><button id="tHome" data-t="homeAdd">ホーム画面に追加</button></div>
     <div class="tfoot"><span id="tVer"></span>　© 2026 キノメノ / Kinomeno</div>
   </div>
 </div>
 
 <!-- CM（仮）：今は数秒待つだけ。広告サービスを入れる時はここに流す -->
+<div id="homeBox" class="modal" hidden>
+  <div class="box homeBox">
+    <div class="hhead"><img src="icons/icon-192.png" alt="" width="48" height="48"><b data-t="homeAdd">ホーム画面に追加</b><button class="x" id="homeX" aria-label="close">✕</button></div>
+    <p id="homeLead"></p>
+    <ol id="homeSteps"></ol>
+    <div class="btns"><button id="homeInstall" class="active" hidden></button><button id="homeOk">OK</button></div>
+  </div>
+</div>
+
 <div id="adBox" class="modal" hidden>
   <div class="box">
     <p id="adMsg"></p>
@@ -286,7 +306,7 @@
   </div>
 </div>
 
-<script src="sprites.js?v=1.65"></script>
-<script src="main.js?v=1.65"></script>
+<script src="sprites.js?v=1.66"></script>
+<script src="main.js?v=1.66"></script>
 </body>
 </html>

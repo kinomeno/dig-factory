@@ -1,0 +1,30 @@
+{
+ "name": "ほりほり工場 / Dig Factory Tycoon",
+ "short_name": "ほりほり工場",
+ "description": "ドリルで掘って、運んで、加工して、売る。縦に掘り進む採掘経営ゲーム。",
+ "start_url": "/",
+ "scope": "/",
+ "display": "standalone",
+ "orientation": "any",
+ "background_color": "#7fb8e6",
+ "theme_color": "#7fb8e6",
+ "lang": "ja",
+ "icons": [
+  {
+   "src": "icons/icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "icons/icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png"
+  },
+  {
+   "src": "icons/icon-maskable-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ]
+}
