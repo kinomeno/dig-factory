@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.21（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.22（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.21';
+const VERSION = '1.22';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -4769,11 +4769,12 @@ const CURVE_FRAMES = [0, 1, 2, 3].map(f => {
   return cv2;
 });
 // その向きのマスへ資源を送り込んでいるコンベアか
+const outDirs = n => (n.type === 'tee' ? [CCW[n.dir], CW[n.dir]] : n.type === 'tri' ? [n.dir, CCW[n.dir], CW[n.dir]] : n.type === 'branch' ? [n.dir, n.side === 'left' ? CCW[n.dir] : CW[n.dir]]
+  : n.type === 'cross' ? [n.dir, CW[n.dir], OPP[n.dir], CCW[n.dir]] : n.type === 'drill' ? [OPP[n.dir]] : [n.dir]);   // その物から資源が出ていく向き
 function feedsInto(nc, nr, c, r) {
   const n = inB(nc, nr) && S.st.get(key(nc, nr));
-  if (!isBelt(n)) return false;
-  const [dx, dy] = DIRS[n.dir];
-  return nc + dx === c && nr + dy === r;
+  if (!n || !(isBelt(n) || n.type === 'machine' || n.type === 'drill')) return false;
+  return outDirs(n).some(d => { const [dx, dy] = DIRS[d]; return nc + dx === c && nr + dy === r; });
 }
 // 横からだけ資源が来ているコンベアは、自動でカーブの絵にする
 function curveSide(c, r, s) {
