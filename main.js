@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.19（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.20（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.19';
+const VERSION = '1.20';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -237,7 +237,8 @@ const SKILLS = {
   treasure: { max: 3, cost: [1e6, 1e7, 1e8], months: [3, 4, 6] },                                     // 人間国宝見学：作業員のレベルの上限+2
   statue:   { max: 1, cost: [1e9], months: [4] },      // 社長像（見た目）
   garden:   { max: 1, cost: [1e7], months: [3] },
-  sortPlus: { max: 1, cost: [20000], months: [3] },   // 仕分けコンベア改良：選ぶ資源を複数にできる
+  sortPlus: { max: 1, cost: [20000], months: [3] },
+  sortPlus2: { max: 1, cost: [60000], months: [3] },   // v1.20：仕分けコンベア改良2（のみ／以外）   // 仕分けコンベア改良：選ぶ資源を複数にできる
   secAdv:   { max: 1, cost: [3000], months: [2] },   // v0.99：秘書の提案（右下の顔）
   oilScan:  { max: 5, cost: k => Math.round(30000 * Math.pow(3, k) / 100) * 100, months: k => 3 + k },   // 油田探索：今の深さから下を調べて、油田の場所を地図に印
   warehouse: { max: 1, cost: [1e7], months: [4] },   // 事務所倉庫（上限のある研究が全部そろったら）
@@ -390,7 +391,7 @@ const TXT = {
     needDig: n => `掘削レベル${n}が必要です（スキル）`,
     rockHint: n => `硬い岩盤：掘削レベル${n}が無いと、とても遅くしか掘れません（研究所で研究）`,
     quit: '給料が払えず、作業員が1人やめました',
-    veinFound: '鉱脈だ！', unlockT: n => `会社レベル${n}　新しく使えるもの`, unlockUse: 'すぐ使えます（設置メニュー）', unlockRes: '研究所で研究できます', roomEmpty: '・・・しーん', roomLines: { boss: ['ふむ', 'ちょっと休憩', 'もっと掘れ！'], sec: ['お茶です', 'スケジュール通りです'], hr: ['面接中', '履歴書の山…'], tech: ['油、差しとこ', '異音なし'], sales: ['売れました！', '値上げ交渉中です', 'え！弊社の車が駐車場に3時間！？'], rest: ['あと5分…', 'おなかすいた', 'ぐう'], lab: ['できた！…と思ったら', 'メモメモ'] }, elevOne: 'エレベーターは1本だけです（今ある列の上か下に足せます）', cellLook: '地面の中', otherMix: 'その他', mixLine: (p, n) => `中身：${p}（あと${n}個）`, hDepth: '資源の出る深さ', dAlways: '最初から', dBelow: n => `岩盤${n}より下`, dWell: '温泉は岩盤4、石油は岩盤5より下で湧くことがあります。（1マス＝3m。岩盤0は15m、そのあとは18mごと）', colTitle: 'コレクション', col: { title: 'コレクション', 'p:worker': '作業員', 'p:boss': '社長', 'v:fork': 'フォークリフト', 'v:bossFork': '社長専用フォークリフト', 'v:truck': 'トラック', 'b:office': '事務所', unknown: '？（まだ見ていません）', hint: 'タップで名前' }, bedBonus: (lv, n) => `岩盤${lv}を突破！ ご褒美に資源が${n}個、地上に出ました`, coUnlock: (lv, n) => `会社レベル${lv}：${n} が使えるようになりました（研究所に出ている物もあります）`, autoConvOpt: 'コンベア自動設置', secAdvOpt: '秘書の提案', coLvMsg: '会社レベルを上げられます（タップで事務所へ）',
+    veinFound: '鉱脈だ！', sortInvL: '出す物', sortOnly: '選んだ物のみ', sortExcept: '選んだ物以外', unlockT: n => `会社レベル${n}　新しく使えるもの`, unlockUse: 'すぐ使えます（設置メニュー）', unlockRes: '研究所で研究できます', roomEmpty: '・・・しーん', roomLines: { boss: ['ふむ', 'ちょっと休憩', 'もっと掘れ！'], sec: ['お茶です', 'スケジュール通りです'], hr: ['面接中', '履歴書の山…'], tech: ['油、差しとこ', '異音なし'], sales: ['売れました！', '値上げ交渉中です', 'え！弊社の車が駐車場に3時間！？'], rest: ['あと5分…', 'おなかすいた', 'ぐう'], lab: ['できた！…と思ったら', 'メモメモ'] }, elevOne: 'エレベーターは1本だけです（今ある列の上か下に足せます）', cellLook: '地面の中', otherMix: 'その他', mixLine: (p, n) => `中身：${p}（あと${n}個）`, hDepth: '資源の出る深さ', dAlways: '最初から', dBelow: n => `岩盤${n}より下`, dWell: '温泉は岩盤4、石油は岩盤5より下で湧くことがあります。（1マス＝3m。岩盤0は15m、そのあとは18mごと）', colTitle: 'コレクション', col: { title: 'コレクション', 'p:worker': '作業員', 'p:boss': '社長', 'v:fork': 'フォークリフト', 'v:bossFork': '社長専用フォークリフト', 'v:truck': 'トラック', 'b:office': '事務所', unknown: '？（まだ見ていません）', hint: 'タップで名前' }, bedBonus: (lv, n) => `岩盤${lv}を突破！ ご褒美に資源が${n}個、地上に出ました`, coUnlock: (lv, n) => `会社レベル${lv}：${n} が使えるようになりました（研究所に出ている物もあります）`, autoConvOpt: 'コンベア自動設置', secAdvOpt: '秘書の提案', coLvMsg: '会社レベルを上げられます（タップで事務所へ）',
     adv: { jam: 'コンベアが詰まっています。人をつけるか、強化しては？', buf: n => `${n}の中に材料が溜まっています`, coUp: '会社レベルを上げられます',
       truck: 'ヤードに資源が溜まっています。トラックを強化しては？', fork: '地上に資源が溜まっています。フォークリフトを増やしては？',
       useRes: (a, b) => `${a}は、${b}で加工できます`, next: '次へ', none: '今は、提案はありません' }, on: 'オン', off: 'オフ',
@@ -535,7 +536,7 @@ const TXT = {
     needDig: n => `あなほり レベル${n}が ひつよう です（スキル）`,
     rockHint: n => `かたい がんばん：あなほり レベル${n}が ないと、とても ゆっくりしか ほれません`,
     quit: 'きゅうりょうが はらえず、さぎょういんが 1にん やめました',
-    veinFound: 'こうみゃくだ！', unlockT: n => `かいしゃ レベル${n}　あたらしく つかえる もの`, unlockUse: 'すぐ つかえます（おく メニュー）', unlockRes: 'けんきゅうしょで けんきゅう できます', roomEmpty: '・・・しーん', roomLines: { boss: ['ふむ', 'ちょっと きゅうけい', 'もっと ほれ！'], sec: ['おちゃです', 'よてい どおりです'], hr: ['めんせつちゅう', 'りれきしょの やま…'], tech: ['あぶら さしとこ', 'へんな おと なし'], sales: ['うれました！', 'ねあげ こうしょうちゅう', 'え！ うちの くるまが ちゅうしゃじょうに 3じかん！？'], rest: ['あと 5ふん…', 'おなか すいた', 'ぐう'], lab: ['できた！…と おもったら', 'メモメモ'] }, elevOne: 'エレベーターは 1ぽんだけ です（いまの れつの うえか したに たせます）', cellLook: 'じめんの なか', otherMix: 'そのほか', mixLine: (p, n) => `なかみ：${p}（あと${n}こ）`, hDepth: 'しげんの でる ふかさ', dAlways: 'さいしょから', dBelow: n => `がんばん${n}より した`, dWell: 'おんせんは がんばん4、せきゆは がんばん5より したで わくことが あります。', colTitle: 'コレクション', col: { title: 'コレクション', 'p:worker': 'さぎょういん', 'p:boss': 'しゃちょう', 'v:fork': 'フォークリフト', 'v:bossFork': 'しゃちょうの フォークリフト', 'v:truck': 'トラック', 'b:office': 'じむしょ', unknown: '？（まだ みていません）', hint: 'タップで なまえ' }, bedBonus: (lv, n) => `がんばん${lv}を とっぱ！ ごほうびに しげんが ${n}こ、ちじょうに でました`, coUnlock: (lv, n) => `かいしゃ レベル${lv}：${n} が つかえるように なりました`, autoConvOpt: 'コンベア じどう おき', secAdvOpt: 'ひしょの ていあん', coLvMsg: 'かいしゃ レベルを あげられます（タップで じむしょへ）',
+    veinFound: 'こうみゃくだ！', sortInvL: 'だす もの', sortOnly: 'えらんだ もの だけ', sortExcept: 'えらんだ もの いがい', unlockT: n => `かいしゃ レベル${n}　あたらしく つかえる もの`, unlockUse: 'すぐ つかえます（おく メニュー）', unlockRes: 'けんきゅうしょで けんきゅう できます', roomEmpty: '・・・しーん', roomLines: { boss: ['ふむ', 'ちょっと きゅうけい', 'もっと ほれ！'], sec: ['おちゃです', 'よてい どおりです'], hr: ['めんせつちゅう', 'りれきしょの やま…'], tech: ['あぶら さしとこ', 'へんな おと なし'], sales: ['うれました！', 'ねあげ こうしょうちゅう', 'え！ うちの くるまが ちゅうしゃじょうに 3じかん！？'], rest: ['あと 5ふん…', 'おなか すいた', 'ぐう'], lab: ['できた！…と おもったら', 'メモメモ'] }, elevOne: 'エレベーターは 1ぽんだけ です（いまの れつの うえか したに たせます）', cellLook: 'じめんの なか', otherMix: 'そのほか', mixLine: (p, n) => `なかみ：${p}（あと${n}こ）`, hDepth: 'しげんの でる ふかさ', dAlways: 'さいしょから', dBelow: n => `がんばん${n}より した`, dWell: 'おんせんは がんばん4、せきゆは がんばん5より したで わくことが あります。', colTitle: 'コレクション', col: { title: 'コレクション', 'p:worker': 'さぎょういん', 'p:boss': 'しゃちょう', 'v:fork': 'フォークリフト', 'v:bossFork': 'しゃちょうの フォークリフト', 'v:truck': 'トラック', 'b:office': 'じむしょ', unknown: '？（まだ みていません）', hint: 'タップで なまえ' }, bedBonus: (lv, n) => `がんばん${lv}を とっぱ！ ごほうびに しげんが ${n}こ、ちじょうに でました`, coUnlock: (lv, n) => `かいしゃ レベル${lv}：${n} が つかえるように なりました`, autoConvOpt: 'コンベア じどう おき', secAdvOpt: 'ひしょの ていあん', coLvMsg: 'かいしゃ レベルを あげられます（タップで じむしょへ）',
     adv: { jam: 'コンベアが つまっています。ひとを つけるか、つよく しては？', buf: n => `${n}の なかに ざいりょうが たまっています`, coUp: 'かいしゃ レベルを あげられます',
       truck: 'ヤードに しげんが たまっています。トラックを つよく しては？', fork: 'ちじょうに しげんが たまっています。フォークリフトを ふやしては？',
       useRes: (a, b) => `${a}は、${b}で かこう できます`, next: 'つぎへ', none: 'いまは、ていあんは ありません' }, on: 'オン', off: 'オフ',
@@ -680,7 +681,7 @@ const TXT = {
     needDig: n => `Needs dig level ${n} (skill)`,
     rockHint: n => `Hard bedrock: without dig level ${n} it is very slow (research it at the Lab)`,
     quit: 'Could not pay wages: one worker quit',
-    veinFound: 'A vein!', unlockT: n => `Company level ${n}: new things`, unlockUse: 'Ready to use (Build menu)', unlockRes: 'Research it at the Lab', roomEmpty: '... silence', roomLines: { boss: ['Hmm.', 'Coffee break', 'Dig more!'], sec: ['Tea is ready', 'Right on schedule'], hr: ['Interviewing', 'A mountain of CVs...'], tech: ['A drop of oil here', 'No odd noises'], sales: ['Sold!', 'Negotiating a raise', "What! Our truck's been parked there 3 hours?!"], rest: ['5 more minutes...', "I'm hungry", 'Zzz'], lab: ['Done! ...or not', 'Taking notes'] }, elevOne: 'Only one elevator shaft (extend the current one up or down)', cellLook: 'Underground', otherMix: 'other', mixLine: (p, n) => `Contents: ${p} (${n} left)`, hDepth: 'Where resources appear', dAlways: 'From the start', dBelow: n => `Below bedrock ${n}`, dWell: 'Hot springs may appear below bedrock 4, oil below bedrock 5. (1 cell = 3m; bedrock 0 at 15m, then every 18m)', colTitle: 'Collection', col: { title: 'Collection', 'p:worker': 'Worker', 'p:boss': 'Boss', 'v:fork': 'Forklift', 'v:bossFork': "Boss's forklift", 'v:truck': 'Truck', 'b:office': 'Office', unknown: '? (not seen yet)', hint: 'Tap for the name' }, bedBonus: (lv, n) => `Broke through bedrock ${lv}! ${n} bonus resources popped out on the surface`, coUnlock: (lv, n) => `Company level ${lv}: ${n} now available (some appear in the Lab)`, autoConvOpt: 'Auto conveyor', secAdvOpt: 'Secretary tips', coLvMsg: 'You can raise the company level (tap to open the office)',
+    veinFound: 'A vein!', sortInvL: 'Send out', sortOnly: 'Only picked', sortExcept: 'All but picked', unlockT: n => `Company level ${n}: new things`, unlockUse: 'Ready to use (Build menu)', unlockRes: 'Research it at the Lab', roomEmpty: '... silence', roomLines: { boss: ['Hmm.', 'Coffee break', 'Dig more!'], sec: ['Tea is ready', 'Right on schedule'], hr: ['Interviewing', 'A mountain of CVs...'], tech: ['A drop of oil here', 'No odd noises'], sales: ['Sold!', 'Negotiating a raise', "What! Our truck's been parked there 3 hours?!"], rest: ['5 more minutes...', "I'm hungry", 'Zzz'], lab: ['Done! ...or not', 'Taking notes'] }, elevOne: 'Only one elevator shaft (extend the current one up or down)', cellLook: 'Underground', otherMix: 'other', mixLine: (p, n) => `Contents: ${p} (${n} left)`, hDepth: 'Where resources appear', dAlways: 'From the start', dBelow: n => `Below bedrock ${n}`, dWell: 'Hot springs may appear below bedrock 4, oil below bedrock 5. (1 cell = 3m; bedrock 0 at 15m, then every 18m)', colTitle: 'Collection', col: { title: 'Collection', 'p:worker': 'Worker', 'p:boss': 'Boss', 'v:fork': 'Forklift', 'v:bossFork': "Boss's forklift", 'v:truck': 'Truck', 'b:office': 'Office', unknown: '? (not seen yet)', hint: 'Tap for the name' }, bedBonus: (lv, n) => `Broke through bedrock ${lv}! ${n} bonus resources popped out on the surface`, coUnlock: (lv, n) => `Company level ${lv}: ${n} now available (some appear in the Lab)`, autoConvOpt: 'Auto conveyor', secAdvOpt: 'Secretary tips', coLvMsg: 'You can raise the company level (tap to open the office)',
     adv: { jam: 'A conveyor is jammed. Add a worker or upgrade it?', buf: n => `Materials are piling up in the ${n}`, coUp: 'You can raise the company level',
       truck: 'Resources are piling up in the yard. Upgrade the truck?', fork: 'Resources are piling up on the surface. Buy more forklifts?',
       useRes: (a, b) => `${a} can be processed in the ${b}`, next: 'Next', none: 'No tips right now' }, on: 'On', off: 'Off',
@@ -779,6 +780,7 @@ const TXT_ADD = {
       goldUp: ['金の匂い', '金が出やすくなります（1段ごとに+10%。これから掘る所から）。'], diaUp: ['暗闇の光', 'ダイヤが出やすくなります（1段ごとに+10%。これから掘る所から）。'],
       newTech: ['新技術導入', '加工機械が速くなります（1段ごとに+5%）。'], bored: ['飽き性', '仕事の無い作業員が、早くほかの持ち場へ移ります（8秒 → 5秒 → 3秒 → 2秒）。'],
       sortPlus: ['仕分けコンベア改良', '仕分けコンベアで、選ぶ資源を複数にできます。'],
+      sortPlus2: ['仕分けコンベア改良2', '仕分けコンベアで、選んだ資源「のみ」を横に出すか、選んだ資源「以外」を横に出すかを切りかえられます。'],
       secAdv: ['秘書の提案', '右下に秘書が出て、詰まり・溜まった材料・会社レベルなどを提案します（吹き出しをタップで、その場所へ）。'],
       oilScan: ['油田探索', '今の深さから下を調べて、油田の場所を地図に印します（1段ごとに、さらに深くまで）。'],
       warehouse: ['事務所倉庫', '事務所に倉庫の部屋ができます。社長の私物（？）を置けるようになります。'],
@@ -831,6 +833,7 @@ const TXT_ADD = {
       goldUp: ['きんの におい', 'きんが でやすく なります。'], diaUp: ['くらやみの ひかり', 'ダイヤが でやすく なります。'],
       newTech: ['しんぎじゅつ', 'きかいが はやく なります。'], bored: ['あきっぽい', 'しごとの ない ひとが、はやく ほかの ばしょへ うつります。'],
       sortPlus: ['しわけコンベア かいりょう', 'しわけコンベアで、えらぶ しげんを いくつも えらべます。'],
+      sortPlus2: ['しわけコンベア かいりょう2', 'えらんだ もの「だけ」か、えらんだ もの「いがい」を よこに だすか えらべます。'],
       secAdv: ['ひしょの ていあん', 'みぎしたに ひしょが でて、つまり・たまった ざいりょう・かいしゃ レベルなどを おしえて くれます。'],
       oilScan: ['ゆでん たんさ', 'いまの ふかさから したを しらべて、ゆでんの ばしょを ちずに しるしします。'],
       warehouse: ['じむしょ そうこ', 'じむしょに そうこの へやが できます。しゃちょうの しぶつ（？）を おけます。'],
@@ -936,6 +939,7 @@ const TXT_ADD = {
       goldUp: ['Nose for gold', 'More gold (+10% per level, in cells dug from now on).'], diaUp: ['Light in the dark', 'More diamonds (+10% per level, in cells dug from now on).'],
       newTech: ['New technology', 'Machines run faster (+5% per level).'], bored: ['Easily bored', 'Idle workers move on sooner (8s → 5s → 3s → 2s).'],
       sortPlus: ['Better sorter', 'Sorting conveyors can pick more than one resource.'],
+      sortPlus2: ['Better sorter 2', 'Sorters can send out only the picked items, or everything except them.'],
       secAdv: ['Secretary tips', 'Your secretary appears at the bottom right with tips: jams, piled-up materials, company level and more (tap a tip to go there).'],
       oilScan: ['Oil survey', 'Surveys below your current depth and marks oil fields on the map (deeper each level).'],
       warehouse: ['Office storeroom', 'Adds a storeroom to the office. The boss can keep personal things (?) there.'],
@@ -1276,7 +1280,7 @@ const CO_UNLOCK = {
   't:lamp': 6, 'm:drawer': 6, 'sk:autoPrice': 6, 'sk:vein': 6,
   't:pipe': 7, 'm:factory': 7, 'f:spa': 7, 'sk:statue': 7,
   'm:glassF': 8, 't:cross': 8, 'f:power': 8, 'sk:garden': 8, 'sk:conne': 8,
-  't:fdrill': 9, 'm:caster': 9, 'sk:goldUp': 9, 'sk:sortPlus': 9,
+  't:fdrill': 9, 'm:caster': 9, 'sk:goldUp': 9, 'sk:sortPlus': 9, 'sk:sortPlus2': 11,
   'm:metalwork': 10, 'f:refinery': 10, 'sk:yardPlus': 10, 'sk:newTech': 10,
   'm:washer': 11, 'm:cutter': 11, 'batch': 11, 'sk:treasure': 11,
   't:adrill': 12, 'm:polisher': 12, 'f:museum': 12, 'sk:veteran': 12,
@@ -3087,7 +3091,7 @@ function placePend2(pd) {
   spend(cost, pd.c + 0.5, pd.r + 0.3); S.stVer++;
   if (blk(pd.c, pd.r)) { row(pd.r)[pd.c] = null; S.digVer++; }   // 土を上書きして置く
   if (pd.tid.startsWith('m:')) { S.st.set(k, { type: 'machine', m: pd.tid.slice(2), dir: pd.dir, lv: 0, buf: {}, bags: {}, cur: null, prog: 0, op: null }); if (tool === 'machine') tool = 'none'; }   // 機械は1つ置いたら選択を外す
-  else if (pd.tid === 'sort') S.st.set(k, { type: 'sort', dir: pd.dir, lv: 0, filter: pd.filter, filters: pd.filters || [], side: pd.side });
+  else if (pd.tid === 'sort') S.st.set(k, { type: 'sort', dir: pd.dir, lv: 0, filter: pd.filter, filters: pd.filters || [], side: pd.side, inv: !!pd.inv });
   else S.st.set(k, { type: pd.tid, dir: pd.dir, lv: 0 });
   dir = pd.dir; memSet(pd.tid, pd.dir);   // 次に置く時も同じ向きから（道具ごとに覚える）
   if (pd.tid === 'sort') { memSet('sort.f', pd.filter); memSet('sort.s', pd.side); }
@@ -3219,7 +3223,8 @@ let popTarget = null;   // 設備 or 'truck'
 const RARE_SET = new Set(RARE.map(x => x[0]));
 const RAW_KINDS = new Set(['soil', 'stone', 'iron', 'gold', 'dia', 'clay', 'copper', 'coal', 'quartz', 'silver']);
 // 仕分けで選ばれている資源か（「珍品」は珍しい物をまとめて）
-const sortHit = (s, k) => k === s.filter || (s.filters && s.filters.includes(k)) || (RARE_SET.has(k) && (s.filter === 'rare' || (s.filters && s.filters.includes('rare'))));
+const sortHit = (s, k) => (s.inv ? !sortHit0(s, k) : sortHit0(s, k));   // 68：「以外」なら逆
+const sortHit0 = (s, k) => k === s.filter || (s.filters && s.filters.includes(k)) || (RARE_SET.has(k) && (s.filter === 'rare' || (s.filters && s.filters.includes('rare'))));
 let sortFold = { raw: false, prod: false };   // 畳んでいるか（開いたまま覚えておく）
 function buildFilterBox(box, t) {
   const T = tx(); box.innerHTML = '';
@@ -3429,6 +3434,8 @@ function updateEject() {   // 機械の「材料を排出」ボタン
 }
 function updatePop() {
   updateEject();
+  { const t = popTarget, on = !!(t && t !== 'truck' && (t.type === 'sort' || (t.type === 'pend' && t.tid === 'sort')) && sk('sortPlus2'));   // 68：のみ／以外
+    $('popInvRow').hidden = !on; if (on) document.querySelectorAll('#pop [data-pinv]').forEach(b => b.classList.toggle('active', (b.dataset.pinv === '1') === !!t.inv)); }
   if (!popTarget || popTarget.type === 'digcell' || popTarget.type === 'item' || popTarget.type === 'pick' || popTarget.type === 'elev' || popTarget.type === 'elevPlace' || popTarget.type === 'lid' || popTarget.type === 'lamp') return;
   const t = popTarget, T = tx();
   if (t.type === 'pend') {
@@ -3491,6 +3498,9 @@ function placePop() {
 document.querySelectorAll('#pop [data-pdir]').forEach(b => b.addEventListener('click', () => {
   if (S.tut2 && S.tut2.step === 'drillDir' && popTarget && popTarget.type === 'drill') S.tut2.did = true;   // 案内：ドリルの向きを変えた
   if (popTarget && popTarget !== 'truck' && popTarget.type !== 'fork' && popTarget.type !== 'digcell') { popTarget.dir = b.dataset.pdir; popTarget.stuck = false; updatePop(); }
+}));
+document.querySelectorAll('#pop [data-pinv]').forEach(b => b.addEventListener('click', () => {
+  if (popTarget && popTarget !== 'truck') { popTarget.inv = b.dataset.pinv === '1'; updatePop(); }
 }));
 document.querySelectorAll('#pop [data-ps]').forEach(b => b.addEventListener('click', () => {
   if (popTarget && popTarget !== 'truck') { popTarget.side = b.dataset.ps; updatePop(); }

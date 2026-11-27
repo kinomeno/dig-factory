@@ -18,7 +18,7 @@
 <meta property="og:locale" content="ja_JP">
 <meta property="og:site_name" content="ほりほり工場 / Dig Factory Tycoon">
 <meta name="twitter:card" content="summary">
-<link rel="stylesheet" href="style.css?v=1.19">
+<link rel="stylesheet" href="style.css?v=1.20">
 <!-- 広告（準備だけ。まだ動かしていない）：Google の H5 ゲーム広告を使う時に、下のコメントを外し、ca-pub-XXXX を自分の番号にする。main.js の AD_ON も true に
 <script async data-ad-client="ca-pub-8328461906614341" data-adbreak-test="on" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js" crossorigin="anonymous"></script>
 <script>window.adsbygoogle = window.adsbygoogle || []; var adBreak = adConfig = function (o) { adsbygoogle.push(o); }; adConfig({ preloadAdBreaks: 'on', sound: 'on' });</script>
@@ -219,6 +219,9 @@
     <button data-pdir="right">→</button>
   </span></div>
   <div id="popFilterRow" class="prow labeled"><span class="lab" data-t="filter">選ぶ資源</span><span class="opts" id="popFilters"></span></div>
+  <div id="popInvRow" class="prow labeled" hidden><span class="lab" data-t="sortInvL">出す物</span>
+    <span class="opts"><button data-pinv="0" data-t="sortOnly">選んだ物のみ</button><button data-pinv="1" data-t="sortExcept">選んだ物以外</button></span>
+  </div>
   <div id="popSideRow" class="prow labeled"><span class="lab" data-t="side">出す側</span>
     <span class="opts"><button data-ps="left" data-t="left">左</button><button data-ps="right" data-t="right">右</button></span>
   </div>
@@ -282,7 +285,7 @@
   </div>
 </div>
 
-<script src="sprites.js?v=1.19"></script>
-<script src="main.js?v=1.19"></script>
+<script src="sprites.js?v=1.20"></script>
+<script src="main.js?v=1.20"></script>
 </body>
 </html>
