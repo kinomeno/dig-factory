@@ -18,7 +18,7 @@
 <meta property="og:locale" content="ja_JP">
 <meta property="og:site_name" content="ほりほり工場 / Dig Factory Tycoon">
 <meta name="twitter:card" content="summary">
-<link rel="stylesheet" href="style.css?v=1.06">
+<link rel="stylesheet" href="style.css?v=1.07">
 <!-- 広告（準備だけ。まだ動かしていない）：Google の H5 ゲーム広告を使う時に、下のコメントを外し、ca-pub-XXXX を自分の番号にする。main.js の AD_ON も true に
 <script async data-ad-client="ca-pub-8328461906614341" data-adbreak-test="on" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js" crossorigin="anonymous"></script>
 <script>window.adsbygoogle = window.adsbygoogle || []; var adBreak = adConfig = function (o) { adsbygoogle.push(o); }; adConfig({ preloadAdBreaks: 'on', sound: 'on' });</script>
@@ -34,6 +34,7 @@
     <span class="stat" id="date"></span>
     <span class="grow"></span>
     <button id="infoBtn"><span class="lg" data-t="info">情報</span><span class="sm">i</span></button>
+    <button id="colBtn" class="icon" aria-label="collection"><svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1" opacity=".35"/></svg></button>
     <button id="helpBtn"><span class="lg" data-t="help">遊び方</span><span class="sm">?</span></button>
     <button id="adminBtn" class="test"><span class="lg" data-t="admin">管理</span><span class="sm">管</span></button>
     <button id="setBtn" class="icon" aria-label="settings">⚙&#xFE0E;</button>
@@ -164,6 +165,13 @@
   <div id="infoCatl" class="icat" hidden></div>
 </div>
 
+<!-- コレクション（見た物が格子に並ぶ） -->
+<div id="colPanel" class="float panel" hidden>
+  <div class="head"><b><span data-t="colTitle">コレクション</span>　<small id="colCount"></small></b><button class="x" data-close="colPanel">✕</button></div>
+  <div id="colName" class="sub"></div>
+  <div id="colBody"></div>
+</div>
+
 <!-- 遊び方 -->
 <div id="help" class="float panel" hidden>
   <div class="head"><b data-t="help">遊び方</b><button class="x" data-close="help">✕</button></div>
@@ -270,7 +278,7 @@
   </div>
 </div>
 
-<script src="sprites.js?v=1.06"></script>
-<script src="main.js?v=1.06"></script>
+<script src="sprites.js?v=1.07"></script>
+<script src="main.js?v=1.07"></script>
 </body>
 </html>

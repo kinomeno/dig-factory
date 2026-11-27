@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.06（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.07（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.06';
+const VERSION = '1.07';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -388,7 +388,7 @@ const TXT = {
     needDig: n => `掘削レベル${n}が必要です（スキル）`,
     rockHint: n => `硬い岩盤：掘削レベル${n}が無いと、とても遅くしか掘れません（研究所で研究）`,
     quit: '給料が払えず、作業員が1人やめました',
-    veinFound: '鉱脈だ！', bedBonus: (lv, n) => `岩盤${lv}を突破！ ご褒美に資源が${n}個、地上に出ました`, coUnlock: (lv, n) => `会社レベル${lv}：${n} が使えるようになりました（研究所に出ている物もあります）`, autoConvOpt: 'コンベア自動設置', secAdvOpt: '秘書の提案', coLvMsg: '会社レベルを上げられます（タップで事務所へ）',
+    veinFound: '鉱脈だ！', colTitle: 'コレクション', col: { title: 'コレクション', 'p:worker': '作業員', 'p:boss': '社長', 'v:fork': 'フォークリフト', 'v:bossFork': '社長専用フォークリフト', 'v:truck': 'トラック', 'b:office': '事務所', unknown: '？（まだ見ていません）', hint: 'タップで名前' }, bedBonus: (lv, n) => `岩盤${lv}を突破！ ご褒美に資源が${n}個、地上に出ました`, coUnlock: (lv, n) => `会社レベル${lv}：${n} が使えるようになりました（研究所に出ている物もあります）`, autoConvOpt: 'コンベア自動設置', secAdvOpt: '秘書の提案', coLvMsg: '会社レベルを上げられます（タップで事務所へ）',
     adv: { jam: 'コンベアが詰まっています。人をつけるか、強化しては？', buf: n => `${n}の中に材料が溜まっています`, coUp: '会社レベルを上げられます',
       truck: 'ヤードに資源が溜まっています。トラックを強化しては？', fork: '地上に資源が溜まっています。フォークリフトを増やしては？',
       useRes: (a, b) => `${a}は、${b}で加工できます`, next: '次へ', none: '今は、提案はありません' }, on: 'オン', off: 'オフ',
@@ -533,7 +533,7 @@ const TXT = {
     needDig: n => `あなほり レベル${n}が ひつよう です（スキル）`,
     rockHint: n => `かたい がんばん：あなほり レベル${n}が ないと、とても ゆっくりしか ほれません`,
     quit: 'きゅうりょうが はらえず、さぎょういんが 1にん やめました',
-    veinFound: 'こうみゃくだ！', bedBonus: (lv, n) => `がんばん${lv}を とっぱ！ ごほうびに しげんが ${n}こ、ちじょうに でました`, coUnlock: (lv, n) => `かいしゃ レベル${lv}：${n} が つかえるように なりました`, autoConvOpt: 'コンベア じどう おき', secAdvOpt: 'ひしょの ていあん', coLvMsg: 'かいしゃ レベルを あげられます（タップで じむしょへ）',
+    veinFound: 'こうみゃくだ！', colTitle: 'コレクション', col: { title: 'コレクション', 'p:worker': 'さぎょういん', 'p:boss': 'しゃちょう', 'v:fork': 'フォークリフト', 'v:bossFork': 'しゃちょうの フォークリフト', 'v:truck': 'トラック', 'b:office': 'じむしょ', unknown: '？（まだ みていません）', hint: 'タップで なまえ' }, bedBonus: (lv, n) => `がんばん${lv}を とっぱ！ ごほうびに しげんが ${n}こ、ちじょうに でました`, coUnlock: (lv, n) => `かいしゃ レベル${lv}：${n} が つかえるように なりました`, autoConvOpt: 'コンベア じどう おき', secAdvOpt: 'ひしょの ていあん', coLvMsg: 'かいしゃ レベルを あげられます（タップで じむしょへ）',
     adv: { jam: 'コンベアが つまっています。ひとを つけるか、つよく しては？', buf: n => `${n}の なかに ざいりょうが たまっています`, coUp: 'かいしゃ レベルを あげられます',
       truck: 'ヤードに しげんが たまっています。トラックを つよく しては？', fork: 'ちじょうに しげんが たまっています。フォークリフトを ふやしては？',
       useRes: (a, b) => `${a}は、${b}で かこう できます`, next: 'つぎへ', none: 'いまは、ていあんは ありません' }, on: 'オン', off: 'オフ',
@@ -678,7 +678,7 @@ const TXT = {
     needDig: n => `Needs dig level ${n} (skill)`,
     rockHint: n => `Hard bedrock: without dig level ${n} it is very slow (research it at the Lab)`,
     quit: 'Could not pay wages: one worker quit',
-    veinFound: 'A vein!', bedBonus: (lv, n) => `Broke through bedrock ${lv}! ${n} bonus resources popped out on the surface`, coUnlock: (lv, n) => `Company level ${lv}: ${n} now available (some appear in the Lab)`, autoConvOpt: 'Auto conveyor', secAdvOpt: 'Secretary tips', coLvMsg: 'You can raise the company level (tap to open the office)',
+    veinFound: 'A vein!', colTitle: 'Collection', col: { title: 'Collection', 'p:worker': 'Worker', 'p:boss': 'Boss', 'v:fork': 'Forklift', 'v:bossFork': "Boss's forklift", 'v:truck': 'Truck', 'b:office': 'Office', unknown: '? (not seen yet)', hint: 'Tap for the name' }, bedBonus: (lv, n) => `Broke through bedrock ${lv}! ${n} bonus resources popped out on the surface`, coUnlock: (lv, n) => `Company level ${lv}: ${n} now available (some appear in the Lab)`, autoConvOpt: 'Auto conveyor', secAdvOpt: 'Secretary tips', coLvMsg: 'You can raise the company level (tap to open the office)',
     adv: { jam: 'A conveyor is jammed. Add a worker or upgrade it?', buf: n => `Materials are piling up in the ${n}`, coUp: 'You can raise the company level',
       truck: 'Resources are piling up in the yard. Upgrade the truck?', fork: 'Resources are piling up on the surface. Buy more forklifts?',
       useRes: (a, b) => `${a} can be processed in the ${b}`, next: 'Next', none: 'No tips right now' }, on: 'On', off: 'Off',
@@ -3605,7 +3605,7 @@ let helpIdx = 0;
 let panelTouchAt = -1e9;
 document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('.panel')) panelTouchAt = performance.now(); }, true);
 const panelBusy = el => el.matches(':hover') || performance.now() - panelTouchAt < 1200;
-const PANELS = ['powerPanel', 'skillPanel', 'office', 'help', 'settings', 'admin', 'tune', 'tradePanel'];   // 情報・地図は別（開いたまま遊べる）
+const PANELS = ['powerPanel', 'skillPanel', 'office', 'help', 'settings', 'admin', 'tune', 'tradePanel', 'colPanel'];   // 情報・地図は別（開いたまま遊べる）
 let resShown = new Set();   // 研究の画面に出した研究（閉じた時に「見た」にする）
 function closePanels() {
   if (!$('skillPanel').hidden && S.seenRes) { for (const id of resShown) S.seenRes[id] = 1; resShown = new Set(); }
@@ -3741,6 +3741,7 @@ function drawCutaway(cv2, kind) {
 }
 function renderPanel(id) {
   const T = tx();
+  if (id === 'colPanel') { renderCol(); return; }
   if (id === 'powerPanel') {
     const box = $('powerItems'); box.innerHTML = '';
     box.append(secEl(T.secCo));
@@ -5672,6 +5673,7 @@ function advSync() {   // 右下の顔と吹き出しを今の状態に
 }
 function advTick() {
   if (!S || inTitle) return;
+  if (!advTick.t || performance.now() - advTick.t > 2000) { advTick.t = performance.now(); colScan(); }
   coLvWatch();
   if (!advOn()) { if (!$('secAdv').hidden) advSync(); return; }
   if (performance.now() - advT < 1000) return;
@@ -5691,6 +5693,60 @@ function xAvoidMsg() {
     let dy = 0;
     if (mr && mr.width && r.right > mr.left && r.left < mr.right && bot > mr.top && top < mr.bottom) dy = Math.ceil(mr.bottom - top + 4);
     if (dy !== dy0) { x.dataset.dy = dy; x.style.transform = dy ? `translateY(${dy}px)` : ''; x.style.position = dy ? 'relative' : ''; x.style.zIndex = dy ? '50' : ''; }
+  }
+}
+// ---- 111 コレクション：画面で見た物が格子に並ぶ（まだの物は灰色の影絵・タップでぶるぶる） ----
+const colIds = () => [
+  'p:boss', 'p:worker', 'v:fork', 'v:bossFork', 'v:truck', 'b:office', 'lab', ...FAC_IDS,
+  'drill', 'fdrill', 'adrill', 'conv', 'sort', 'tee', 'cross', 'pipe', 'elev', 'lamp',
+  ...MACHINE_ORDER.map(m => 'm:' + m), ...ITEM_ORDER.filter(k => k !== 'bag').map(k => 'i:' + k)];
+function colScan() {   // 見た物を覚える（なくなっても数える）
+  const c = S.col || (S.col = {}), on = id => { c[id] = 1; };
+  on('p:boss'); on('v:fork'); on('v:truck'); on('b:office');
+  if (staffN() > 0) on('p:worker');
+  if (S.bossFork) on('v:bossFork');
+  if (S.lab.built) on('lab');
+  for (const f of S.fac) on(f.f);
+  for (const k in S.seenIt || {}) if (k !== 'bag') on('i:' + k);
+  for (const st of S.st.values()) {
+    if (st.type === 'machine') on('m:' + st.m); else if (st.type === 'drill') on(st.tid || 'drill');
+    else if (['conv', 'sort', 'tee', 'cross', 'pipe'].includes(st.type)) on(st.type);
+  }
+  if (Object.keys(S.elev || {}).length) on('elev');
+  if (Object.keys(S.lamps || {}).length) on('lamp');
+}
+const colCache = new Map();
+function colPic(id) {   // 48×48 の絵（ゲームの絵をそのまま使う。大きい物だけ小さく描き直す）
+  if (colCache.has(id)) return colCache.get(id);
+  let c2;
+  if (id.startsWith('i:')) { c2 = document.createElement('canvas'); c2.width = c2.height = 48; const g = c2.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(itemSprite(id.slice(2)), 4, 4, 40, 40); }
+  else if (id.startsWith('m:') || isDrillTool(id) || ['conv', 'sort', 'tee', 'cross', 'pipe', 'elev', 'lamp', 'lab'].includes(id) || isFacTool(id)) { const t = thumb(id); c2 = document.createElement('canvas'); c2.width = c2.height = 48; c2.getContext('2d').drawImage(t, 0, 0); }
+  else {
+    c2 = document.createElement('canvas'); c2.width = c2.height = 48;
+    const saved = [ctx, cp]; ctx = c2.getContext('2d'); ctx.imageSmoothingEnabled = false;
+    try {
+      if (id === 'p:worker' || id === 'p:boss') { cp = 48; drawWorkerSprite(24, 46, 40, 1, 1, id === 'p:boss'); }
+      else if (id === 'v:fork' || id === 'v:bossFork') { cp = 48; ctx.translate(0, -YARD_R * 48 + 4); drawFork({ x: 0.45, lv: 0, load: [], face: 1, boss: id === 'v:bossFork' }); }
+      else if (id === 'v:truck') { cp = 48; ctx.translate(0, -YARD_R * 48); drawTruckAt(0); }
+      else if (id === 'b:office') { cp = 24; ctx.translate(-OFFICE_C * 24, -(YARD_R + 1) * 24 + 44); const lv0 = S.office.lv; S.office.lv = 0; try { drawOffice0(); } finally { S.office.lv = lv0; } }
+    } catch (e) { } finally { [ctx, cp] = saved; }
+  }
+  colCache.set(id, c2); return c2;
+}
+const colName = id => { const T = tx(); return id.startsWith('i:') ? T.items[id.slice(2)] : id.startsWith('m:') ? T.mach[id.slice(2)] : id === 'lab' ? T.labName : isFacTool(id) ? T.fac[id] : T.col[id] || T[id] || id; };
+function renderCol() {
+  colScan();
+  const T = tx(), ids = colIds(), got = ids.filter(id => S.col[id]).length, box = $('colBody');
+  $('colCount').textContent = `${got} / ${ids.length}`;
+  if (box.dataset.k === lang + got) return;
+  box.dataset.k = lang + got; box.innerHTML = '';
+  for (const id of ids) {
+    const have = !!S.col[id], cell = document.createElement('button'); cell.className = 'colCell' + (have ? '' : ' none');
+    const pic = colPic(id), cv = document.createElement('canvas'); cv.width = cv.height = 48; const g = cv.getContext('2d'); g.drawImage(pic, 0, 0);
+    if (!have) { g.globalCompositeOperation = 'source-in'; g.fillStyle = '#9a9a9e'; g.fillRect(0, 0, 48, 48); }   // まだの物は灰色の影絵
+    cell.append(cv); cell.title = have ? colName(id) : '？';
+    cell.addEventListener('click', () => { cell.classList.remove('wig'); void cell.offsetWidth; cell.classList.add('wig'); $('colName').textContent = have ? colName(id) : T.col.unknown; });
+    box.append(cell);
   }
 }
 function updateUI() {
@@ -6038,6 +6094,7 @@ $('powerBtn').addEventListener('click', () => togglePanel('powerPanel'));
 $('tradeBtn').addEventListener('click', () => togglePanel('tradePanel'));
 $('skillBtn').addEventListener('click', () => { if (S.lab.built) togglePanel('skillPanel'); });
 $('helpBtn').addEventListener('click', () => togglePanel('help'));
+$('colBtn').addEventListener('click', () => togglePanel('colPanel'));
 $('setBtn').addEventListener('click', () => togglePanel('settings'));
 $('adminBtn').addEventListener('click', () => togglePanel('admin'));
 // タイトルを押すと「タイトルにもどりますか？」（自動でセーブしてから）

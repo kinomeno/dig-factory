@@ -581,3 +581,11 @@ body.title #secAdv, body.title #secAdvBub, body.tut #secAdv, body.tut #secAdvBub
 #cmBox span { white-space: nowrap; }
 #cmBox[hidden] { display: none; }
 body.cmOn .msg { top: calc(var(--hdr) + 12px + var(--cmH, 28px)); }
+/* v1.07 コレクション */
+#colBody { display: grid; grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 4px; }
+.colCell { aspect-ratio: 1; padding: 2px; display: flex; align-items: center; justify-content: center; background: #fff; border: 1px solid var(--line2); border-radius: 4px; }
+.colCell.none { background: #f0efec; }
+.colCell canvas { width: 100%; height: 100%; image-rendering: pixelated; }
+.colCell.wig canvas { animation: colWig .45s ease-out; }
+@keyframes colWig { 0% { transform: rotate(0); } 20% { transform: rotate(-9deg) scale(1.06); } 45% { transform: rotate(8deg) scale(1.06); } 70% { transform: rotate(-4deg); } 100% { transform: rotate(0); } }
+#colName { min-height: 1.5em; margin: 2px 0 6px; }
