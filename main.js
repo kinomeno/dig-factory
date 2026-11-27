@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.61（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.62（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.61';
+const VERSION = '1.62';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -5597,13 +5597,13 @@ function drawOffice() {
   ctx.restore();
 }
 // 78 空：たまに鳥の群れか飛行機が横切る（ドット絵の影絵。重ねずに1ドットずつ描く。羽は上下に動くだけ）
-const PLANE_PIX = ['..........x.', '.........xx.', 'xxxxxxxxxxxx', '.xx..xxx....', '......x.....'];   // 12×5（左向きの絵を、右へ飛ぶ時は反転）
+const PLANE_PIX = ['......x', 'xxxxxxx', '...x...'];   // 7×3：上空8000mの小さな影（左向きの絵を、右へ飛ぶ時は反転）
 const BIRD_PIX = [['x...x', '.x.x.', '..x..'], ['.....', 'xx.xx', '..x..']];   // 羽ばたき2コマ
 let skyFx = null;   // 19・20：タップした時の動き {n, kind, t0, x, y, text}
 function skyPos() {   // 今飛んでいる物と、その位置（マス）。いなければ null
   const T0 = 45, ph = S.time % T0, n = Math.floor(S.time / T0), kind = n % 3 === 2 ? 'plane' : 'birds', dur = kind === 'plane' ? 14 : 18;
   if (ph > dur || launchT) return null;
-  const rnd = seeded(300 + n), dir = rnd() < 0.5 ? 1 : -1, y0 = YARD_R - 2.2 - rnd() * 2.5, u = ph / dur;
+  const rnd = seeded(300 + n), dir = rnd() < 0.5 ? 1 : -1, y0 = kind === 'plane' ? YARD_R - 5 - rnd() * 2.5 : YARD_R - 2.2 - rnd() * 2.5, u = ph / dur;   // 飛行機はずっと高い所
   return { n, kind, dir, x: dir > 0 ? -2 + u * (COLS + 4) : COLS + 2 - u * (COLS + 4), y: y0 };
 }
 function skyTap(wx, wy) {   // 空の物をタップ
@@ -5621,7 +5621,7 @@ function drawSkyFliers() {
   if (p.kind === 'plane') {
     let x = p.x * cell, y = p.y * cell;
     if (fx) { x = (fx.x + fx.dir * e * 0.9) * cell; y = (fx.y - e * 0.7) * cell; if (e < 2.2) drawBubble(x + 6 * u, y - u, fx.text); }   // 斜め上へ逃げる
-    pix(PLANE_PIX, x - 6 * u, y - 2 * u, u, p.dir > 0);
+    const up = Math.max(0.8, cell * 0.022); pix(PLANE_PIX, x - 3.5 * up, y - 1.5 * up, up, p.dir > 0);
   } else {
     for (let i = 0; i < 5; i++) {
       let bx = p.x - p.dir * i * 0.22 - p.dir * Math.abs(i - 2) * 0.05, by = p.y + Math.abs(i - 2) * 0.1 + Math.sin(S.time * 3 + i) * 0.03;
