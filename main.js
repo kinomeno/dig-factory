@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.03（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.04（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.03';
+const VERSION = '1.04';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -153,7 +153,7 @@ const ITEMS = {
   mummy:     { v: 25000, c: ['#e8dcc0', '#5e5040'], s: 'mummy' },
 };
 const ITEM_ORDER = Object.keys(ITEMS);
-const RARE = [['ammonite', 20], ['fossil', 30], ['haniwa', 40], ['rareMin', 50], ['relic', 60], ['mummy', 70]];   // 珍しい資源と、出始める深さ（m）
+const RARE = [['ammonite', 24], ['fossil', 30], ['haniwa', 36], ['rareMin', 42], ['relic', 54], ['mummy', 60]];   // 珍しい資源と、出始める段（v1.04：岩盤3・4・5・6・8・9の下）
 const isRare = k => RARE.some(([r]) => r === k);
 
 // 加工機械（1マス。前以外から入れて、前に出す）
@@ -186,8 +186,9 @@ const valueMul = m => Math.pow(BAL.valueUp, m.lv || 0);
 const FORK = { cap: 6, speed: 2.4, rate: 8 };   // 積める数・走る速さ（マス/秒）・積みおろしの速さ（個/秒）
 const newFork = () => ({ type: 'fork', lv: 0, op: null, x: 0, state: 'idle', load: [], tc: null, acc: 0, face: 1 });
 // 硬い岩盤：Lv1＝10m、その後は20mごと（30m・50m…）。掘り抜くと段階が上がる（新しい研究が出る）
-const layerDepth = n => (n === 1 ? 5 : 10 * (n - 1));                   // 中の番号n：1＝5m（岩盤Lv0）、2＝10m（Lv1）、3＝20m（Lv2）…
-const layerAt = d => (d === 5 ? 1 : d >= 10 && d % 10 === 0 ? 1 + d / 10 : 0);
+const layerDepth = n => 5 + 6 * (n - 1);                                // v1.04：中の番号n：1＝5段目（岩盤0）、2＝11段目（岩盤1）…（普通の層5つ＋硬い層1つ）
+const layerAt = d => (d >= 5 && (d - 5) % 6 === 0 ? 1 + (d - 5) / 6 : 0);
+const BR = k => 5 + 6 * k;                                               // 岩盤kの段（0＝5・1＝11・2＝17…10＝65）
 const rockLv = layer => layer - 1;                                      // 画面に出す岩盤レベル
 const stageOf = deepest => { let n = 1; while (deepest - SKY >= layerDepth(n)) n++; return n; };
 // 事務所のレベル：休憩の速さ・定員
@@ -378,7 +379,7 @@ const TXT = {
     needDig: n => `掘削レベル${n}が必要です（スキル）`,
     rockHint: n => `硬い岩盤：掘削レベル${n}が無いと、とても遅くしか掘れません（研究所で研究）`,
     quit: '給料が払えず、作業員が1人やめました',
-    veinFound: '鉱脈だ！', autoConvOpt: 'コンベア自動設置', secAdvOpt: '秘書の提案', coLvMsg: '会社レベルを上げられます（タップで事務所へ）',
+    veinFound: '鉱脈だ！', coUnlock: (lv, n) => `会社レベル${lv}：${n} が使えるようになりました（研究所に出ている物もあります）`, autoConvOpt: 'コンベア自動設置', secAdvOpt: '秘書の提案', coLvMsg: '会社レベルを上げられます（タップで事務所へ）',
     adv: { jam: 'コンベアが詰まっています。人をつけるか、強化しては？', buf: n => `${n}の中に材料が溜まっています`, coUp: '会社レベルを上げられます',
       truck: 'ヤードに資源が溜まっています。トラックを強化しては？', fork: '地上に資源が溜まっています。フォークリフトを増やしては？',
       useRes: (a, b) => `${a}は、${b}で加工できます`, next: '次へ', none: '今は、提案はありません' }, on: 'オン', off: 'オフ',
@@ -523,7 +524,7 @@ const TXT = {
     needDig: n => `あなほり レベル${n}が ひつよう です（スキル）`,
     rockHint: n => `かたい がんばん：あなほり レベル${n}が ないと、とても ゆっくりしか ほれません`,
     quit: 'きゅうりょうが はらえず、さぎょういんが 1にん やめました',
-    veinFound: 'こうみゃくだ！', autoConvOpt: 'コンベア じどう おき', secAdvOpt: 'ひしょの ていあん', coLvMsg: 'かいしゃ レベルを あげられます（タップで じむしょへ）',
+    veinFound: 'こうみゃくだ！', coUnlock: (lv, n) => `かいしゃ レベル${lv}：${n} が つかえるように なりました`, autoConvOpt: 'コンベア じどう おき', secAdvOpt: 'ひしょの ていあん', coLvMsg: 'かいしゃ レベルを あげられます（タップで じむしょへ）',
     adv: { jam: 'コンベアが つまっています。ひとを つけるか、つよく しては？', buf: n => `${n}の なかに ざいりょうが たまっています`, coUp: 'かいしゃ レベルを あげられます',
       truck: 'ヤードに しげんが たまっています。トラックを つよく しては？', fork: 'ちじょうに しげんが たまっています。フォークリフトを ふやしては？',
       useRes: (a, b) => `${a}は、${b}で かこう できます`, next: 'つぎへ', none: 'いまは、ていあんは ありません' }, on: 'オン', off: 'オフ',
@@ -668,7 +669,7 @@ const TXT = {
     needDig: n => `Needs dig level ${n} (skill)`,
     rockHint: n => `Hard bedrock: without dig level ${n} it is very slow (research it at the Lab)`,
     quit: 'Could not pay wages: one worker quit',
-    veinFound: 'A vein!', autoConvOpt: 'Auto conveyor', secAdvOpt: 'Secretary tips', coLvMsg: 'You can raise the company level (tap to open the office)',
+    veinFound: 'A vein!', coUnlock: (lv, n) => `Company level ${lv}: ${n} now available (some appear in the Lab)`, autoConvOpt: 'Auto conveyor', secAdvOpt: 'Secretary tips', coLvMsg: 'You can raise the company level (tap to open the office)',
     adv: { jam: 'A conveyor is jammed. Add a worker or upgrade it?', buf: n => `Materials are piling up in the ${n}`, coUp: 'You can raise the company level',
       truck: 'Resources are piling up in the yard. Upgrade the truck?', fork: 'Resources are piling up on the surface. Buy more forklifts?',
       useRes: (a, b) => `${a} can be processed in the ${b}`, next: 'Next', none: 'No tips right now' }, on: 'On', off: 'Off',
@@ -1029,7 +1030,7 @@ const newTruck = phase => ({ type: 'truck', op: null, load: 0, value: 0, phase, 
 // 1マスを掘りきるのに要る力の合計（v0.79）
 // 岩盤Lv0（5m）＝ドリルLv3で約20秒。次の岩盤は、その4300倍（同じドリルで約24時間）
 // 岩盤と岩盤の間の地面：上の岩盤と同じ硬さから始まり、次の岩盤の真上で約19倍まで（BAL.zoneHard）、だんだん硬くなる
-const ROCK_HP0 = 56, ROCK_G = 4300;   // v0.95：ドリルLv3（作業員つき）で岩盤Lv0が約20秒になるように
+const ROCK_HP0 = 56, ROCK_G = 17;   // v1.04：次の岩盤は約17倍（ドリルで約7レベル）。前は4300倍（約21レベル・同じドリルで24時間）   // v0.95：ドリルLv3（作業員つき）で岩盤Lv0が約20秒になるように
 const rockHp = n => ROCK_HP0 * Math.pow(ROCK_G, n - 1);   // 岩盤（中の番号n：1＝5m）
 function cellHp(d) {
   if (d < layerDepth(1)) return 14 * Math.pow(40 / 14, d / layerDepth(1));   // 最初の岩盤まで：やわらかい
@@ -1048,7 +1049,7 @@ function makeBlock(r) {
   const yieldN = Math.round(Math.min(30, 14 + Math.floor(d / 4)) * TUNE.yield);   // 1マスから出る数（たくさん出て、コンベアがにぎやかに）
   const hp = cellHp(d) * TUNE.hard * (stone ? 1.3 : 1), yN = Math.min(BAL.itemMax, Math.max(yieldN, Math.round(hp / BAL.itemHp)));   // 硬いマスほど、たくさん出る（稼ぎはドリルの力で決まる）
   const h = hp / yN;   // 1つ出すのに要る力
-  const y2 = Math.random(), pocket = d >= 50 && y2 < BAL.oilP * O ? 'oil' : d >= 30 && y2 < BAL.hotP * O ? 'hot' : null;   // 掘り抜くと湧き口になる
+  const y2 = Math.random(), pocket = d > BR(5) && y2 < BAL.oilP * O ? 'oil' : d > BR(4) && y2 < BAL.hotP * O ? 'hot' : null;   // 温泉は岩盤4・石油は岩盤5の下から   // 掘り抜くと湧き口になる
   return { mat: stone ? 'stone' : 'soil', ore, yieldN: yN, left: yN, h, p: 0, pocket };
 }
 // その深さで鉱石が入っているか（入っていなければ null）
@@ -1056,14 +1057,15 @@ function makeBlock(r) {
 function oreRoll(d) {
   const O = TUNE.ore;
   const list = [   // 珍しい物から順に（v0.83：粘土 5〜15m・銅 10m〜・石炭 20m〜・石英 30m〜・銀 40m〜）
-    ['dia', (d < 30 ? 0 : d < 50 ? BAL.diaP30 : BAL.diaP50) * (1 + 0.1 * sk('diaUp'))],   // 暗闇の光
-    ['silver', d < 40 ? 0 : BAL.silverP],
-    ['gold', (d < 10 ? 0 : d < 30 ? BAL.goldP10 : BAL.goldP30) * (1 + 0.1 * sk('goldUp'))],   // 金の匂い
-    ['quartz', d < 30 ? 0 : BAL.quartzP],
-    ['copper', d < 10 ? 0 : d < 40 ? BAL.copperP : BAL.copperP / 2],
-    ['coal', d < 20 ? 0 : BAL.coalP],
-    ['iron', d < 5 ? 0 : d < 10 ? BAL.ironP5 : BAL.ironP10],
-    ['clay', d >= 5 && d < 15 ? BAL.clayP : 0],
+    // v1.04：岩盤ごとに出始める（鉄・粘土＝岩盤1の下・銅＝2・金＝3・石炭＝4・石英＝5・銀＝6・ダイヤ＝7）
+    ['dia', (d <= BR(7) ? 0 : d <= BR(9) ? BAL.diaP30 : BAL.diaP50) * (1 + 0.1 * sk('diaUp'))],   // 暗闇の光
+    ['silver', d <= BR(6) ? 0 : BAL.silverP],
+    ['gold', (d <= BR(3) ? 0 : d <= BR(5) ? BAL.goldP10 : BAL.goldP30) * (1 + 0.1 * sk('goldUp'))],   // 金の匂い
+    ['quartz', d <= BR(5) ? 0 : BAL.quartzP],
+    ['copper', d <= BR(2) ? 0 : d <= BR(6) ? BAL.copperP : BAL.copperP / 2],
+    ['coal', d <= BR(4) ? 0 : BAL.coalP],
+    ['iron', d <= BR(1) ? 0 : d <= BR(3) ? BAL.ironP5 : BAL.ironP10],
+    ['clay', d > BR(1) && d <= BR(3) ? BAL.clayP : 0],
   ];
   let x = Math.random();
   for (const [k, pr] of list) { const q = pr * O; if (x < q) return k; x -= q; }
@@ -1084,8 +1086,8 @@ function makeVeins(upto) {
   let r = Math.max(S.veinTo || 0, SKY + 6);
   while (r < upto) {
     const rr = r + Math.floor(Math.random() * 10), d = rr - SKY;
-    const ks = ['iron', ...(d < 15 ? ['clay'] : []), ...(d >= 10 ? ['gold', 'copper'] : []), ...(d >= 20 ? ['coal'] : []), ...(d >= 30 ? ['dia', 'quartz'] : []), ...(d >= 40 ? ['silver'] : [])];
-    if (!layerAt(d)) S.veins.push({ c: Math.floor(Math.random() * COLS), r: rr, k: ks[Math.floor(Math.random() * ks.length)], rad: 2 + Math.floor(Math.random() * 2) });
+    const ks = [...(d > BR(1) ? ['iron'] : []), ...(d > BR(1) && d <= BR(3) ? ['clay'] : []), ...(d > BR(2) ? ['copper'] : []), ...(d > BR(3) ? ['gold'] : []), ...(d > BR(4) ? ['coal'] : []), ...(d > BR(5) ? ['quartz'] : []), ...(d > BR(6) ? ['silver'] : []), ...(d > BR(7) ? ['dia'] : [])];   // v1.04：岩盤1より上に鉱脈は無い
+    if (ks.length && !layerAt(d)) S.veins.push({ c: Math.floor(Math.random() * COLS), r: rr, k: ks[Math.floor(Math.random() * ks.length)], rad: 2 + Math.floor(Math.random() * 2) });
     r += 10;
   }
   S.veinTo = r;
@@ -1252,6 +1254,26 @@ const RES_STAGE = { 'm:sieve': 2, 'm:roller': 4, 'm:caster': 4, 'm:glassF': 5, '
 const SK_STAGE_VEIN = 5;   // 鉱脈探知は段階5から
 const SK_NEW_STAGE = { secAdv: 3, autoHire: 2, autoUpg: 3, autoPrice: 3, goldUp: 3, diaUp: 5, newTech: 4, bored: 2, treasure: 4, statue: 3, garden: 3, conne: 3, sortPlus: 4, oilScan: 6 };   // 新しい研究が出る段階
 const SK_STAGE = { speed: [3, 7, 9], welfare: [3, 7], hr: [4, 7], beltMax: [8, 9], labRoom: [3, 5, 7, 8, 9] };   // 段ごとに出てくる段階
+// v1.04：会社レベル（画面の数字）で出る物。機械・道具は研究なしで使えるようになり、ほかは研究に出る
+// 重要度の順に並べ、Lv2〜15に2つずつ（岩盤kの下の資源が出る会社レベルに、その資源の機械を合わせる）
+const CO_UNLOCK = {
+  'm:crusher': 2, 'm:adit': 2, 'sk:autoHire': 2,
+  'm:smelter': 3, 'm:sieve': 3, 'sk:hr': 3, 'sk:away': 3,
+  'm:bagger': 4, 't:tee': 4, 'sk:secAdv': 4, 'sk:bored': 4,
+  't:elev': 5, 'm:roller': 5, 'sk:land': 5, 'sk:autoUpg': 5,
+  't:lamp': 6, 'm:drawer': 6, 'sk:autoPrice': 6, 'sk:vein': 6,
+  't:pipe': 7, 'm:factory': 7, 'f:spa': 7, 'sk:statue': 7,
+  'm:glassF': 8, 't:cross': 8, 'f:power': 8, 'sk:garden': 8, 'sk:conne': 8,
+  't:fdrill': 9, 'm:caster': 9, 'sk:goldUp': 9, 'sk:sortPlus': 9,
+  'm:metalwork': 10, 'f:refinery': 10, 'sk:yardPlus': 10, 'sk:newTech': 10,
+  'm:washer': 11, 'm:cutter': 11, 'batch': 11, 'sk:treasure': 11,
+  't:adrill': 12, 'm:polisher': 12, 'f:museum': 12, 'sk:veteran': 12,
+  'sk:black': 13, 'sk:speeding': 13, 'sk:diaUp': 13,
+  'm:atelier': 14, 'sk:oilScan': 14,
+};
+const CO_SK = { speed: [2, 6, 10], hr: [3, 7], welfare: [6, 9], labRoom: [2, 5, 8, 11, 13] };   // 何段もある研究：段ごとの会社レベル
+const coLv = () => S.office.lv + 1;
+const coNeedOf = id => { if (id.startsWith('sk:') && CO_SK[id.slice(3)]) { const a = CO_SK[id.slice(3)]; return a[Math.min(sk(id.slice(3)), a.length - 1)]; } return CO_UNLOCK[id] || 2; };
 function resAvail(id) {
   if (isGrant(id)) return false;   // 付与される物は研究に出さない
   if (id === 'sk:truck2') return false;   // v0.61：トラック増車は「強化」へ
@@ -1262,10 +1284,7 @@ function resAvail(id) {
   if (id === 'sk:digLv') return false;   // v0.79：掘削レベルは廃止（岩盤はドリルの強化で破る）   // 次の岩盤のぶんだけ・会社レベルの分だけ研究できる（会社レベルが主な目標）
   if (id === 'sk:beltMax') return false;   // v0.49：コンベアはLv5まで（この研究は無くなった）
   if (id === 'sk:dragPlus') return false;   // v0.61：基本機能になった
-  if (id === 'sk:vein') return S.stage >= SK_STAGE_VEIN;
-  if (SK_NEW_STAGE[id.slice(3)] !== undefined && id.startsWith('sk:')) return S.stage >= SK_NEW_STAGE[id.slice(3)];
-  if (id.startsWith('sk:')) { const k2 = id.slice(3), a = SK_STAGE[k2]; if (a) return S.stage >= a[Math.min(sk(k2), a.length - 1)]; }
-  return S.stage >= (RES_STAGE[id] || 1);
+  return coLv() >= coNeedOf(id);   // v1.04：会社レベルだけで出る
 }
 const allResIds = () => [...Object.keys(RESEARCH_TOOL).map(t => 't:' + t), ...Object.keys(RESEARCH_MACH).map(m => 'm:' + m), ...Object.keys(RESEARCH_FAC).map(f => 'f:' + f), 'batch', ...SKILL_ORDER.map(x => 'sk:' + x)];
 // 付与：機械・道具は、出る段階になったら研究なしで使えるようになる（高等な物は研究のまま）
@@ -1273,8 +1292,9 @@ const RES_ADV = new Set(['m:polisher', 'm:atelier', 'f:spa', 'f:power', 'f:refin
 const isGrant = id => (id.startsWith('m:') || id.startsWith('t:')) && !RES_ADV.has(id);
 function grantCheck(quiet) {
   const names = [];
+  if (coLv() >= CO_UNLOCK['m:crusher'] && !S.unlock.crusher) { S.unlock.crusher = true; names.push(tx().mach.crusher); }   // クラッシャー（石を砂利に）
   for (const id of [...Object.keys(RESEARCH_MACH).map(m => 'm:' + m), ...Object.keys(RESEARCH_TOOL).map(t => 't:' + t)]) {
-    if (!isGrant(id) || S.unlock[id.slice(2)] || S.stage < (RES_STAGE[id] || 1)) continue;
+    if (!isGrant(id) || S.unlock[id.slice(2)] || coLv() < coNeedOf(id)) continue;
     S.unlock[id.slice(2)] = true; names.push(resDef(id).name);
   }
   if (names.length && !quiet) { const msg = tx().granted(names.join('・')); say(msg, 6000, 'good'); addHist(msg); }
@@ -1285,9 +1305,7 @@ function checkStage() {
     const before = new Set(allResIds().filter(id => resAvail(id) && !resDef(id).done));
     S.stage++;
     const names = allResIds().filter(id => id !== 'sk:digLv' && resAvail(id) && !resDef(id).done && !before.has(id)).map(id => resDef(id).name);
-    if (S.stage >= 2 && !S.unlock.crusher) { S.unlock.crusher = true; names.unshift(tx().mach.crusher); }   // 石が出るようになる
-    names.push(...grantCheck(true));   // この段階で使えるようになった機械・道具
-    const lv = rockLv(S.stage - 1), msg = tx().stageUp(lv, names);
+    const lv = rockLv(S.stage - 1), msg = tx().stageUp(lv, []);   // v1.04：新しい物は会社レベルで出る（岩盤では出ない）
     say(msg, 7000, 'good'); pop(tx().stagePop(lv), OFFICE_C + 1, YARD_R - 0.6, 'sale');
     addHist(tx().hStage(lv));
   }
@@ -2335,13 +2353,25 @@ function updateResearch(dt) {
 }
 // 事務所のレベルアップ（レベル2で研究所が建つ）
 function secHello() { if (secOn() && !S.secHi) { S.secHi = true; setTimeout(() => say(tx().secCome, 6000, 'good'), 2500); } }
+let coSeen = null;   // 前に知らせた時点で出ていた研究
+function coUnlockSay() {
+  const grants = grantCheck(true);
+  const now = allResIds().filter(id => resAvail(id) && !resDef(id).done);
+  const fresh = coSeen ? now.filter(id => !coSeen.has(id)).map(id => resDef(id).name) : [];
+  coSeen = new Set(now);
+  const names = [...grants, ...fresh];
+  if (!names.length) return;
+  const msg = tx().coUnlock(coLv(), names.join('・')); say(msg, 7000, 'good'); addHist(msg);
+}
 function officeUp() {
+  if (!coSeen) coSeen = new Set(allResIds().filter(id => resAvail(id) && !resDef(id).done));
   const ol = S.office.lv;
   if (S.money < offCost(ol)) { say(tx().noMoney); return; }
   spend(offCost(ol), OFFICE_C + 1, YARD_R); S.office.lv++; addHist(tx().hOffice(S.office.lv + 1));
   if ((S.office.lv + 1) % 10 === 0) { const msg = tx().brandUp(S.office.lv + 1, Math.round((brandMul() - 1) * 100)); say(msg, 6000, 'good'); addHist(msg); }   // 区切り
 
   if (S.office.lv === 1 && !S.lab.built) say(tx().labUnlocked);   // 研究所を建てられるようになった（メニュー「施設」）
+  coUnlockSay();   // v1.04：この会社レベルで出た物を知らせる
   secHello();   // 会社レベル3：秘書がつく
 }
 // フォークリフトを買う（台数の上限は事務所のレベル）
@@ -2409,6 +2439,12 @@ function deserialize(json) {
       const hp = cellHp(dd) * TUNE.hard * (b.mat === 'stone' ? 1.3 : 1), yN = Math.min(BAL.itemMax, Math.max(b.yieldN, Math.round(hp / BAL.itemHp)));
       const fr = b.yieldN ? b.left / b.yieldN : 1; b.yieldN = yN; b.left = Math.max(1, Math.round(fr * yN)); b.h = hp / yN; b.p = 0;
     }
+  }
+  if (!d.bed104) {   // v1.04：岩盤の並び（5段ごと＋硬い層）と硬さが変わった。まだ一度も掘っていない深い行は作り直す（掘った行・物がある行はそのまま）
+    d.bed104 = true; d.hp95 = true;
+    const deep = (d.deepest || SKY) + 1, used = new Set((d.st || []).map(([k]) => Math.floor(+k / COLS)));
+    d.rows = d.rows.filter(([r, a]) => r <= deep || used.has(r) || a.some(b => !b));
+    d.veins = (d.veins || []).filter(v => v.r <= deep); d.veinTo = Math.min(d.veinTo || 0, deep + 1);
   }
   if (!d.hp95) {   // v0.95：岩盤の硬さの元が 100 → 56 になった（5mより深い所はその分やわらかく）
     d.hp95 = true;
@@ -3053,7 +3089,7 @@ function spillMachine(m, c, r) {
   for (const k2 of out) spawnItem(k2, c + 0.5, r + 0.5, c, r);
 }
 // 会社レベルで解放される強化の上限（会社レベルが主な目標。上げるほど強くできる）
-const CO_CAP = { drill: ol => 4 + 21 * ol, truck: ol => 2 + 2 * ol, fork: ol => 2 + 2 * ol, machine: ol => 1 + ol, belt: ol => 1 + ol };
+const CO_CAP = { drill: ol => 4 + 5 * ol, truck: ol => 2 + 2 * ol, fork: ol => 2 + 2 * ol, machine: ol => 1 + ol, belt: ol => 1 + ol };
 const capOf0 = t => (t !== 'truck' && t.type === 'machine' && MACHINES[t.m].src ? BAL.aditMax : lvCap(grpOf(t)));
 const capOf = t => { const g = grpOf(t), c0 = capOf0(t); return CO_CAP[g] ? Math.min(c0, CO_CAP[g](S.office.lv)) : c0; };
 // 会社レベルが足りなくて止まっている時：あと何レベルの会社で上げられるか（でなければ null）
@@ -4013,9 +4049,7 @@ document.querySelectorAll('[data-itab]').forEach(b => b.addEventListener('click'
 const sortChoices = cur => { const ids = catalogIds(); return ITEM_ORDER.filter(k => ids.includes(k) || k === cur || (k === 'bag' && S.unlock.bagger)); };
 function catalogIds() {
   const have = new Set(['soil']);
-  if (S.stage >= 2) { have.add('stone'); have.add('iron'); }
-  if (S.stage >= 3) have.add('gold');
-  if (S.stage >= 5) have.add('dia');
+  if (S.stage >= 1) have.add('stone');   // v1.04：鉄・金・ダイヤは、掘り出したら（seenIt）出る
   for (let pass = 0; pass < 5; pass++) for (const m of MACHINE_ORDER) if (S.unlock[m]) for (const rc of (MACHINES[m].recipes || [])) if (rc.ins ? Object.keys(rc.ins).every(k2 => have.has(k2)) : have.has(rc.in)) have.add(rc.out);
   if (S.unlock.refinery) have.add('fuel');
   for (const k in S.seenIt || {}) if (ITEMS[k] && k !== 'bag') have.add(k);   // 掘り出したことのある資源（粘土・銅なども）
@@ -5662,7 +5696,7 @@ function updateUI() {
   });
   // まだ使えない物は見せない（施設＝事務所レベル2から、スキル＝研究所ができてから）
   $('facBtn').hidden = true;   // v0.56：施設は「工事」にまとめた
-  $('powerBtn').hidden = S.stage < 2;   // 段階1（岩盤Lv0の前）では「強化」を出さない（トラック・フォークリフトはタップで強化できる）
+  $('powerBtn').hidden = coLv() < 2 && S.stage < 2;   // 会社レベル1・岩盤0の前は「強化」を出さない（トラック・フォークリフトはタップで強化できる）
   $('skillBtn').hidden = !S.lab.built;
   $('tradeBtn').hidden = S.office.lv < 1;
   const curName = tool === 'none' || tool === 'pan' ? '' : tool === 'machine' ? T.mach[machSel] : tool === 'lab' ? T.labName : T[tool];
