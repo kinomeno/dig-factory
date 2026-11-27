@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.07（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.08（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.07';
+const VERSION = '1.08';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -77,7 +77,7 @@ const START_ZOOM = 1.8;        // 最初は拡大した状態から
 // レベル（マスごと。レベル1が最弱）
 // val/cost の表を使い切ったら、vg（力）・cg（値段）の倍率で伸び続ける。cap＝上限
 const LV = {
-  drill:   { v0: 0.5, vg: 1.5, c0: 30, cg: 1.3, cap: Infinity },   // v0.95：強さは×1.5ずつ・値段は×1.3ずつ（次の岩盤まで約21レベル）   // v0.79：1レベルごとに力が2倍（上限なし。岩盤はドリルの強化で破る）                                   // 1回で削る力
+  drill:   { v0: 0.5, vg: 1.5, c0: 30, cg: 1.095, cap: Infinity },   // v1.08：値段の伸びは×1.095（岩盤10＝ドリル約210レベル＝数Bに合わせる）   // v0.95：強さは×1.5ずつ・値段は×1.3ずつ（次の岩盤まで約21レベル）   // v0.79：1レベルごとに力が2倍（上限なし。岩盤はドリルの強化で破る）                                   // 1回で削る力
   belt:    { val: [0.8, 0.95, 1.1, 1.25, 1.4],   // v0.95：上がり方を半分以下・最大も半分以下に（前は 0.8〜3）
               cost: [10, 40, 200, 5000] },   // コンベアの速さ（マス/秒）。Lv1〜5。最後（Lv5＝乗る数が無制限）はとても高い
   machine: { v0: 1, vg: 1.3, c0: 100, cg: 2.5, cap: 5 },   // レベルアップは5回まで（強化だけで解決しないように。効率化・施設を生かす余地を残す）   // 強化の値段は1レベルごとに2.5倍（作った物の売値は1.5倍ずつ上がるので、伸びすぎないように）                                    // 加工の速さ（倍）
@@ -1040,7 +1040,7 @@ const newTruck = phase => ({ type: 'truck', op: null, load: 0, value: 0, phase, 
 // 1マスを掘りきるのに要る力の合計（v0.79）
 // 岩盤0（5m）＝ドリルLv3で約20秒。次の岩盤は、その4300倍（同じドリルで約24時間）
 // 岩盤と岩盤の間の地面：上の岩盤と同じ硬さから始まり、次の岩盤の真上で約19倍まで（BAL.zoneHard）、だんだん硬くなる
-const ROCK_HP0 = 56, ROCK_G = 17;   // v1.04：次の岩盤は約17倍（ドリルで約7レベル）。前は4300倍（約21レベル・同じドリルで24時間）   // v0.95：ドリルLv3（作業員つき）で岩盤0が約20秒になるように
+const ROCK_HP0 = 56, ROCK_G = 4300;   // v1.08：岩盤を20秒で破るドリルで、次の岩盤は約24時間（約21レベル）に戻す   // v1.04：次の岩盤は約17倍（ドリルで約7レベル）。前は4300倍（約21レベル・同じドリルで24時間）   // v0.95：ドリルLv3（作業員つき）で岩盤0が約20秒になるように
 const rockHp = n => ROCK_HP0 * Math.pow(ROCK_G, n - 1);   // 岩盤（中の番号n：1＝5m）
 function cellHp(d) {
   if (d < layerDepth(1)) return 14 * Math.pow(40 / 14, d / layerDepth(1));   // 最初の岩盤まで：やわらかい
@@ -2168,7 +2168,7 @@ function updateTruck(dt) {
       if (t.load < cap && S.yard.length) {
         t.acc += dt * BAL.loadRate * (sk('yardPlus') ? 2 : 1);
         while (t.acc >= 1 && t.load < cap && S.yard.length) {
-          const it = S.yard.shift();
+          const it = S.yard.pop();   // v1.08：トラックも山の新しい物（外側）から積む
           t.value += itemVal(it) * (S.boost.priceT > 0 ? 2 : 1); t.load++; t.acc--;
           const sd = S.sold || (S.sold = {}); sd[it.k] = (sd[it.k] || 0) + 1; sd['@' + rootOf(it)] = 1;   // 売った物（売値アップ・カタログ用）
         }
@@ -3115,7 +3115,7 @@ function spillMachine(m, c, r) {
   for (const k2 of out) spawnItem(k2, c + 0.5, r + 0.5, c, r);
 }
 // 会社レベルで解放される強化の上限（会社レベルが主な目標。上げるほど強くできる）
-const CO_CAP = { drill: ol => 4 + 5 * ol, truck: ol => 2 + 2 * ol, fork: ol => 2 + 2 * ol, machine: ol => 1 + ol, belt: ol => 1 + ol };
+const CO_CAP = { drill: ol => 4 + 15 * ol, truck: ol => 2 + 2 * ol, fork: ol => 2 + 2 * ol, machine: ol => 1 + ol, belt: ol => 1 + ol };
 const capOf0 = t => (t !== 'truck' && t.type === 'machine' && MACHINES[t.m].src ? BAL.aditMax : lvCap(grpOf(t)));
 const capOf = t => { const g = grpOf(t), c0 = capOf0(t); return CO_CAP[g] ? Math.min(c0, CO_CAP[g](S.office.lv)) : c0; };
 // 会社レベルが足りなくて止まっている時：あと何レベルの会社で上げられるか（でなければ null）
