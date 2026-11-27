@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.29（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.30（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.29';
+const VERSION = '1.30';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -725,7 +725,7 @@ const TXT_ADD = {
     aiPrice: n => `${n}の売値アップ`, aiPipe: '湧き口をパイプでつないだ', aiFac: n => `${n}を建てた`,
     aiRemove: '掘れないドリルを撤去した', aiRebuild: '使わなくなった機械を撤去した', aiUnsort: 'もっと良い使い道があるので、仕分けを外した', forkSpd: '走る速さ', valueUp: '作った物の売値', beltCapT: '1マスに乗る数', tutHello: 'ほるぞ！', tutTired: 'つらすぎる…', tutGanbaru: 'がんばるぞ！', 
     tutPick: 'どこを掘りますか？（光っているマスをタップ）', tutBuy: 'ドリルを買ってみましょう！\n（「設置」→ドリル）', tutEasy: 'これで楽になりましたね。', tutYes: '・・・ですよね',
-    tut2: { kiln: '土を焼くとレンガになって、高く売れます。\nレンガ焼成機を置いてみましょう（「設置」→機械）', hire: '人を雇うと、ドリルや機械が速く動きます。\n事務所をタップして「雇う」', drillDir: 'ドリルをタップすると、掘る向きを変えられます。\n横にも掘れます。', lvup: 'ドリルをタップして強化しましょう。\n強いドリルなら、硬い岩盤も速く掘れます。', office: 'お金がたまったら、事務所で会社レベルを上げましょう。\n雇える人数や、強化できる上限が増えます。' },
+    tut2: { kiln: '土を焼くとレンガになって、高く売れます。\nレンガ焼成機を置いてみましょう（「設置」→機械）', hire: '人を雇うと、ドリルや機械が速く動きます。\n事務所をタップして「雇う」', drillDir: 'ドリルをタップすると、掘る向きを変えられます。\n横にも掘れます。', lvup: 'ドリルをタップして強化しましょう。\n強いドリルなら、硬い岩盤も速く掘れます。', office: 'お金がたまったら、事務所で会社レベルを上げましょう。\n雇える人数や、強化できる上限が増えます。', lab: '研究所を建てましょう（「設置」→施設→研究所）。\n研究すると、新しい機械や便利な力が手に入ります。' },
     tutDone: 'ドリルやコンベアを置いて、土を出荷しましょう', tutSkipB: 'スキップ', adReady: '広告を見ると、特典がもらえます', adWatch: '広告を見る', adCancel: 'やめる', adSkip: '最後まで見なかったので、特典はありません', brandUp: (n, p) => `会社レベル${n}！ブランド力が上がりました（売値 +${p}%）`, resOnly: '未取得のみ', resAllB: 'すべて',
     yardT: 'トラックヤード', yardDesc: 'トラックが止まり、資源を置く場所（マップに1つ）。撤去でたたみ、工事の「トラックヤード」で別の所に置けます。', yardNone: 'トラックヤードがありません（工事から置いてください）',
     hBasic: '基本操作', hDig: '掘る・運ぶ', hMake: '加工と売る', hLevel: 'レベルアップと研究', hItems: '施設・設置物・資源', pleaseT: 'おねがい',
@@ -849,7 +849,7 @@ const TXT_ADD = {
     labRoomsInfo: (n, r, st) => `けんきゅうしつ ${n}・けんきゅうちゅう ${r}・けんきゅういん ${st}にん`, chipRooms: 'けんきゅうしつ', chipRes: 'けんきゅうちゅう', chipStaff: 'けんきゅういん',
     tutHello: 'ほるぞ！', tutTired: 'つらすぎる…', tutGanbaru: 'がんばるぞ！', tutPick: 'どこを ほりますか？（ひかっている マスを タップ）',
     tutYes: '・・・ですよね',
-    tut2: { kiln: 'つちを やくと レンガに なって、たかく うれます。\nレンガやきを おいて みましょう（「おく」→きかい）', hire: 'ひとを やとうと、ドリルや きかいが はやく うごきます。\nじむしょを タップして「やとう」', drillDir: 'ドリルを タップすると、ほる むきを かえられます。\nよこにも ほれます。', lvup: 'ドリルを タップして つよく しましょう。\nつよい ドリルなら、かたい がんばんも はやく ほれます。', office: 'おかねが たまったら、じむしょで かいしゃ レベルを あげましょう。\nやとえる にんずうや、つよく できる じょうげんが ふえます。' }, tutBuy: 'ドリルを かって みましょう！\n（「おく」→ドリル）', tutEasy: 'これで らくに なりましたね。', tutDone: 'ドリルや コンベアを おいて、つちを しゅっか しましょう', tutSkipB: 'スキップ',
+    tut2: { kiln: 'つちを やくと レンガに なって、たかく うれます。\nレンガやきを おいて みましょう（「おく」→きかい）', hire: 'ひとを やとうと、ドリルや きかいが はやく うごきます。\nじむしょを タップして「やとう」', drillDir: 'ドリルを タップすると、ほる むきを かえられます。\nよこにも ほれます。', lvup: 'ドリルを タップして つよく しましょう。\nつよい ドリルなら、かたい がんばんも はやく ほれます。', office: 'おかねが たまったら、じむしょで かいしゃ レベルを あげましょう。\nやとえる にんずうや、つよく できる じょうげんが ふえます。', lab: 'けんきゅうしょを たてましょう（「おく」→しせつ→けんきゅうしょ）。\nけんきゅう すると、あたらしい きかいが つかえます。' }, tutBuy: 'ドリルを かって みましょう！\n（「おく」→ドリル）', tutEasy: 'これで らくに なりましたね。', tutDone: 'ドリルや コンベアを おいて、つちを しゅっか しましょう', tutSkipB: 'スキップ',
     hBasic: 'きほんの そうさ', hDig: 'ほる・はこぶ', hMake: 'つくって うる', hLevel: 'レベルアップと けんきゅう', hItems: 'しせつ・おくもの・しげん', pleaseT: 'おねがい',
     hFacs: 'ちじょうの しせつ', hTools: 'おくもの', hMachs: 'きかい', hRes: 'しげん・せいひん（いま てに はいる もの）',
     please: 'ごいけん・ごかんそうを おまちして います（X や note へ どうぞ）。\nこの ゲームは むりょうで あそべます。きに いって もらえたら、おうえん して もらえると うれしいです。',
@@ -884,7 +884,7 @@ const TXT_ADD = {
     aiPrice: n => `${n} price up`, aiPipe: 'Piped a source', aiFac: n => `Built ${n}`,
     aiRemove: 'Removed a drill that could not dig', aiRebuild: 'Removed an unused machine', aiUnsort: 'Removed a sorter (found a better use)', forkSpd: 'Speed', valueUp: 'Product value', beltCapT: 'Items per cell', tutHello: "Let's dig!", tutTired: 'This is too hard...', tutGanbaru: "Let's do this!", 
     tutPick: 'Where do you want to dig? (tap a glowing cell)', tutBuy: 'Try buying a drill!\n(Build → Drill)', tutEasy: 'That makes it easier.', tutYes: '...I bet it is.',
-    tut2: { kiln: 'Baked soil becomes bricks, which sell for more.\nTry placing a Brick kiln (Build → Machines).', hire: 'Hired workers make drills and machines run faster.\nTap the office and press Hire.', drillDir: 'Tap a drill to change its digging direction.\nIt can dig sideways too.', lvup: 'Tap a drill and upgrade it.\nA stronger drill breaks hard bedrock faster.', office: 'When you have the money, raise the company level at the office.\nYou can hire more and upgrade further.' },
+    tut2: { kiln: 'Baked soil becomes bricks, which sell for more.\nTry placing a Brick kiln (Build → Machines).', hire: 'Hired workers make drills and machines run faster.\nTap the office and press Hire.', drillDir: 'Tap a drill to change its digging direction.\nIt can dig sideways too.', lvup: 'Tap a drill and upgrade it.\nA stronger drill breaks hard bedrock faster.', office: 'When you have the money, raise the company level at the office.\nYou can hire more and upgrade further.', lab: 'Build a Lab (Build → Facilities → Lab).\nResearch unlocks new machines and handy skills.' },
     tutDone: 'Place drills and conveyors, and ship the soil', tutSkipB: 'Skip', adReady: 'Watch an ad to get the reward', adWatch: 'Watch ad', adCancel: 'Cancel', adSkip: 'The ad was skipped, so no reward this time', brandUp: (n, p) => `Company level ${n}! Brand power up (prices +${p}%)`, resOnly: 'Not yet', resAllB: 'All',
     yardT: 'Truck yard', yardDesc: 'Where the truck parks and items pile up (one per map). Remove it, then place it elsewhere from Works.', yardNone: 'No truck yard (place one from Works)',
     hBasic: 'Basics', hDig: 'Dig & carry', hMake: 'Make & sell', hLevel: 'Upgrades & research', hItems: 'Buildings & items', pleaseT: 'A request',
@@ -1230,6 +1230,7 @@ function canPlaceAt(c, r) {
   if (isFacTool(tool)) return r === YARD_R && surfaceFree(c);
   if (!inB(c, r) || r < SKY) return false;
   const b = blk(c, r);
+  if (S.tut && isDrillTool(tool) && r !== SKY) return false;   // 31：はじめの手順の間、ドリルは地下1段目だけ
   if (isDrillTool(tool) && b) return diggable().has(key(c, r));   // 岩盤にも置ける（レベル不足ならとても遅い）
   // 機械・コンベア類・パイプも、坑道に隣接した土なら上書きして置ける（中の資源はなくなる）。破れない岩盤は不可
   if (b && (tool === 'machine' || tool === 'conv' || tool === 'sort' || tool === 'tee' || tool === 'cross' || tool === 'tri' || tool === 'branch' || tool === 'pipe')) return diggable().has(key(c, r)) && !(b.mat === 'rock' && false);
@@ -1759,6 +1760,12 @@ function tutTarget() {
     if (!$('office').hidden) return null;
     const fl = Math.ceil(0.72 * offFloors(S.office.lv) + 0.1); return cellRect(OFFICE_C, YARD_R + 1 - fl, 2, fl);
   }
+  if (st2 === 'lab') {   // 研究所を建てよう：設置 → 施設 → 研究所 → 地上の置く所
+    if (tool === 'lab') return null;
+    const tb3 = [...document.querySelectorAll('#subMenu .si')].find(b => b.dataset.tool === 'lab'); if (vis(tb3)) return tb3;
+    const gb3 = [...document.querySelectorAll('#subMenu .grp')].find(b => b.dataset.grp === 'fac'); if (vis(gb3)) return gb3;
+    return [...document.querySelectorAll('[data-open="build"], #catBar [data-cat="build"]')].find(vis) || null;
+  }
   if (st2 === 'drillDir' || st2 === 'lvup') {   // ドリル → 向き／レベルアップ
     if (popTarget && popTarget.type === 'drill') return st2 === 'drillDir' ? $('popDirs') : $('popLvUp');
     const k = firstDrillKey(); return k >= 0 ? cellRect(cOf(k), rOf(k)) : null;
@@ -1818,7 +1825,7 @@ function tutEnd() {
   tutShow(); say(tx().tutDone, 7000, 'good');
 }
 // はじめの手順のあとの案内：待つ（wait）→ 案内を出す → できたら（または▼を押したら）少し待って次へ
-const TUT2 = ['kiln', 'hire', 'drillDir', 'lvup', 'office'];
+const TUT2 = ['kiln', 'hire', 'drillDir', 'lvup', 'office', 'lab'];   // v1.30：研究所の段
 const TUT2_WAIT = 25;   // 次の案内までの秒数（ゲームの時間）
 function tut2Done(st) {
   if (st === 'kiln') return [...S.st.values()].some(x => x.type === 'machine');
@@ -1826,6 +1833,7 @@ function tut2Done(st) {
   if (st === 'drillDir') return !!(S.tut2 && S.tut2.did);
   if (st === 'lvup') return [...S.st.values()].some(x => x.type === 'drill' && x.lv > 0);
   if (st === 'office') return S.office.lv >= 1;
+  if (st === 'lab') return S.lab.built;
   return false;
 }
 function tut2Update(dt) {
@@ -1862,7 +1870,7 @@ function tutUpdate(dt) {
   if (t.step === 'walk') { b.y = YARD_R + 0.5; if (walkTo(t.c + 0.5)) tutSet('dig'); }
   else if (t.step === 'dig') {   // スコップで掘る（ゆっくり）。少しずつ土が出る
     b.carry = Math.min(TUT_SOIL, Math.floor(t.t / 2.5));
-    if (t.t >= 2.5 * TUT_SOIL + 0.5) { row(SKY)[t.c] = null; S.digVer++; S.deepest = Math.max(S.deepest, SKY); tutSet('carry'); }
+    if (t.t >= 2.5 * TUT_SOIL + 0.5) { const gb = blk(t.c, SKY); if (gb) { gb.left = Math.max(1, gb.left - TUT_SOIL); gb.scraped = true; } tutSet('carry'); }   // v1.30：穴はできない（少し削れるだけ）
   }
   else if (t.step === 'carry') { if (walkTo(YARD_C + 0.5)) { for (let i = 0; i < b.carry; i++) S.yard.push({ k: 'soil', rx: Math.random(), ry: Math.random() }); b.carry = 0; tutSet('load'); } }
   else if (t.step === 'load') {   // トラックに積んだら、社長が運転して出荷
