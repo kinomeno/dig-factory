@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.31（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.32（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.31';
+const VERSION = '1.32';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -4618,9 +4618,7 @@ function draw() {
   drawTutPick(); drawTutBoss();   // はじめの手順
   if (S.tut2 && S.tut2.step !== 'wait') {
     const cells = S.tut2.step === 'kiln' && tool === 'machine' ? [...S.st.entries()].filter(([, v]) => v.type === 'conv').map(([k]) => ({ c: cOf(k), r: rOf(k), w: 1, h: 1 })) : tutCell ? [tutCell] : [];
-    ctx.save(); ctx.globalAlpha = 0.45 + 0.45 * (0.5 + 0.5 * Math.sin(performance.now() / 300)); ctx.strokeStyle = '#d0661f'; ctx.lineWidth = Math.max(2, cell * 0.07);
-    for (const q of cells) ctx.strokeRect(q.c * cell + 2, q.r * cell + 2, q.w * cell - 4, q.h * cell - 4);
-    ctx.restore();
+    for (const q of cells) drawTutFrames(q.c * cell + 2, q.r * cell + 2, q.w * cell - 4, q.h * cell - 4);
   }
 
   // 設置中：置けないマスに斜線、カーソルの所に置く物の半透明の見本
@@ -5430,6 +5428,14 @@ function drawSkyFliers() {
     }
   }
 }
+// 案内の枠：合う所にいつも1本、その外から縮んでくる枠が2本（形と動きで目立たせる。点滅しない）
+function drawTutFrames(x, y, w, h) {
+  const cell = cp, lw = Math.max(2, cell * 0.07), ph = (performance.now() / 1400) % 1;
+  ctx.save(); ctx.strokeStyle = '#d0661f';
+  ctx.globalAlpha = 0.85; ctx.lineWidth = lw; ctx.strokeRect(x, y, w, h);
+  for (let i = 0; i < 2; i++) { const q = (ph + i / 2) % 1, d = (1 - q) * cell * 0.4; ctx.globalAlpha = 0.25 + 0.45 * q; ctx.lineWidth = Math.max(1.5, lw * 0.7); ctx.strokeRect(x - d, y - d, w + d * 2, h + d * 2); }
+  ctx.restore();
+}
 function drawBossCar(x, base, kind) {   // 1マスの車（黒塗りの車か軽トラ）。前の席に赤いヘルメットが小さく見える
   const cell = cp, y = base;
   if (kind === 'sedan') {
@@ -5449,8 +5455,7 @@ function drawOffice0() {
   const floors = offFloors(lv);
   if (S.tut2 && (S.tut2.step === 'hire' || S.tut2.step === 'office')) {   // 案内：事務所をタップ
     const hh = cell * 0.72 * floors;
-    ctx.save(); ctx.globalAlpha = 0.35 + 0.35 * (0.5 + 0.5 * Math.sin(performance.now() / 400)); ctx.strokeStyle = '#d0661f'; ctx.lineWidth = Math.max(2, cell * 0.06);
-    ctx.strokeRect(x - cell * 0.04, base - hh - cell * 0.14, cell * 2.08, hh + cell * 0.14); ctx.restore();
+    drawTutFrames(x - cell * 0.04, base - hh - cell * 0.14, cell * 2.08, hh + cell * 0.14);
   }
   const w = cell * 1.92, x0 = x + cell * 0.04;   // いつも2マス幅
   const h = cell * 0.72 * floors, top = base - h;

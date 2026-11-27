@@ -606,3 +606,6 @@ body.hideUI #hdr, body.hideUI #dash, body.hideUI #catBar, body.hideUI #menuBtn, 
 #unhideBtn[hidden] { display: none; }
 /* v1.31 タイトルの字：ドット絵風（飾りはつけない）。読めない時はふつうの字 */
 #title .tname { font-family: 'DotGothic16', sans-serif; font-weight: 400; letter-spacing: .1em; }
+/* v1.32 案内の枠（ボタンなど）：外から縮んでくる輪をくり返す。明るさは変えない・ほかの部品より前に */
+.tutPulse, .tutPulse2 { position: relative; z-index: 6; animation: tutRing 1.4s ease-out infinite !important; box-shadow: 0 0 0 2px rgba(208,102,31,.85); }
+@keyframes tutRing { 0% { box-shadow: 0 0 0 2px rgba(208,102,31,.85), 0 0 0 12px rgba(208,102,31,.25); } 100% { box-shadow: 0 0 0 2px rgba(208,102,31,.85), 0 0 0 3px rgba(208,102,31,.7); } }
