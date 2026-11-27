@@ -2250,7 +2250,9 @@ function oilSurvey() {
   say(tx().oilScan(n), 6000, n ? 'good' : 'normal'); addHist(tx().oilScan(n));
 }
 // ---- 最後の目標：社員旅行 ----
-const TRIP_NEED = { steelPart: 3000, cable: 3000, luxGlass: 2000, wireMesh: 3000, fuel: 4000, copperPlate: 4000, goldTile: 1000 };   // 宇宙に行くのに要る材料（仮の数）
+// v1.07：15種類（多段の加工の最後の段も）。並びは事務所の倉庫の表の順
+const TRIP_NEED = { ironPlate: 4000, copperPlate: 4000, steelPart: 3000, engine: 1000, wireMesh: 3000, cable: 3000, switchboard: 800,
+  glass: 3000, luxGlass: 2000, lens: 1000, telescope: 300, goldleaf: 1000, goldTile: 1000, concrete: 5000, fuel: 4000 };   // 宇宙に行くのに要る材料（数は仮）
 const TRIP_SK = ['warehouse', 'trip', 'build', 'depart'];
 function cappedAllDone() {   // 上限のある研究が全部そろったか
   for (const t of Object.keys(RESEARCH_TOOL)) if (!S.unlock[t]) return false;
