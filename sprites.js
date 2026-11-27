@@ -439,6 +439,24 @@ window.DF_SPRITES = {
    ".kddddddddddddk.",
    ".kkkkkkkkkkkkkk.",
    "................"
+  ],
+  "vend": [
+   "................",
+   "................",
+   "...kkkkkkkkkk...",
+   "...krrrrrrrrk...",
+   "...krccccccrk...",
+   "...krcbmycbrk...",
+   "...krccccccrk...",
+   "...krcmbycbrk...",
+   "...krccccccrk...",
+   "...krrrrrrrrk...",
+   "...krrkkkkrrk...",
+   "...krrkwwkrrk...",
+   "...krrkkkkrrk...",
+   "...krrrrrrrrk...",
+   "...kkkkkkkkkk...",
+   "................"
   ]
  }
 };
