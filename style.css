@@ -546,3 +546,26 @@ body.dash #subMenu { max-height: calc(100% - var(--hdr) - var(--dash) - 40px); }
 #cmBox[hidden] { display: none; }
 body.cmOn .msg { top: calc(var(--hdr) + 40px); }
 body.title #cmBox { display: none; }
+/* v0.99：タイトルの名前は1行に（ひらがなの9文字でも、画面の幅に合わせて小さく） */
+#title .tname { white-space: nowrap; font-size: min(38px, calc((100vw - 32px) / 10)); }
+/* v0.99：秘書の提案（右下の顔・吹き出し） */
+#secAdv { position: fixed; right: 12px; bottom: calc(var(--dash, 0px) + 64px); z-index: 22; width: 46px; height: 46px; }
+#secAdv[hidden] { display: none; }
+#secAdvFace { width: 46px; height: 46px; image-rendering: pixelated; border-radius: 8px; background: #eef1f4; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.25); cursor: pointer; display: block; transition: width .2s, height .2s, filter .2s, opacity .2s; }
+#secAdvN { position: absolute; left: -6px; top: -6px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: #d0661f; color: #fff; font-size: 11px; line-height: 18px; text-align: center; pointer-events: none; }
+#secAdvN[hidden] { display: none; }
+#secAdvX { position: absolute; right: -5px; bottom: -5px; width: 16px; height: 16px; padding: 0; border-radius: 8px; font-size: 10px; line-height: 14px; background: #fff; border: 1px solid var(--line2); color: #666; }
+#secAdvX[hidden] { display: none; }
+#secAdv.min { width: 22px; height: 22px; right: 8px; }
+#secAdv.min #secAdvFace { width: 22px; height: 22px; filter: grayscale(1); opacity: .55; border-width: 1px; }
+#secAdvBub { position: fixed; right: 66px; bottom: calc(var(--dash, 0px) + 66px); z-index: 22; max-width: min(260px, calc(100vw - 90px)); display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
+  padding: 8px 10px; background: #fff; border: 1px solid var(--line2); border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.18); font-size: 13px; line-height: 1.5; }
+#secAdvBub[hidden] { display: none; }
+#secAdvBub::after { content: ''; position: absolute; right: -7px; bottom: 14px; border: 7px solid transparent; border-right: 0; border-left-color: #fff; }
+#secAdvT { align-self: stretch; }
+#secAdvT.jump { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+#secAdvNext { font-size: 11px; padding: 3px 8px; }
+#secAdvNext[hidden] { display: none; }
+body.title #secAdv, body.title #secAdvBub, body.tut #secAdv, body.tut #secAdvBub { display: none !important; }
+/* 知らせから開いた行：枠が少し外から縮んで合う（明るさは変えない） */
+.focusRow { box-shadow: 0 0 0 2px rgba(208,102,31,.7); border-radius: 4px; background: rgba(208,102,31,.06); }

@@ -18,7 +18,7 @@
 <meta property="og:locale" content="ja_JP">
 <meta property="og:site_name" content="ほりほり工場 / Dig Factory Tycoon">
 <meta name="twitter:card" content="summary">
-<link rel="stylesheet" href="style.css?v=0.98">
+<link rel="stylesheet" href="style.css?v=0.99">
 <!-- 広告（準備だけ。まだ動かしていない）：Google の H5 ゲーム広告を使う時に、下のコメントを外し、ca-pub-XXXX を自分の番号にする。main.js の AD_ON も true に
 <script async data-ad-client="ca-pub-8328461906614341" data-adbreak-test="on" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js" crossorigin="anonymous"></script>
 <script>window.adsbygoogle = window.adsbygoogle || []; var adBreak = adConfig = function (o) { adsbygoogle.push(o); }; adConfig({ preloadAdBreaks: 'on', sound: 'on' });</script>
@@ -113,6 +113,9 @@
 <!-- 資金：ゲーム画面の左上に直接（白いふちで、どんな背景でも読める） -->
 <div id="fpsHud"></div>
 <div id="cmBox" hidden></div>
+<!-- 秘書の提案（研究すると右下に顔。×で小さく灰色に） -->
+<div id="secAdv" hidden><canvas id="secAdvFace"></canvas><b id="secAdvN" hidden></b><button id="secAdvX" aria-label="minimize">×</button></div>
+<div id="secAdvBub" hidden><span id="secAdvT"></span><button id="secAdvNext"></button></div>
 <div id="moneyHud"><span data-t="money">資金</span><b id="money">0</b><small id="goalHud"></small><small id="monthHud"></small><small id="boostHud"></small><small id="aiTime"></small><small id="aiHud"></small></div>
 
 <p id="msg" class="msg"></p>
@@ -269,7 +272,7 @@
   </div>
 </div>
 
-<script src="sprites.js?v=0.98"></script>
-<script src="main.js?v=0.98"></script>
+<script src="sprites.js?v=0.99"></script>
+<script src="main.js?v=0.99"></script>
 </body>
 </html>
