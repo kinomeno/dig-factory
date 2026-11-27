@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.22（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.23（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.22';
+const VERSION = '1.23';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -3202,7 +3202,7 @@ function metrics() {
   const worldW = COLS * cp;
   if (worldW <= cw) { offX = (cw - worldW) / 2; cam.x = 0; camLim.x0 = camLim.x1 = 0; }
   else { offX = 0; camLim.x0 = 0; camLim.x1 = COLS - cw / cp; cam.x = clamp(cam.x, 0, camLim.x1); }
-  camLim.y0 = camTop() - 0.7; camLim.y1 = Math.max(camLim.y0, S.deepest - hdrH / cp);   // いちばん深い所が、画面のいちばん上に見える所まで
+  camLim.y0 = Math.min(camTop() - 0.7, SKY - ch / cp + 0.6);   // v1.23：地上の線が画面の下に来るくらいまで上を見られる camLim.y1 = Math.max(camLim.y0, S.deepest - hdrH / cp);   // いちばん深い所が、画面のいちばん上に見える所まで
   if (!inTitle) cam.y = clamp(cam.y, camLim.y0, camLim.y1);
 }
 function resetCam() {
@@ -4628,6 +4628,7 @@ function draw() {
       ctx.fillText(digCost(blk(hover.c, hover.r)), hover.c * cell + cell / 2, hover.r * cell + cell / 2);
     }
   }
+  drawSkyFliers();
   for (const [bx, by, bt] of bubbles) drawBubble(bx, by, bt);   // 吹き出し（いちばん前に）
   bubbles = [];
   const now = performance.now();
@@ -5380,6 +5381,24 @@ function drawOffice() {
   ctx.fillStyle = '#f0a040'; ctx.beginPath(); ctx.moveTo(x0 + w * 0.15, base); ctx.lineTo(x0 + w / 2, base + L); ctx.lineTo(x0 + w * 0.85, base); ctx.closePath(); ctx.fill();
   ctx.fillStyle = '#ffd36a'; ctx.beginPath(); ctx.moveTo(x0 + w * 0.32, base); ctx.lineTo(x0 + w / 2, base + L * 0.6); ctx.lineTo(x0 + w * 0.68, base); ctx.closePath(); ctx.fill();
   ctx.restore();
+}
+// 78 空：たまに鳥の群れか飛行機が横切る（影絵。羽は上下に動くだけで、光らない）
+function drawSkyFliers() {
+  const cell = cp, T0 = 45, ph = S.time % T0, n = Math.floor(S.time / T0), kind = n % 3 === 2 ? 'plane' : 'birds', dur = kind === 'plane' ? 14 : 18;
+  if (ph > dur) return;
+  const rnd = seeded(300 + n), dir = rnd() < 0.5 ? 1 : -1, y0 = (YARD_R - 2.2 - rnd() * 2.5) * cell, u = ph / dur;
+  const x = dir > 0 ? (-2 + u * (COLS + 4)) * cell : (COLS + 2 - u * (COLS + 4)) * cell;
+  ctx.fillStyle = 'rgba(50,58,70,.55)';
+  if (kind === 'plane') {
+    ctx.save(); ctx.translate(x, y0); ctx.scale(dir, 1);
+    ctx.fillRect(-cell * 0.3, -cell * 0.03, cell * 0.6, cell * 0.07); ctx.fillRect(-cell * 0.06, -cell * 0.14, cell * 0.1, cell * 0.28); ctx.fillRect(-cell * 0.3, -cell * 0.1, cell * 0.06, cell * 0.08);
+    ctx.restore();
+  } else {
+    for (let i = 0; i < 5; i++) {
+      const bx = x - dir * i * cell * 0.22 - dir * Math.abs(i - 2) * cell * 0.05, by = y0 + Math.abs(i - 2) * cell * 0.1 + Math.sin(S.time * 3 + i) * cell * 0.03, f = Math.sin(S.time * 9 + i) > 0 ? 1 : -1, w2 = cell * 0.07;
+      ctx.beginPath(); ctx.moveTo(bx - w2, by - w2 * 0.6 * f); ctx.lineTo(bx, by); ctx.lineTo(bx + w2, by - w2 * 0.6 * f); ctx.lineWidth = Math.max(1, cell * 0.025); ctx.strokeStyle = 'rgba(50,58,70,.6)'; ctx.stroke();
+    }
+  }
 }
 function drawBossCar(x, base, kind) {   // 1マスの車（黒塗りの車か軽トラ）。前の席に赤いヘルメットが小さく見える
   const cell = cp, y = base;
