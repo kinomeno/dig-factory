@@ -1,16 +1,18 @@
-// ほりほり工場 / Dig Factory Tycoon v1.08（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.09（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.08';
+const VERSION = '1.09';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
 // 消すときは false にする（または URL に ?nodev を付けるとその時だけ消える）
-const DEV = !new URLSearchParams(location.search).has('nodev');
+// 55 管理モード：タイトル画面の下の版の数字（v1.xx）を、3秒以内に5回続けて押すと入る／もう一度で出る。ブラウザに覚える
+const adminMode = () => { try { return localStorage.getItem('dfAdminMode') === '1'; } catch (e) { return false; } };
+const DEV = adminMode() || new URLSearchParams(location.search).has('dev');
 
 // ---- 盤面の設定 ----
 const COLS = 14;
@@ -5890,7 +5892,7 @@ function setupText() {
   $('ver').textContent = 'v' + VERSION; $('tVer').textContent = 'v' + VERSION;
   document.querySelectorAll('[data-lang]').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
   document.querySelector('#hdr .wm').hidden = lang === 'en';
-  $('adminBtn').hidden = !DEV;
+  $('adminBtn').hidden = !adminMode() && !DEV;
   $('panBtn').title = T.pan;
   document.querySelectorAll('.credit').forEach(el => {
     el.innerHTML = '';
@@ -6096,6 +6098,13 @@ $('powerBtn').addEventListener('click', () => togglePanel('powerPanel'));
 $('tradeBtn').addEventListener('click', () => togglePanel('tradePanel'));
 $('skillBtn').addEventListener('click', () => { if (S.lab.built) togglePanel('skillPanel'); });
 $('helpBtn').addEventListener('click', () => togglePanel('help'));
+{ let taps = []; $('tVer').addEventListener('click', () => {   // 管理モードの入り口（ふつうの人は押さない所）
+  const now = performance.now(); taps = taps.filter(t => now - t < 3000); taps.push(now);
+  if (taps.length < 5) return; taps = [];
+  const on = !adminMode(); try { localStorage.setItem('dfAdminMode', on ? '1' : '0'); } catch (e) { }
+  $('adminBtn').hidden = !on && !new URLSearchParams(location.search).has('dev');
+  const el = $('tVer'); el.dataset.v = el.dataset.v || el.textContent; el.textContent = el.dataset.v + (on ? '　admin ON' : '　admin OFF'); setTimeout(() => { el.textContent = el.dataset.v; }, 2000);
+}); }
 $('colBtn').addEventListener('click', () => togglePanel('colPanel'));
 $('setBtn').addEventListener('click', () => togglePanel('settings'));
 $('adminBtn').addEventListener('click', () => togglePanel('admin'));
