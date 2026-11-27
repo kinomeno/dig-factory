@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.51（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.52（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.51';
+const VERSION = '1.52';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -2418,7 +2418,7 @@ function tripTick() {   // 画面の更新ごと（実時間）
   }
 }
 function tripEnd() {   // 宇宙から戻る：何事もなかったように続く
-  $('space').hidden = true; launchT = 0; tripGather = false;
+  $('space').hidden = true; launchT = 0; tripGather = false; rocketSmoke = []; smokeT = 0;
   if (tripTestOn) tripTestOn = false; else { S.tripN = (S.tripN || 0) + 1; addHist(tx().tripHist(S.tripN)); }   // テストは数えない
   for (const w of S.workers) if (w.state === 'rest') w.lastLook = -9;
   updateUI();
@@ -4563,6 +4563,7 @@ function draw() {
   const stKey = new Map(); for (const [k, v] of S.st) stKey.set(v, k);   // 持ち場 → マス（作業員ごとに探さない）
   ctx.save();
   const le = launchT ? (performance.now() - launchT) / 1000 : 0, sh = launchT ? launchShake(le) * Math.max(1.5, cp * 0.05) : 0;   // 発進の どどど
+  if (launchT && le > 2) { const lift = launchPose(le).lift, ty = YARD_R + 1 - lift - ch / cp / 2; cam.y = Math.max(camLim.y0, Math.min(cam.y, ty)); }   // 26：ロケットを画面の真ん中に追いかけ、上の端で見送る
   ctx.translate(offX - cam.x * cp + Math.sin(le * 97) * sh, -cam.y * cp + Math.cos(le * 83) * sh * 0.7);
   const W = COLS * cell;
   const sky = ctx.createLinearGradient(0, (SKY - 6) * cell, 0, SKY * cell);   // 空（落ち着いたグラデーション）
@@ -5497,7 +5498,8 @@ const offFloors = lv => (lv < 5 ? [1, 1.6, 2, 2.6, 3.2][lv] : Math.min(6, 3.2 + 
 // 事務所の見た目が入っているマス（上の方をタップしても選べるように）
 const officeTap = (c, r) => (c === OFFICE_C || c === OFFICE_C + 1) && r <= YARD_R && r >= YARD_R + 1 - Math.ceil(0.72 * offFloors(S.office.lv) + 0.1);
 // 発進の動き（e＝発進してからの秒）：lift＝上がった高さ（マス。マイナスは沈む）・sx＝横のゆれ・fl＝火の長さ
-const LAUNCH_SEC = 6.6;   // この秒で宇宙の絵へ
+const LAUNCH_SEC = 9;   // この秒で宇宙の絵へ（v1.52：追いかけて見送るぶん長く）
+let rocketSmoke = [], smokeT = 0;   // ノズルの煙 {x, y, t0, s}
 function launchPose(e) {
   if (e < 0.45) return { lift: -0.05 * (e / 0.45), sx: 0, fl: 0.2 };                                        // ぐっ（重さで沈む）
   if (e < 1.3) return { lift: -0.05, sx: Math.sin(e * 95) * 0.035, fl: 0.35 + 0.15 * Math.sin(e * 40) };    // ぶるぶる
@@ -5522,7 +5524,12 @@ function drawOffice() {
       ctx.beginPath(); ctx.arc(cx + side * (w * 0.3 + dist), gy - rr * 0.35 - (i % 3) * cell * 0.05, rr, 0, Math.PI * 2); ctx.fill();
     }
   }
-  ctx.save(); ctx.translate(P.sx * cell, -lift * cell); drawOffice0();
+  // ノズルの煙：出てから少しずつ左右へ流れ、古い（下の）物から順に消える
+  const now = e, tiltA = Math.min(0.14, Math.max(0, lift - 1) * 0.012), sxR = Math.max(0, lift - 1) * 0.08;   // 少し右に傾いて上がる
+  if (e > 1.7 && lift < 9 && now - smokeT > 0.06) { smokeT = now; rocketSmoke.push({ x: (x0 + w / 2) / cell + P.sx + sxR + (Math.random() - 0.5) * 0.3, y: (base / cell) - lift + 0.2, t0: now, s: Math.random() < 0.5 ? -1 : 1 }); }   // 上昇の半分くらいまで
+  rocketSmoke = rocketSmoke.filter(q => now - q.t0 < 4.2);
+  for (const q of rocketSmoke) { const a2 = now - q.t0; const al = Math.max(0, 0.55 - a2 * 0.13); ctx.fillStyle = `rgba(160,160,165,${al.toFixed(3)})`; ctx.beginPath(); ctx.arc((q.x + q.s * a2 * 0.25) * cell, q.y * cell, cell * (0.28 + a2 * 0.12), 0, Math.PI * 2); ctx.fill(); }
+  ctx.save(); ctx.translate(P.sx * cell + sxR * cell, -lift * cell); ctx.translate(x0 + w / 2, base); ctx.rotate(tiltA); ctx.translate(-(x0 + w / 2), -base); drawOffice0();
   const L = cell * P.fl;
   ctx.fillStyle = '#f0a040'; ctx.beginPath(); ctx.moveTo(x0 + w * 0.15, base); ctx.lineTo(x0 + w / 2, base + L); ctx.lineTo(x0 + w * 0.85, base); ctx.closePath(); ctx.fill();
   ctx.fillStyle = '#ffd36a'; ctx.beginPath(); ctx.moveTo(x0 + w * 0.32, base); ctx.lineTo(x0 + w / 2, base + L * 0.6); ctx.lineTo(x0 + w * 0.68, base); ctx.closePath(); ctx.fill();
