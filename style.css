@@ -631,3 +631,4 @@ body.hideUI #hdr, body.hideUI #dash, body.hideUI #catBar, body.hideUI #menuBtn, 
 #unlockCard .ulX { width: 40px; height: 40px; padding: 0; font-size: 20px; line-height: 1; color: #666; background: #fff; border: 1px solid var(--line2); border-radius: 8px; flex: none; }
 #unlockCard .ulRow small { display: block; line-height: 1.45; }
 .msg .mx { flex: none; margin-left: 6px; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; color: #777; border: 1px solid var(--line2); border-radius: 6px; background: rgba(255,255,255,.8); }
+#secAdvBub .advBtns { display: flex; gap: 6px; } #secAdvOk { font-size: 11px; padding: 3px 10px; } #secAdvOk[hidden] { display: none; }
