@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.64（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.65（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.64';
+const VERSION = '1.65';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -2891,7 +2891,7 @@ function updateWorkers(dt) {
     }
     switch (w.state) {
       case 'idle': {
-        if (S.time - (w.lastLook || -9) < 0.5) break;
+        if (S.time - (w.lastLook || -9) < (fpsCtl.lite >= 2 ? 1.5 : 0.5)) break;   // 重い時は、持ち場を探す回数を減らす（人ごとに時刻がずれているので、同じ時に集中しない）
         w.lastLook = S.time;
         if (!taken) busyMake();
         const { dist } = officeMap();
@@ -4607,42 +4607,14 @@ function groundColor(b, r) {
   return `rgb(${a.map((v, i) => Math.round(v + (z[i] - v) * t)).join(',')})`;
 }
 
-function draw() {
-  const dpr = viewDpr();
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.fillStyle = THEME.bg; ctx.fillRect(0, 0, cw, ch);
+// 地面の1マス（掘った穴・掘っている途中・土や岩・草・ゲージ）。ctx と cp で描く
+function drawCell(c, r, a, digging, digSet) {
   const cell = cp;
-  const r0 = Math.floor(cam.y) - 1, r1 = Math.ceil(cam.y + ch / cp) + 1;
-  const c0 = Math.max(0, Math.floor(cam.x - offX / cp) - 1), c1 = Math.min(COLS - 1, Math.ceil(cam.x + (cw - offX) / cp) + 1);   // 見えている列（左右の画面外は描かない）
-  const out = (c, r) => r < r0 || r > r1 || c < c0 || c > c1;
-  const stKey = new Map(); for (const [k, v] of S.st) stKey.set(v, k);   // 持ち場 → マス（作業員ごとに探さない）
-  ctx.save();
-  const le = launchT ? (performance.now() - launchT) / 1000 : 0, sh = launchT ? launchShake(le) * Math.max(1.5, cp * 0.05) : 0;   // 発進の どどど
-  if (launchT && le > 2) { const lift = launchPose(le).lift, ty = YARD_R + 1 - lift - ch / cp / 2; cam.y = Math.max(camLim.y0, Math.min(cam.y, ty)); }   // 26：ロケットを画面の真ん中に追いかけ、上の端で見送る
-  ctx.translate(offX - cam.x * cp + Math.sin(le * 97) * sh, -cam.y * cp + Math.cos(le * 83) * sh * 0.7);
-  const W = COLS * cell;
-  const sky = ctx.createLinearGradient(0, (SKY - 6) * cell, 0, SKY * cell);   // 空（落ち着いたグラデーション）
-  sky.addColorStop(0, THEME.skyTop); sky.addColorStop(1, THEME.skyLow);
-  ctx.fillStyle = sky; ctx.fillRect(0, (r0 - 2) * cell, W, (SKY - r0 + 2) * cell);
-  const g0 = Math.max(SKY, r0);
-  for (let r = g0; r <= r1; r++) { ctx.fillStyle = seamColor(r); ctx.fillRect(0, r * cell, W, cell + 1); }   // 地面の下地：マスのすき間は土より少し暗い色（目立たない線）
-  // ドリルが掘っているマス：key → [向き, 掘った割合]
-  const digging = new Map();
-  for (const [k, s2] of S.st) {
-    if (s2.type !== 'drill') continue;
-    const [dx, dy] = DIRS[s2.dir], tc = cOf(k) + dx, tr = rOf(k) + dy, g = inB(tc, tr) && tr >= SKY ? blk(tc, tr) : null;
-    if (g) digging.set(key(tc, tr), [s2.dir, digProg(g)]);
-  }
-
-  const digSet = tool === 'dig' ? diggable() : null;
-  for (let r = g0; r <= r1; r++) {
-    const a = row(r);
-    for (let c = c0; c <= c1; c++) {
       const b = a[c];
       const x = c * cell, y = r * cell;
       const v = (c * 7 + r * 13) % 4;   // 模様の種類（隣と同じにならないよう散らす）
       ctx.imageSmoothingEnabled = false;
-      if (!b) { ctx.fillStyle = caveColor(r); ctx.fillRect(x, y, cell, cell); ctx.drawImage(caveTex(v), x, y, cell, cell); holeDeco(c, r, a, x, y); continue; }   // 掘った穴：洞窟の壁
+      if (!b) { ctx.fillStyle = caveColor(r); ctx.fillRect(x, y, cell, cell); ctx.drawImage(caveTex(v), x, y, cell, cell); holeDeco(c, r, a, x, y); return; }   // 掘った穴：洞窟の壁
       const dg = digging.get(key(c, r));
       if (dg) {   // 掘られている途中：掘った側から削れて、奥の洞窟が見える
         ctx.fillStyle = caveColor(r); ctx.fillRect(x, y, cell, cell); ctx.drawImage(caveTex(v), x, y, cell, cell);
@@ -4666,9 +4638,66 @@ function draw() {
         ctx.fillStyle = THEME.gauge; ctx.fillRect(x + 3, y + cell - 6, (cell - 6) * (b.left - b.p / b.h) / b.yieldN, 3);
       }
       if (digSet && digSet.has(key(c, r)) && !(b.mat === 'rock' && false)) { ctx.fillStyle = THEME.okFill; ctx.fillRect(x, y, cell, cell); }   // 掘れる所だけ薄い青
-    }
-    drawRockLabel(r, a);
+}
+// 重い時用：掘っていない地面を、見えている所より少し広く1枚の絵に描いておき、そのまま貼る。
+// 掘ったり、掘っているマスが変わったりした時だけ描き直す。掘っている途中のマスは毎回その場で描く
+let terr = null;
+function terrainCached(c0, c1, g0, r1, digging, digSet) {
+  const cell = cp, dg = [...digging.keys()].join(',');
+  const sig = [cell, S.digVer, digSet ? 1 : 0, sk('vein'), S.reveal ? 1 : 0, Object.keys(S.oilMarks || {}).length, (S.veins || []).filter(v => v.found).length, dg].join('|');
+  if (!terr || terr.sig !== sig || c0 < terr.c0 || c1 > terr.c1 || g0 < terr.r0 || r1 > terr.r1) {
+    let rr1 = r1; for (const k of S.rows.keys()) if (k > rr1 && k <= r1 + 8) rr1 = k;   // 下は、もう作ってある行まで（新しい行は作らない）
+    const rr0 = Math.max(SKY, g0 - 8), cc0 = 0, cc1 = COLS - 1;
+    const w0 = (cc1 - cc0 + 1) * cell, h0 = (rr1 - rr0 + 1) * cell;
+    const sc = Math.min(viewDpr(), Math.sqrt(6e6 / Math.max(1, w0 * h0)));   // 大きすぎる時は、解像度を下げる（メモリを食べすぎない）
+    if (sc < 0.5) return false;
+    const cv = terr && terr.cv || document.createElement('canvas');
+    cv.width = Math.ceil(w0 * sc); cv.height = Math.ceil(h0 * sc);
+    const g = cv.getContext('2d'); g.setTransform(sc, 0, 0, sc, -cc0 * cell * sc, -rr0 * cell * sc); g.imageSmoothingEnabled = false;
+    const keep = ctx; ctx = g;
+    try {
+      for (let r = rr0; r <= rr1; r++) { ctx.fillStyle = seamColor(r); ctx.fillRect(0, r * cell, COLS * cell, cell + 1); }
+      for (let r = rr0; r <= rr1; r++) { const a = row(r); for (let c = cc0; c <= cc1; c++) if (!digging.has(key(c, r))) drawCell(c, r, a, digging, digSet); }
+    } finally { ctx = keep; }
+    terr = { cv, sig, c0: cc0, c1: cc1, r0: rr0, r1: rr1, w0, h0 };
   }
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(terr.cv, terr.c0 * cell, terr.r0 * cell, terr.w0, terr.h0);
+  for (const k of digging.keys()) { const c = cOf(k), r = rOf(k); if (c >= c0 && c <= c1 && r >= g0 && r <= r1) drawCell(c, r, row(r), digging, digSet); }   // 掘っている途中のマスだけ、その場で
+  return true;
+}
+function draw() {
+  const dpr = viewDpr();
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = THEME.bg; ctx.fillRect(0, 0, cw, ch);
+  const cell = cp;
+  const r0 = Math.floor(cam.y) - 1, r1 = Math.ceil(cam.y + ch / cp) + 1;
+  const c0 = Math.max(0, Math.floor(cam.x - offX / cp) - 1), c1 = Math.min(COLS - 1, Math.ceil(cam.x + (cw - offX) / cp) + 1);   // 見えている列（左右の画面外は描かない）
+  const out = (c, r) => r < r0 || r > r1 || c < c0 || c > c1;
+  const stKey = new Map(); for (const [k, v] of S.st) stKey.set(v, k);   // 持ち場 → マス（作業員ごとに探さない）
+  ctx.save();
+  const le = launchT ? (performance.now() - launchT) / 1000 : 0, sh = launchT ? launchShake(le) * Math.max(1.5, cp * 0.05) : 0;   // 発進の どどど
+  if (launchT && le > 2) { const lift = launchPose(le).lift, ty = YARD_R + 1 - lift - ch / cp / 2; cam.y = Math.max(camLim.y0, Math.min(cam.y, ty)); }   // 26：ロケットを画面の真ん中に追いかけ、上の端で見送る
+  ctx.translate(offX - cam.x * cp + Math.sin(le * 97) * sh, -cam.y * cp + Math.cos(le * 83) * sh * 0.7);
+  const W = COLS * cell;
+  const sky = ctx.createLinearGradient(0, (SKY - 6) * cell, 0, SKY * cell);   // 空（落ち着いたグラデーション）
+  sky.addColorStop(0, THEME.skyTop); sky.addColorStop(1, THEME.skyLow);
+  ctx.fillStyle = sky; ctx.fillRect(0, (r0 - 2) * cell, W, (SKY - r0 + 2) * cell);
+  const g0 = Math.max(SKY, r0);
+  // ドリルが掘っているマス：key → [向き, 掘った割合]
+  const digging = new Map();
+  for (const [k, s2] of S.st) {
+    if (s2.type !== 'drill') continue;
+    const [dx, dy] = DIRS[s2.dir], tc = cOf(k) + dx, tr = rOf(k) + dy, g = inB(tc, tr) && tr >= SKY ? blk(tc, tr) : null;
+    if (g) digging.set(key(tc, tr), [s2.dir, digProg(g)]);
+  }
+
+  const digSet = tool === 'dig' ? diggable() : null;
+  if (!(fpsCtl.lite >= 1 && terrainCached(c0, c1, g0, r1, digging, digSet))) {   // 重い時は、掘っていない地面を1枚の絵として覚えて使う
+    for (let r = g0; r <= r1; r++) { ctx.fillStyle = seamColor(r); ctx.fillRect(0, r * cell, W, cell + 1); }   // 地面の下地：マスのすき間は土より少し暗い色（目立たない線）
+    for (let r = g0; r <= r1; r++) { const a = row(r); for (let c = c0; c <= c1; c++) drawCell(c, r, a, digging, digSet); }
+  }
+  for (let r = g0; r <= r1; r++) drawRockLabel(r, row(r));
   ctx.fillStyle = THEME.grass; ctx.fillRect(0, SKY * cell - 1, W, 1);
   ctx.fillStyle = THEME.depth; ctx.font = `${Math.max(9, Math.round(cell * 0.3))}px sans-serif`;
   ctx.textAlign = 'left'; ctx.textBaseline = 'top';
