@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.55（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.56（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.55';
+const VERSION = '1.56';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -3949,8 +3949,10 @@ function drawCutaway(cv2, kind) {
       }
       if (rm.machine) px2 = x + w * (j ? 0.62 : 0.14);   // 機械の左右で作業
       const flip = rm.phone ? false : rm.walk ? (!sit && wv < 0) : Math.floor(t / 4000 + j * 1.7 + i) % 3 === 0;   // 38：ときどき向きが変わる
-      const py2 = Math.round(y + h - 4 - sz + (sit ? 4 : 0));   // 座ると少し低くなる（机に隠れる）
+      const py2 = Math.round(y + h - 4 - sz + (sit ? 2 : 0));   // 座ると少し低くなる（机に隠れる）
+      if (sit) { g.save(); g.beginPath(); g.rect(x, y, w, h - 4); g.clip(); }   // 座った時は、机の下（床）に足が出ないように切る
       if (flip) { g.save(); g.translate(Math.round(px2) + sz, 0); g.scale(-1, 1); g.drawImage(fr, 0, py2, sz, sz); g.restore(); } else g.drawImage(fr, Math.round(px2), py2, sz, sz);
+      if (sit) g.restore();
       rm.heads.push([px2 + sz / 2, py2 + 2]);
       if (rm.phone) {   // 受話器を耳に当てて、手で持つ（8×8の絵の1ドット＝sz/8）
         const u = sz / 8, top = y + h - 4 - sz, hx = px + u * 5, hy = top + u * 0.6;
