@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.45（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.47（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.45';
+const VERSION = '1.47';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -247,7 +247,7 @@ const SKILLS = {
   depart:   { max: 1, cost: [5e8], months: [3] },     // 出発：事務所に出発ボタン
   conne:    { max: 5, cost: k => Math.round(5000 * Math.pow(4, k) / 100) * 100, months: k => 2 + k },   // コネ採用：雇える人数が増える（1段ごとに+10%・最低+2人。200人は超えない）      // 屋上庭園：休憩が少し速い（見た目も）
   vein:     { max: 10, cost: k => Math.round(3000 * Math.pow(1.8, k) / 100) * 100, months: k => 2 + k },   // 鉱脈探知：珍しい物が出やすくなる（1段ごとに+25%）
-  labRoom:  { max: 5, cost: [3000, 12000, 40000, 150000, 500000], months: [3, 5, 8, 10, 12] },   // 研究室の増室（v0.99：最大6室）
+  labRoom:  { max: 3, cost: [3000, 12000, 40000], months: [3, 5, 8] },   // 研究室の増室（v1.46：最大4室に戻す）
   yardPlus: { max: 1, cost: [1500], months: [2] },
   land:     { max: LAND_MAX, cost: k => Math.round(BAL.landCost0 * Math.pow(BAL.landCostG, k) / 100) * 100, months: k => 2 + k },   // 土地買収：左右に1マスずつ広がる（研究ごとにどんどん高い）
   auto:     { max: 3, cost: [5000, 40000, 300000], months: [2, 4, 6] },   // v1.05：自動化：人がいない機械・フォークリフトがわずかに動く（×0.02→0.035→0.05）
@@ -391,7 +391,7 @@ const TXT = {
     needDig: n => `掘削レベル${n}が必要です（スキル）`,
     rockHint: n => `硬い岩盤：掘削レベル${n}が無いと、とても遅くしか掘れません（研究所で研究）`,
     quit: '給料が払えず、作業員が1人やめました',
-    veinFound: '鉱脈だ！', tutGoal: '目標：ドリルで資源を掘って、コンベアで地上に運ぼう', tutGoal2: '目標：お金をためて、会社レベルを上げよう（岩盤0を破れば、案内はおしまい）', vendLine: 'ぷはー', vend: '自販機コーナー', vendDesc: '坑道の空いたマスに置きます。近く（1マス以内）を通ったり働いたりする作業員が、疲れていたら一息ついて1本買います（体力+25%・100）。同じ人は1分に1回まで。', vendN: n => `休憩の速さ +${n * 10}%`, hcEmpty: '棚はからっぽ（製品がヤードに来ると並びます）', sortInvL: '出す物', sortOnly: '選んだ物のみ', sortExcept: '選んだ物以外', unlockT: n => `会社レベル${n}　新しく使えるもの`, unlockUse: 'すぐ使えます（設置メニュー）', unlockRes: '研究所で研究できます', roomEmpty: '・・・しーん', roomLines: { exhibit: ['記念の品です', 'ぴかぴか'], boss: ['ふむ', 'ちょっと休憩', 'もっと掘れ！'], sec: ['お茶です', 'スケジュール通りです'], hr: ['面接中', '履歴書の山…'], tech: ['油、差しとこ', '異音なし'], sales: ['売れました！', '値上げ交渉中です', 'え！弊社の車が駐車場に3時間！？'], rest: ['あと5分…', 'おなかすいた', 'ぐう'], lab: ['できた！…と思ったら', 'メモメモ'] }, elevOne: 'エレベーターは1本だけです（今ある列の上か下に足せます）', cellLook: '地面の中', otherMix: 'その他', mixLine: (p, n) => `中身：${p}（あと${n}個）`, hDepth: '資源の出る深さ', dAlways: '最初から', dBelow: n => `岩盤${n}より下`, dWell: '温泉は岩盤4、石油は岩盤5より下で湧くことがあります。（1マス＝3m。岩盤0は15m、そのあとは18mごと）', colTitle: 'コレクション', col: { title: 'コレクション', 'p:worker': '作業員', 'p:boss': '社長', 'v:fork': 'フォークリフト', 'v:bossFork': '社長専用フォークリフト', 'v:truck': 'トラック', 'b:office': '事務所', unknown: '？（まだ見ていません）', hint: 'タップで名前' }, bedBonus: (lv, n) => `岩盤${lv}を突破！ ご褒美に資源が${n}個、地上に出ました`, coUnlock: (lv, n) => `会社レベル${lv}：${n} が使えるようになりました（研究所に出ている物もあります）`, autoConvOpt: 'コンベア自動設置', secAdvOpt: '秘書の提案', coLvMsg: '会社レベルを上げられます（タップで事務所へ）',
+    veinFound: '鉱脈だ！', tutGoal: '目標：ドリルで資源を掘って、コンベアで地上に運ぼう', tutGoal2: '目標：お金をためて、会社レベルを上げよう', tutNeed: v => `（あと ${v}）`, tutCan: '（上げられます！事務所へ）', vendLine: 'ぷはー', vend: '自販機コーナー', vendDesc: '坑道の空いたマスに置きます。近く（1マス以内）を通ったり働いたりする作業員が、疲れていたら一息ついて1本買います（体力+25%・100）。同じ人は1分に1回まで。', vendN: n => `休憩の速さ +${n * 10}%`, hcEmpty: '棚はからっぽ（製品がヤードに来ると並びます）', sortInvL: '出す物', sortOnly: '選んだ物のみ', sortExcept: '選んだ物以外', unlockT: n => `会社レベル${n}　新しく使えるもの`, unlockUse: 'すぐ使えます（設置メニュー）', unlockRes: '研究所で研究できます', roomEmpty: '・・・しーん', roomLines: { exhibit: ['記念の品です', 'ぴかぴか'], boss: ['ふむ', 'ちょっと休憩', 'もっと掘れ！'], sec: ['お茶です', 'スケジュール通りです'], hr: ['面接中', '履歴書の山…'], tech: ['油、差しとこ', '異音なし'], sales: ['売れました！', '値上げ交渉中です', 'え！弊社の車が駐車場に3時間！？'], rest: ['あと5分…', 'おなかすいた', 'ぐう'], lab: ['できた！…と思ったら', 'メモメモ'] }, elevOne: 'エレベーターは1本だけです（今ある列の上か下に足せます）', cellLook: '地面の中', otherMix: 'その他', mixLine: (p, n) => `中身：${p}（あと${n}個）`, hDepth: '資源の出る深さ', dAlways: '最初から', dBelow: n => `岩盤${n}より下`, dWell: '温泉は岩盤4、石油は岩盤5より下で湧くことがあります。（1マス＝3m。岩盤0は15m、そのあとは18mごと）', colTitle: 'コレクション', col: { title: 'コレクション', 'p:worker': '作業員', 'p:boss': '社長', 'v:fork': 'フォークリフト', 'v:bossFork': '社長専用フォークリフト', 'v:truck': 'トラック', 'b:office': '事務所', unknown: '？（まだ見ていません）', hint: 'タップで名前' }, bedBonus: (lv, n) => `岩盤${lv}を突破！ ご褒美に資源が${n}個、地上に出ました`, coUnlock: (lv, n) => `会社レベル${lv}：${n} が使えるようになりました（研究所に出ている物もあります）`, autoConvOpt: 'コンベア自動設置', secAdvOpt: '秘書の提案', coLvMsg: '会社レベルを上げられます（タップで事務所へ）',
     adv: { jam: 'コンベアが詰まっています。人をつけるか、強化しては？', buf: n => `${n}の中に材料が溜まっています`, coUp: '会社レベルを上げられます',
       truck: 'ヤードに資源が溜まっています。トラックを強化しては？', fork: '地上に資源が溜まっています。フォークリフトを増やしては？',
       useRes: (a, b) => `${a}は、${b}で加工できます`, next: '次へ', none: '今は、提案はありません',
@@ -543,7 +543,7 @@ const TXT = {
     needDig: n => `あなほり レベル${n}が ひつよう です（スキル）`,
     rockHint: n => `かたい がんばん：あなほり レベル${n}が ないと、とても ゆっくりしか ほれません`,
     quit: 'きゅうりょうが はらえず、さぎょういんが 1にん やめました',
-    veinFound: 'こうみゃくだ！', tutGoal: 'もくひょう：ドリルで ほって、コンベアで ちじょうに はこぼう', tutGoal2: 'もくひょう：おかねを ためて、かいしゃ レベルを あげよう', vendLine: 'ぷはー', vend: 'じはんき', vendDesc: 'あなの あいた マスに おきます。ちかくの つかれた さぎょういんが 1ぽん かって ひといき つきます（たいりょく+25%・100）。', vendN: n => `きゅうけいの はやさ +${n * 10}%`, hcEmpty: 'たなは からっぽ', sortInvL: 'だす もの', sortOnly: 'えらんだ もの だけ', sortExcept: 'えらんだ もの いがい', unlockT: n => `かいしゃ レベル${n}　あたらしく つかえる もの`, unlockUse: 'すぐ つかえます（おく メニュー）', unlockRes: 'けんきゅうしょで けんきゅう できます', roomEmpty: '・・・しーん', roomLines: { exhibit: ['きねんの しなです', 'ぴかぴか'], boss: ['ふむ', 'ちょっと きゅうけい', 'もっと ほれ！'], sec: ['おちゃです', 'よてい どおりです'], hr: ['めんせつちゅう', 'りれきしょの やま…'], tech: ['あぶら さしとこ', 'へんな おと なし'], sales: ['うれました！', 'ねあげ こうしょうちゅう', 'え！ うちの くるまが ちゅうしゃじょうに 3じかん！？'], rest: ['あと 5ふん…', 'おなか すいた', 'ぐう'], lab: ['できた！…と おもったら', 'メモメモ'] }, elevOne: 'エレベーターは 1ぽんだけ です（いまの れつの うえか したに たせます）', cellLook: 'じめんの なか', otherMix: 'そのほか', mixLine: (p, n) => `なかみ：${p}（あと${n}こ）`, hDepth: 'しげんの でる ふかさ', dAlways: 'さいしょから', dBelow: n => `がんばん${n}より した`, dWell: 'おんせんは がんばん4、せきゆは がんばん5より したで わくことが あります。', colTitle: 'コレクション', col: { title: 'コレクション', 'p:worker': 'さぎょういん', 'p:boss': 'しゃちょう', 'v:fork': 'フォークリフト', 'v:bossFork': 'しゃちょうの フォークリフト', 'v:truck': 'トラック', 'b:office': 'じむしょ', unknown: '？（まだ みていません）', hint: 'タップで なまえ' }, bedBonus: (lv, n) => `がんばん${lv}を とっぱ！ ごほうびに しげんが ${n}こ、ちじょうに でました`, coUnlock: (lv, n) => `かいしゃ レベル${lv}：${n} が つかえるように なりました`, autoConvOpt: 'コンベア じどう おき', secAdvOpt: 'ひしょの ていあん', coLvMsg: 'かいしゃ レベルを あげられます（タップで じむしょへ）',
+    veinFound: 'こうみゃくだ！', tutGoal: 'もくひょう：ドリルで ほって、コンベアで ちじょうに はこぼう', tutGoal2: 'もくひょう：おかねを ためて、かいしゃ レベルを あげよう', tutNeed: v => `（あと ${v}）`, tutCan: '（あげられます！）', vendLine: 'ぷはー', vend: 'じはんき', vendDesc: 'あなの あいた マスに おきます。ちかくの つかれた さぎょういんが 1ぽん かって ひといき つきます（たいりょく+25%・100）。', vendN: n => `きゅうけいの はやさ +${n * 10}%`, hcEmpty: 'たなは からっぽ', sortInvL: 'だす もの', sortOnly: 'えらんだ もの だけ', sortExcept: 'えらんだ もの いがい', unlockT: n => `かいしゃ レベル${n}　あたらしく つかえる もの`, unlockUse: 'すぐ つかえます（おく メニュー）', unlockRes: 'けんきゅうしょで けんきゅう できます', roomEmpty: '・・・しーん', roomLines: { exhibit: ['きねんの しなです', 'ぴかぴか'], boss: ['ふむ', 'ちょっと きゅうけい', 'もっと ほれ！'], sec: ['おちゃです', 'よてい どおりです'], hr: ['めんせつちゅう', 'りれきしょの やま…'], tech: ['あぶら さしとこ', 'へんな おと なし'], sales: ['うれました！', 'ねあげ こうしょうちゅう', 'え！ うちの くるまが ちゅうしゃじょうに 3じかん！？'], rest: ['あと 5ふん…', 'おなか すいた', 'ぐう'], lab: ['できた！…と おもったら', 'メモメモ'] }, elevOne: 'エレベーターは 1ぽんだけ です（いまの れつの うえか したに たせます）', cellLook: 'じめんの なか', otherMix: 'そのほか', mixLine: (p, n) => `なかみ：${p}（あと${n}こ）`, hDepth: 'しげんの でる ふかさ', dAlways: 'さいしょから', dBelow: n => `がんばん${n}より した`, dWell: 'おんせんは がんばん4、せきゆは がんばん5より したで わくことが あります。', colTitle: 'コレクション', col: { title: 'コレクション', 'p:worker': 'さぎょういん', 'p:boss': 'しゃちょう', 'v:fork': 'フォークリフト', 'v:bossFork': 'しゃちょうの フォークリフト', 'v:truck': 'トラック', 'b:office': 'じむしょ', unknown: '？（まだ みていません）', hint: 'タップで なまえ' }, bedBonus: (lv, n) => `がんばん${lv}を とっぱ！ ごほうびに しげんが ${n}こ、ちじょうに でました`, coUnlock: (lv, n) => `かいしゃ レベル${lv}：${n} が つかえるように なりました`, autoConvOpt: 'コンベア じどう おき', secAdvOpt: 'ひしょの ていあん', coLvMsg: 'かいしゃ レベルを あげられます（タップで じむしょへ）',
     adv: { jam: 'コンベアが つまっています。ひとを つけるか、つよく しては？', buf: n => `${n}の なかに ざいりょうが たまっています`, coUp: 'かいしゃ レベルを あげられます',
       truck: 'ヤードに しげんが たまっています。トラックを つよく しては？', fork: 'ちじょうに しげんが たまっています。フォークリフトを ふやしては？',
       useRes: (a, b) => `${a}は、${b}で かこう できます`, next: 'つぎへ', none: 'いまは、ていあんは ありません', ok: 'OK', truckDrv: 'トラックに うんてんしゅが いません', forkDrv: n => `うんてんしゅの いない フォークリフトが ${n}だい あります`, drillOff: 'とめてある ドリルが あります', drillCap: n => `がんばん${n}を わるには、かいしゃ レベルを あげましょう`, drillUp: n => `ドリルを つよく すると、がんばん${n}が はやく われます`, drillStuck: 'ドリルが すすめません', machNo: n => `${n}に ひとが いません`, machOut: n => `${n}の でぐちが ふさがっています`, hire: 'ひとを やとう よゆうが あります', capFull: 'ていいん いっぱいです', price: n => `${n}の ねあげが かえます`, lab: 'けんきゅうしょを たてましょう', resFree: n => `けんきゅうしつが あいています`, auto: 'けんきゅう「じどうか」で、ひとの いない きかいも すこし うごきます', well: n => `${n}が パイプに つながっていません`, tank: 'おゆや せきゆが たまっています', museum: 'めずらしい ものが みつかりました', tired: 'やすんでいる ひとが おおいです', tiredVend: 'やすんでいる ひとが おおいです。じはんきを おいては？', newMach: n => `${n}が まだ おかれていません`, rich: 'おかねに よゆうが あります' }, on: 'オン', off: 'オフ',
@@ -688,7 +688,7 @@ const TXT = {
     needDig: n => `Needs dig level ${n} (skill)`,
     rockHint: n => `Hard bedrock: without dig level ${n} it is very slow (research it at the Lab)`,
     quit: 'Could not pay wages: one worker quit',
-    veinFound: 'A vein!', tutGoal: 'Goal: dig with drills and carry it up with conveyors', tutGoal2: 'Goal: save up and raise the company level', vendLine: 'Ahh!', vend: 'Vending corner', vendDesc: 'Place it in an empty tunnel cell. Tired workers passing or working within 1 cell stop for a drink (+25% stamina, 100). Once a minute per worker.', vendN: n => `Rest speed +${n * 10}%`, hcEmpty: 'Shelves are empty', sortInvL: 'Send out', sortOnly: 'Only picked', sortExcept: 'All but picked', unlockT: n => `Company level ${n}: new things`, unlockUse: 'Ready to use (Build menu)', unlockRes: 'Research it at the Lab', roomEmpty: '... silence', roomLines: { exhibit: ['Our souvenirs', 'Shiny'], boss: ['Hmm.', 'Coffee break', 'Dig more!'], sec: ['Tea is ready', 'Right on schedule'], hr: ['Interviewing', 'A mountain of CVs...'], tech: ['A drop of oil here', 'No odd noises'], sales: ['Sold!', 'Negotiating a raise', "What! Our truck's been parked there 3 hours?!"], rest: ['5 more minutes...', "I'm hungry", 'Zzz'], lab: ['Done! ...or not', 'Taking notes'] }, elevOne: 'Only one elevator shaft (extend the current one up or down)', cellLook: 'Underground', otherMix: 'other', mixLine: (p, n) => `Contents: ${p} (${n} left)`, hDepth: 'Where resources appear', dAlways: 'From the start', dBelow: n => `Below bedrock ${n}`, dWell: 'Hot springs may appear below bedrock 4, oil below bedrock 5. (1 cell = 3m; bedrock 0 at 15m, then every 18m)', colTitle: 'Collection', col: { title: 'Collection', 'p:worker': 'Worker', 'p:boss': 'Boss', 'v:fork': 'Forklift', 'v:bossFork': "Boss's forklift", 'v:truck': 'Truck', 'b:office': 'Office', unknown: '? (not seen yet)', hint: 'Tap for the name' }, bedBonus: (lv, n) => `Broke through bedrock ${lv}! ${n} bonus resources popped out on the surface`, coUnlock: (lv, n) => `Company level ${lv}: ${n} now available (some appear in the Lab)`, autoConvOpt: 'Auto conveyor', secAdvOpt: 'Secretary tips', coLvMsg: 'You can raise the company level (tap to open the office)',
+    veinFound: 'A vein!', tutGoal: 'Goal: dig with drills and carry it up with conveyors', tutGoal2: 'Goal: save up and raise the company level', tutNeed: v => ` (${v} more)`, tutCan: ' (ready! go to the office)', vendLine: 'Ahh!', vend: 'Vending corner', vendDesc: 'Place it in an empty tunnel cell. Tired workers passing or working within 1 cell stop for a drink (+25% stamina, 100). Once a minute per worker.', vendN: n => `Rest speed +${n * 10}%`, hcEmpty: 'Shelves are empty', sortInvL: 'Send out', sortOnly: 'Only picked', sortExcept: 'All but picked', unlockT: n => `Company level ${n}: new things`, unlockUse: 'Ready to use (Build menu)', unlockRes: 'Research it at the Lab', roomEmpty: '... silence', roomLines: { exhibit: ['Our souvenirs', 'Shiny'], boss: ['Hmm.', 'Coffee break', 'Dig more!'], sec: ['Tea is ready', 'Right on schedule'], hr: ['Interviewing', 'A mountain of CVs...'], tech: ['A drop of oil here', 'No odd noises'], sales: ['Sold!', 'Negotiating a raise', "What! Our truck's been parked there 3 hours?!"], rest: ['5 more minutes...', "I'm hungry", 'Zzz'], lab: ['Done! ...or not', 'Taking notes'] }, elevOne: 'Only one elevator shaft (extend the current one up or down)', cellLook: 'Underground', otherMix: 'other', mixLine: (p, n) => `Contents: ${p} (${n} left)`, hDepth: 'Where resources appear', dAlways: 'From the start', dBelow: n => `Below bedrock ${n}`, dWell: 'Hot springs may appear below bedrock 4, oil below bedrock 5. (1 cell = 3m; bedrock 0 at 15m, then every 18m)', colTitle: 'Collection', col: { title: 'Collection', 'p:worker': 'Worker', 'p:boss': 'Boss', 'v:fork': 'Forklift', 'v:bossFork': "Boss's forklift", 'v:truck': 'Truck', 'b:office': 'Office', unknown: '? (not seen yet)', hint: 'Tap for the name' }, bedBonus: (lv, n) => `Broke through bedrock ${lv}! ${n} bonus resources popped out on the surface`, coUnlock: (lv, n) => `Company level ${lv}: ${n} now available (some appear in the Lab)`, autoConvOpt: 'Auto conveyor', secAdvOpt: 'Secretary tips', coLvMsg: 'You can raise the company level (tap to open the office)',
     adv: { jam: 'A conveyor is jammed. Add a worker or upgrade it?', buf: n => `Materials are piling up in the ${n}`, coUp: 'You can raise the company level',
       truck: 'Resources are piling up in the yard. Upgrade the truck?', fork: 'Resources are piling up on the surface. Buy more forklifts?',
       useRes: (a, b) => `${a} can be processed in the ${b}`, next: 'Next', none: 'No tips right now', ok: 'OK', truckDrv: 'The truck has no driver. Hire someone?', forkDrv: n => `${n} forklift(s) have no driver`, drillOff: 'A drill is switched off', drillCap: n => `To break bedrock ${n}, raise the company level and upgrade the drill`, drillUp: n => `Upgrade the drill to break bedrock ${n} sooner`, drillStuck: 'A drill cannot go on. Turn it?', machNo: n => `No one works the ${n} (it stops)`, machOut: n => `The ${n} output is blocked`, hire: 'You can afford to hire', capFull: 'Staff limit reached; raise the company level', price: n => `You can raise the ${n} price`, lab: 'Build a Lab (Build → Facilities)', resFree: n => `A lab room is free (${n} to research)`, auto: 'The Automation research keeps unstaffed machines moving a little', well: n => `The ${n} is not piped up`, tank: 'Hot water or oil is piling up; build a surface facility?', museum: 'You found a rarity; a museum can show it', tired: 'Many workers are resting; welfare research or company level speeds up breaks', tiredVend: 'Many workers are resting; a vending corner in a tunnel helps', newMach: n => `The ${n} is not placed yet`, rich: 'You have money to spare; upgrade or research?' }, on: 'On', off: 'Off',
@@ -732,7 +732,7 @@ const TXT_ADD = {
     aiPrice: n => `${n}の売値アップ`, aiPipe: '湧き口をパイプでつないだ', aiFac: n => `${n}を建てた`,
     aiRemove: '掘れないドリルを撤去した', aiRebuild: '使わなくなった機械を撤去した', aiUnsort: 'もっと良い使い道があるので、仕分けを外した', forkSpd: '走る速さ', valueUp: '作った物の売値', beltCapT: '1マスに乗る数', tutHello: 'ほるぞ！', tutTired: 'つらすぎる…', tutGanbaru: 'がんばるぞ！', 
     tutPick: 'どこを掘りますか？（光っているマスをタップ）', tutBuy: 'ドリルを買ってみましょう！\n（「設置」→ドリル）', tutEasy: 'これで楽になりましたね。', tutYes: '・・・ですよね',
-    tut2: { kiln: '土を焼くとレンガになって、高く売れます。\nレンガ焼成機を置いてみましょう（「設置」→機械）', hire: '人を雇うと、ドリルや機械が速く動きます。\n事務所をタップして「雇う」', drillDir: 'ドリルをタップすると、掘る向きを変えられます。\n横にも掘れます。', lvup: 'ドリルをタップして強化しましょう。\n強いドリルなら、硬い岩盤も速く掘れます。', office: 'お金がたまったら、事務所で会社レベルを上げましょう。\n雇える人数や、強化できる上限が増えます。', lab: '研究所を建てましょう（「設置」→施設→研究所）。\n研究すると、新しい機械や便利な力が手に入ります。' },
+    tut2: { kiln: '土を焼くとレンガになって、高く売れます。\nレンガ焼成機を置いてみましょう（「設置」→機械）', hire: '人を雇うと、ドリルや機械が速く動きます。\n事務所をタップして「雇う」', drillDir: 'ドリルをタップすると、掘る向きを変えられます。\n横にも掘れます。', lvup: '地上に資源がたまってきました。\nフォークリフトをタップして強化しましょう（一度に多く運べます）。', office: 'お金がたまったら、事務所で会社レベルを上げましょう。\n雇える人数や、強化できる上限が増えます。', lab: '研究所を建てましょう（「設置」→施設→研究所）。\n研究すると、新しい機械や便利な力が手に入ります。' },
     tutDone: 'ドリルやコンベアを置いて、土を出荷しましょう', tutSkipB: 'スキップ', adReady: '広告を見ると、特典がもらえます', adWatch: '広告を見る', adCancel: 'やめる', adSkip: '最後まで見なかったので、特典はありません', brandUp: (n, p) => `会社レベル${n}！ブランド力が上がりました（売値 +${p}%）`, resOnly: '未取得のみ', resAllB: 'すべて',
     yardT: 'トラックヤード', yardDesc: 'トラックが止まり、資源を置く場所（マップに1つ）。撤去でたたみ、工事の「トラックヤード」で別の所に置けます。', yardNone: 'トラックヤードがありません（工事から置いてください）',
     hBasic: '基本操作', hDig: '掘る・運ぶ', hMake: '加工と売る', hLevel: 'レベルアップと研究', hItems: '施設・設置物・資源', pleaseT: 'おねがい',
@@ -795,7 +795,7 @@ const TXT_ADD = {
       build: ['建造', '事務所を、宇宙へ行ける形に作り直します。'], depart: ['出発', '事務所に「出発」ボタンができます。'],
       conne: ['コネ採用', '雇える人数が増えます（1段ごとに+10%・最低+2人。最大200人）。'],
       treasure: ['人間国宝見学', '作業員の経験がたまる速さが上がります（1段ごとに+25%）。'], statue: ['社長像', '事務所の前に、社長の銅像が建ちます。'], garden: ['屋上庭園', '事務所の屋上が森に。休憩が少し速くなります。'],
-      vein: ['鉱脈探知', '地面の中の鉱脈が、灰色の粒で見えるようになります（掘り始めると資源の色に）。珍しい物（化石・埴輪など）も出やすくなります（1段ごとに+25%）。'], labRoom: ['研究室の増室', '研究室が1つ増え、同時に研究できる数が増えます（最大6室）。研究所にいる研究員の数だけ、並んで進みます。'], land: ['土地買収', '自分の土地が左右に1マスずつ広がります（研究するごとに高くなる）。'], digLv: ['掘削レベル', '硬い岩盤（10mにLv1、その後は10mごと）を1段ずつ破れるようになります（Lv0は会社レベル2で破れる）。'] },
+      vein: ['鉱脈探知', '地面の中の鉱脈が、灰色の粒で見えるようになります（掘り始めると資源の色に）。珍しい物（化石・埴輪など）も出やすくなります（1段ごとに+25%）。'], labRoom: ['研究室の増室', '研究室が1つ増え、同時に研究できる数が増えます（最大4室）。研究所にいる研究員の数だけ、並んで進みます。'], land: ['土地買収', '自分の土地が左右に1マスずつ広がります（研究するごとに高くなる）。'], digLv: ['掘削レベル', '硬い岩盤（10mにLv1、その後は10mごと）を1段ずつ破れるようになります（Lv0は会社レベル2で破れる）。'] },
     deal: { land: ['地上げ', '土地買収のレベルが1つ上がります（左右に1マスずつ広がる）。', '地上げ'] },
     dealMax: '上限です',
     help0: ['操作', '画面は指（マウス）でなぞると動きます。画面の端（▲▼◀▶）を押しても動きます。2本指・Ctrl＋ホイール・＋－で拡大縮小、「地図」で全体を見られます。\n下のタブを押すと引き出しが開き、道具を選べます。ドリル・機械などは1つ置くと選択が外れます。コンベアなどは続けて置けて、左下の「×」かタブを押すと外れます。ドリルは、置く所をタップしてから掘る向きを選んで「設置する」。置いた物をタップすると、向きの変更やレベルアップができます。'],
@@ -832,7 +832,7 @@ const TXT_ADD = {
     deal: { land: ['じあげ', '「とちを かう」の レベルが 1つ あがります。', 'じあげ'] },
     dealMax: 'もう いっぱい',
     sk: { land: ['とちを かう', 'じぶんの とちが みぎと ひだりに 1マスずつ ひろがります（けんきゅう するたびに たかく なる）。'], digLv: ['あなほり レベル', 'かたい がんばん（5mに Lv0、そのあとは 10mごと）を 1だんずつ ふつうに ほれるように なります。'],
-      labRoom: ['けんきゅうしつを ふやす', 'けんきゅうしつが 1つ ふえて、いっしょに けんきゅう できる かずが ふえます（さいだい 6しつ）。'],
+      labRoom: ['けんきゅうしつを ふやす', 'けんきゅうしつが 1つ ふえて、いっしょに けんきゅう できる かずが ふえます（さいだい 4しつ）。'],
       vein: ['こうみゃく たんち', 'じめんの なかの こうみゃくが、はいいろの つぶで みえるように なります。めずらしい もの（かせき・はにわ など）も でやすく なります。'],
       autoHire: ['じんじぶ', 'ひとが たりない とき、じどうで やといます（じむしょで オン・オフ）。'],
       autoUpg: ['ぎじゅつぶ', 'おかねが たくさん ある とき、ときどき つよく します。どれを つよく するかは きまぐれ（じむしょで オン・オフ）。'],
@@ -856,7 +856,7 @@ const TXT_ADD = {
     labRoomsInfo: (n, r, st) => `けんきゅうしつ ${n}・けんきゅうちゅう ${r}・けんきゅういん ${st}にん`, chipRooms: 'けんきゅうしつ', chipRes: 'けんきゅうちゅう', chipStaff: 'けんきゅういん',
     tutHello: 'ほるぞ！', tutTired: 'つらすぎる…', tutGanbaru: 'がんばるぞ！', tutPick: 'どこを ほりますか？（ひかっている マスを タップ）',
     tutYes: '・・・ですよね',
-    tut2: { kiln: 'つちを やくと レンガに なって、たかく うれます。\nレンガやきを おいて みましょう（「おく」→きかい）', hire: 'ひとを やとうと、ドリルや きかいが はやく うごきます。\nじむしょを タップして「やとう」', drillDir: 'ドリルを タップすると、ほる むきを かえられます。\nよこにも ほれます。', lvup: 'ドリルを タップして つよく しましょう。\nつよい ドリルなら、かたい がんばんも はやく ほれます。', office: 'おかねが たまったら、じむしょで かいしゃ レベルを あげましょう。\nやとえる にんずうや、つよく できる じょうげんが ふえます。', lab: 'けんきゅうしょを たてましょう（「おく」→しせつ→けんきゅうしょ）。\nけんきゅう すると、あたらしい きかいが つかえます。' }, tutBuy: 'ドリルを かって みましょう！\n（「おく」→ドリル）', tutEasy: 'これで らくに なりましたね。', tutDone: 'ドリルや コンベアを おいて、つちを しゅっか しましょう', tutSkipB: 'スキップ',
+    tut2: { kiln: 'つちを やくと レンガに なって、たかく うれます。\nレンガやきを おいて みましょう（「おく」→きかい）', hire: 'ひとを やとうと、ドリルや きかいが はやく うごきます。\nじむしょを タップして「やとう」', drillDir: 'ドリルを タップすると、ほる むきを かえられます。\nよこにも ほれます。', lvup: 'ちじょうに しげんが たまって きました。\nフォークリフトを タップして つよく しましょう。', office: 'おかねが たまったら、じむしょで かいしゃ レベルを あげましょう。\nやとえる にんずうや、つよく できる じょうげんが ふえます。', lab: 'けんきゅうしょを たてましょう（「おく」→しせつ→けんきゅうしょ）。\nけんきゅう すると、あたらしい きかいが つかえます。' }, tutBuy: 'ドリルを かって みましょう！\n（「おく」→ドリル）', tutEasy: 'これで らくに なりましたね。', tutDone: 'ドリルや コンベアを おいて、つちを しゅっか しましょう', tutSkipB: 'スキップ',
     hBasic: 'きほんの そうさ', hDig: 'ほる・はこぶ', hMake: 'つくって うる', hLevel: 'レベルアップと けんきゅう', hItems: 'しせつ・おくもの・しげん', pleaseT: 'おねがい',
     hFacs: 'ちじょうの しせつ', hTools: 'おくもの', hMachs: 'きかい', hRes: 'しげん・せいひん（いま てに はいる もの）',
     please: 'ごいけん・ごかんそうを おまちして います（X や note へ どうぞ）。\nこの ゲームは むりょうで あそべます。きに いって もらえたら、おうえん して もらえると うれしいです。',
@@ -891,7 +891,7 @@ const TXT_ADD = {
     aiPrice: n => `${n} price up`, aiPipe: 'Piped a source', aiFac: n => `Built ${n}`,
     aiRemove: 'Removed a drill that could not dig', aiRebuild: 'Removed an unused machine', aiUnsort: 'Removed a sorter (found a better use)', forkSpd: 'Speed', valueUp: 'Product value', beltCapT: 'Items per cell', tutHello: "Let's dig!", tutTired: 'This is too hard...', tutGanbaru: "Let's do this!", 
     tutPick: 'Where do you want to dig? (tap a glowing cell)', tutBuy: 'Try buying a drill!\n(Build → Drill)', tutEasy: 'That makes it easier.', tutYes: '...I bet it is.',
-    tut2: { kiln: 'Baked soil becomes bricks, which sell for more.\nTry placing a Brick kiln (Build → Machines).', hire: 'Hired workers make drills and machines run faster.\nTap the office and press Hire.', drillDir: 'Tap a drill to change its digging direction.\nIt can dig sideways too.', lvup: 'Tap a drill and upgrade it.\nA stronger drill breaks hard bedrock faster.', office: 'When you have the money, raise the company level at the office.\nYou can hire more and upgrade further.', lab: 'Build a Lab (Build → Facilities → Lab).\nResearch unlocks new machines and handy skills.' },
+    tut2: { kiln: 'Baked soil becomes bricks, which sell for more.\nTry placing a Brick kiln (Build → Machines).', hire: 'Hired workers make drills and machines run faster.\nTap the office and press Hire.', drillDir: 'Tap a drill to change its digging direction.\nIt can dig sideways too.', lvup: 'Resources are piling up on the surface.\nTap the forklift and upgrade it to carry more.', office: 'When you have the money, raise the company level at the office.\nYou can hire more and upgrade further.', lab: 'Build a Lab (Build → Facilities → Lab).\nResearch unlocks new machines and handy skills.' },
     tutDone: 'Place drills and conveyors, and ship the soil', tutSkipB: 'Skip', adReady: 'Watch an ad to get the reward', adWatch: 'Watch ad', adCancel: 'Cancel', adSkip: 'The ad was skipped, so no reward this time', brandUp: (n, p) => `Company level ${n}! Brand power up (prices +${p}%)`, resOnly: 'Not yet', resAllB: 'All',
     yardT: 'Truck yard', yardDesc: 'Where the truck parks and items pile up (one per map). Remove it, then place it elsewhere from Works.', yardNone: 'No truck yard (place one from Works)',
     hBasic: 'Basics', hDig: 'Dig & carry', hMake: 'Make & sell', hLevel: 'Upgrades & research', hItems: 'Buildings & items', pleaseT: 'A request',
@@ -954,7 +954,7 @@ const TXT_ADD = {
       build: ['Construction', 'Rebuilds the office into something that can reach space.'], depart: ['Departure', 'Adds a Depart button to the office.'],
       conne: ['Connections', 'More staff you can hire (+10% per level, at least +2; up to 200).'],
       treasure: ['Master craftsman tour', 'Workers gain experience faster (+25% per level).'], statue: ['Boss statue', 'A bronze statue of the boss stands at the entrance.'], garden: ['Rooftop garden', 'A forest on the office roof. Rest is a little faster.'],
-      vein: ['Vein finder', 'Ore veins underground show as grey specks (in colour once you dig into them). Rare finds (fossils, haniwa...) also appear more often (+25% per level).'], labRoom: ['Extra lab room', 'Adds a lab room so more research can run at once (up to 6). Each research needs its own researcher in the Lab.'], land: ['Land purchase', 'Your land grows by 1 cell on each side (each purchase costs more).'], digLv: ['Dig level', 'Break hard bedrock (Lv1 at 10m, then every 10m), one layer per level (Lv0 breaks at company level 2).'] },
+      vein: ['Vein finder', 'Ore veins underground show as grey specks (in colour once you dig into them). Rare finds (fossils, haniwa...) also appear more often (+25% per level).'], labRoom: ['Extra lab room', 'Adds a lab room so more research can run at once (up to 4). Each research needs its own researcher in the Lab.'], land: ['Land purchase', 'Your land grows by 1 cell on each side (each purchase costs more).'], digLv: ['Dig level', 'Break hard bedrock (Lv1 at 10m, then every 10m), one layer per level (Lv0 breaks at company level 2).'] },
     deal: { land: ['Land deal', 'Raises Land purchase by one level (1 cell wider on each side).', 'Land'] },
     dealMax: 'Maxed',
     help0: ['Controls', 'Swipe the screen to scroll (or press the screen edges). Pinch, Ctrl+wheel or +/- to zoom; "Map" shows everything.\nPick tools from the tabs at the bottom. Drills and machines are deselected after placing one; conveyors stay selected until you press the "x" (bottom left) or a tab. For a drill, tap the spot, pick a direction, then Place.'],
@@ -1340,7 +1340,7 @@ const CO_UNLOCK = {
   'sk:black': 13, 'sk:speeding': 13, 'sk:diaUp': 13,
   'm:atelier': 14, 'sk:oilScan': 14, 'm:assembler': 13,
 };
-const CO_SK = { auto: [4, 8, 12], speed: [2, 6, 10], hr: [3, 7], welfare: [6, 9], labRoom: [2, 5, 8, 11, 13] };   // 何段もある研究：段ごとの会社レベル
+const CO_SK = { auto: [4, 8, 12], speed: [2, 6, 10], hr: [3, 7], welfare: [6, 9], labRoom: [2, 5, 8] };   // 何段もある研究：段ごとの会社レベル
 const coLv = () => S.office.lv + 1;
 const coNeedOf = id => { if (id.startsWith('sk:') && CO_SK[id.slice(3)]) { const a = CO_SK[id.slice(3)]; return a[Math.min(sk(id.slice(3)), a.length - 1)]; } return CO_UNLOCK[id] || 2; };
 function resAvail(id) {
@@ -1777,7 +1777,7 @@ function tutSet(step) { S.tut.step = step; S.tut.t = 0; tutShow(); }
 function tutGoalShow() {   // 6：はじめの手順の目標（小さく固定）
   const g = $('tutGoal'); if (!g) return;
   const on = !!(S && !inTitle && (S.tut || S.tut2 || S.deepest - SKY <= BR(0)) && !S.goalOff);
-  g.hidden = !on; if (on) { const t2 = staffN() >= 1 ? tx().tutGoal2 : ''; const txt = tx().tutGoal + (t2 ? '\n' + t2 : ''); if (g.textContent !== txt) g.textContent = txt; }
+  g.hidden = !on; if (on) { const need = offCost(S.office.lv) - S.money, t2 = staffN() >= 1 ? tx().tutGoal2 + (need > 0 ? tx().tutNeed(fmt(need)) : tx().tutCan) : ''; const txt = tx().tutGoal + (t2 ? '\n' + t2 : ''); if (g.textContent !== txt) g.textContent = txt; }
 }
 function tutShow() {
   tutGoalShow();
@@ -1824,7 +1824,11 @@ function tutTarget() {
     const gb3 = [...document.querySelectorAll('#subMenu .grp')].find(b => b.dataset.grp === 'fac'); if (vis(gb3)) return gb3;
     return [...document.querySelectorAll('[data-open="build"], #catBar [data-cat="build"]')].find(vis) || null;
   }
-  if (st2 === 'drillDir' || st2 === 'lvup') {   // ドリル → 向き／レベルアップ
+  if (st2 === 'lvup') {   // フォークリフト → レベルアップ
+    if (popTarget && popTarget.type === 'fork') return $('popLvUp');
+    const f = S.forks[0]; return f ? cellRect(Math.floor(f.x), YARD_R) : null;
+  }
+  if (st2 === 'drillDir') {   // ドリル → 向き（今は使っていない）
     if (popTarget && popTarget.type === 'drill') return st2 === 'drillDir' ? $('popDirs') : $('popLvUp');
     const k = firstDrillKey(); return k >= 0 ? cellRect(cOf(k), rOf(k)) : null;
   }
@@ -1883,13 +1887,13 @@ function tutEnd() {
   tutShow(); say(tx().tutDone, 7000, 'good');
 }
 // はじめの手順のあとの案内：待つ（wait）→ 案内を出す → できたら（または▼を押したら）少し待って次へ
-const TUT2 = ['kiln', 'hire', 'drillDir', 'lvup', 'office', 'lab'];   // v1.30：研究所の段
+const TUT2 = ['kiln', 'hire', 'lvup', 'office', 'lab'];   // v1.46：掘る向きの段は外す・レベルアップはフォークリフト   // v1.30：研究所の段
 const TUT2_WAIT = 25;   // 次の案内までの秒数（ゲームの時間）
 function tut2Done(st) {
   if (st === 'kiln') return [...S.st.values()].some(x => x.type === 'machine');
   if (st === 'hire') return staffN() >= 1;
   if (st === 'drillDir') return !!(S.tut2 && S.tut2.did);
-  if (st === 'lvup') return [...S.st.values()].some(x => x.type === 'drill' && x.lv > 0);
+  if (st === 'lvup') return S.forks.some(f => (f.lv || 0) > 0);   // 8：フォークリフトを強化した
   if (st === 'office') return S.office.lv >= 1;
   if (st === 'lab') return S.lab.built;
   return false;
@@ -3877,7 +3881,7 @@ function cutRooms(kind) {
 }
 let cutBub = null;   // 断面図の吹き出し {kind, i, text, until}
 function cutTap(cv2, kind, e) {
-  const r = cv2.getBoundingClientRect(), rooms = cutRooms(kind), cols = 3, rw = (r.width - 8) / cols, rh = 46;
+  const r = cv2.getBoundingClientRect(), rooms = cutRooms(kind), cols = kind === 'lab' ? 2 : 3, rw = (r.width - 8) / cols, rh = 46;
   const i = Math.floor((e.clientX - r.left - 4) / rw) + cols * Math.floor((e.clientY - r.top - 5) / rh);
   const rm = rooms[i]; if (!rm) return;
   const L = tx().roomLines[rm.key] || [], text = rm.n || rm.exhibit ? (L.length ? L[Math.floor(Math.random() * L.length)] : '...') : tx().roomEmpty;
@@ -3887,7 +3891,7 @@ $('officeView').addEventListener('click', e => cutTap($('officeView'), 'office',
 $('labView').addEventListener('click', e => cutTap($('labView'), 'lab', e));
 function drawCutaway(cv2, kind) {
   if (!cv2 || cv2.offsetParent === null) return;
-  const rooms = cutRooms(kind), cols = 3, rowsN = Math.ceil(rooms.length / cols);
+  const rooms = cutRooms(kind), cols = kind === 'lab' ? 2 : 3, rowsN = Math.ceil(rooms.length / cols);   // 研究所は2部屋ずつの段
   const W = cv2.clientWidth || 300, rh = 46, H = rowsN * rh + 10, dpr = window.devicePixelRatio || 1;
   if (cv2.width !== Math.round(W * dpr) || cv2.height !== Math.round(H * dpr)) { cv2.width = Math.round(W * dpr); cv2.height = Math.round(H * dpr); cv2.style.height = H + 'px'; }
   const g = cv2.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.imageSmoothingEnabled = false;
@@ -5464,7 +5468,7 @@ function drawDrill(x, y, s) {
   const cell = cp, fr = s.stuck || s.off ? DRILL_FR.stuck : DRILL_FR.run;
   const k = findKey(s);
   if (k >= 0) { const [ox, oy] = drillShift(k, s), pu = drillPunch(s), [ddx, ddy] = DIRS[s.dir]; x += (ox + ddx * pu) * cell; y += (oy + ddy * pu) * cell; }
-  const f = !s.stuck && S.time - (s.hit || -99) < 0.7 ? Math.floor(S.time * 10) % 2 : 0;
+  const f = !s.stuck && S.time - (s.hit || -99) < 0.7 ? Math.floor(S.time * (opOf(s) ? 10 : 2.5)) % 2 : 0;   // 61：人がいない時はゆっくり回る
   ctx.save(); ctx.imageSmoothingEnabled = false;
   ctx.translate(x + cell / 2, y + cell / 2); ctx.rotate(ANGLE[s.dir]);
   ctx.drawImage(fr[f], -cell / 2, -cell / 2, cell, cell);
@@ -5532,12 +5536,9 @@ function drawSkyFliers() {
   }
 }
 // 案内の枠：合う所にいつも1本、その外から縮んでくる枠が2本（形と動きで目立たせる。点滅しない）
-function drawTutFrames(x, y, w, h) {
-  const cell = cp, lw = Math.max(2, cell * 0.07), ph = (performance.now() / 1400) % 1;
-  ctx.save(); ctx.strokeStyle = '#d0661f';
-  ctx.globalAlpha = 0.85; ctx.lineWidth = lw; ctx.strokeRect(x, y, w, h);
-  for (let i = 0; i < 2; i++) { const q = (ph + i / 2) % 1, d = (1 - q) * cell * 0.4; ctx.globalAlpha = 0.25 + 0.45 * q; ctx.lineWidth = Math.max(1.5, lw * 0.7); ctx.strokeRect(x - d, y - d, w + d * 2, h + d * 2); }
-  ctx.restore();
+function drawTutFrames(x, y, w, h) {   // 64：枠は1本。少し大きくなったり戻ったりするだけ（明るさは変えない）
+  const cell = cp, lw = Math.max(2, cell * 0.07), d = (0.5 + 0.5 * Math.sin(performance.now() / 260)) * cell * 0.08;
+  ctx.save(); ctx.strokeStyle = 'rgba(208,102,31,.9)'; ctx.lineWidth = lw; ctx.strokeRect(x - d, y - d, w + d * 2, h + d * 2); ctx.restore();
 }
 function drawBossCar(x, base, kind) {   // 1マスの車（黒塗りの車か軽トラ）。前の席に赤いヘルメットが小さく見える
   const cell = cp, y = base;
@@ -5584,7 +5585,7 @@ function drawOffice0() {
     ctx.strokeStyle = T2.roof; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.moveTo(x0 + w * 0.3, top - cell * 0.07); ctx.lineTo(x0 + w * 0.3, top - cell * 0.4); ctx.stroke();
   }
-  drawLevel(x0 + cell * 0.02, top + cell * 0.02, lv);
+  // 43：事務所のレベルの印は出さない
   if (sk('garden')) {   // 屋上庭園：屋上が森に
     ctx.fillStyle = '#4f8a5b'; ctx.fillRect(x0, top - cell * 0.1, w, cell * 0.06);
     for (let i = 0; i < 5; i++) { const tx3 = x0 + w * (0.08 + i * 0.21), r3 = cell * (0.09 + 0.03 * ((i * 7) % 3)); ctx.fillStyle = i % 2 ? '#8fc07a' : '#4f8a5b'; ctx.beginPath(); ctx.arc(tx3, top - cell * 0.1 - r3 * 0.7, r3, 0, Math.PI * 2); ctx.fill(); }
@@ -5622,11 +5623,7 @@ function drawOffice0() {
       ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(BOSS_FR[1], 3, 0, 2, 2, Math.round(wx - s2 / 2), Math.round(wy + cell * 0.12 - s2), s2, s2); ctx.restore();
     }
   }
-  const inside = S.workers.filter(wk => wk.state === 'idle' || wk.state === 'rest').length;
-  if (inside) {
-    ctx.fillStyle = T2.text; ctx.font = `600 ${Math.round(cell * 0.22)}px sans-serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
-    ctx.fillText('i×' + inside, x0 + w * 0.08, base - cell * 0.04);
-  }
+  // 45：「i×人数」は出さない（中の様子は事務所の断面図で見る）
 }
 // 研究所：1マスの小さな建物（地上のどこでも）
 function drawLab() { if (S.lab.built) drawLabAt(S.lab.c, false); }
@@ -5788,7 +5785,7 @@ function drawFork(f) {
 const ease = t => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
 function drawTruck() {   // ヤードにいるトラックを全部（2台目からは右へ少しずつずらして、後ろに並ぶ）
   const bay = S.fleet.filter(inBay);
-  for (let i = bay.length - 1; i >= 0; i--) { ctx.save(); ctx.translate(i * cp * 0.62, -i * cp * 0.06); drawTruck1(bay[i]); ctx.restore(); }
+  for (let i = bay.length - 1; i >= 0; i--) drawTruck1(bay[i]);   // 35：同じ所に重ねる（いちばん手前の1台が見える）
 }
 function drawTruck1(t) {   // 1マスの小さなトラック。右からヤードに直接入ってきて、右へ出ていく
   const cell = cp, y = YARD_R * cell, bx = BED * cell;
@@ -6131,8 +6128,7 @@ function updateUI() {
   spB.title = spB.ariaLabel = '×' + speeds()[speedIdx];
   const spHide = speeds().length < 2; if ($('speedBtn').hidden !== spHide) { $('speedBtn').hidden = spHide; fitHeader(); }   // 速くできるようになるまで出さない（出た時は、はみ出しを測り直す）
   // 端まで来た向きの▲▼◀▶は消す
-  $('mvUp').hidden = cam.y <= camLim.y0 + 0.02; $('mvDown').hidden = cam.y >= camLim.y1 - 0.02;
-  $('mvLeft').hidden = cam.x <= camLim.x0 + 0.02; $('mvRight').hidden = cam.x >= camLim.x1 - 0.02;
+  // 63：▲▼◀▶ の帯はなくした
   $('panBtn').classList.toggle('active', tool === 'pan');
   $('mapBtn').classList.toggle('active', !$('mapPanel').hidden);
   $('menuBtn').hidden = menuOpen;
@@ -7093,7 +7089,7 @@ function fpsTick(dt) {
   if (lr !== !!fpsCtl.lowRes) { fpsCtl.lowRes = lr; resize(); }
   else if (fpsCtl.fps > 27) fpsCtl.cap = Math.min(30, fpsCtl.cap + 1);
   const pm = fpsCtl.ms || {}, ms = v => (v || 0).toFixed(v < 10 ? 1 : 0);
-  $('fpsHud').textContent = `${Math.round(fpsCtl.fps)} f/s`;   // 右上は f/s だけ（内訳 fpsCtl.ms は試験用に残す）
+  $('fpsHud').textContent = `${Math.round(fpsCtl.fps)} f/s`; $('fpsHud').hidden = !(adminMode() || new URLSearchParams(location.search).has('dev'));   // 5：f/s は管理モードの時だけ   // 右上は f/s だけ（内訳 fpsCtl.ms は試験用に残す）
 }
 // ---- ループ ----
 let last = performance.now(), panelTick = 0;
@@ -7109,7 +7105,7 @@ function frame(now) {
   if (noDraw || autoBusy) { requestAnimationFrame(frame); return; }   // 画面表示カット
   fpsTick(dt);
   const sp = speeds(); if (speedIdx >= sp.length) speedIdx = sp.length - 1;
-  if (running && !inTitle && !launchT && !adBusy) {   // 発進〜宇宙の間・広告の間（56）は、ゲームを止める
+  if (running && !inTitle && !launchT && !adBusy && !popTarget) {   // 16：タップメニューを開いている間は止める（閉じると再開）   // 発進〜宇宙の間・広告の間（56）は、ゲームを止める
     const gdt = dt * sp[speedIdx] * (Date.now() < S.boost.speedUntil ? 10 : 1);
     drawDt = gdt;
     const tS = performance.now(); sim(gdt); fpsMs('sim', performance.now() - tS);

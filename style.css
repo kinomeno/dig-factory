@@ -632,3 +632,9 @@ body.hideUI #hdr, body.hideUI #dash, body.hideUI #catBar, body.hideUI #menuBtn, 
 #unlockCard .ulRow small { display: block; line-height: 1.45; }
 .msg .mx { flex: none; margin-left: 6px; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; color: #777; border: 1px solid var(--line2); border-radius: 6px; background: rgba(255,255,255,.8); }
 #secAdvBub .advBtns { display: flex; gap: 6px; } #secAdvOk { font-size: 11px; padding: 3px 10px; } #secAdvOk[hidden] { display: none; }
+/* v1.46 案内の枠は1本（少し動くだけ）・目標の行を大きく少し下に */
+.tutPulse, .tutPulse2 { animation: tutRing1 1.6s ease-in-out infinite !important; }
+@keyframes tutRing1 { 0%, 100% { box-shadow: 0 0 0 3px rgba(208,102,31,.9); } 50% { box-shadow: 0 0 0 6px rgba(208,102,31,.9); } }
+#tutGoal { top: calc(var(--hdr) + 14px); font-size: 13px; padding: 4px 14px; }
+#fpsHud[hidden] { display: none; }
+#tutGoal { width: max-content; max-width: calc(100vw - 24px); }
