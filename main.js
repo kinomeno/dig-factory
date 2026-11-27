@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v0.97（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v0.98（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '0.97';
+const VERSION = '0.98';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -25,8 +25,8 @@ const setYard = c => { YARD_C = BED = CAB = c; if (S) S.yardC = c; };   // ヤ�
 const BAL = {
   tankCap: 300, facSlow: 0.1, drillHit: 0.6, grav: 14, loadRate: 10, walkH: 2.2, walkV: 1.2, restSec: 12,
   valueUp: 1.5, loan: 300, loanMax: 1500, advLv: 2, facSlots: 3, aditMax: 3, aditMaxSpeed: 0.5,
-  hireFee0: 40, hireFeeLv: 30, wage0: 10, wageLv: 6, forkSpd0: 1.2, forkSpdG: 1.2, forkSpdMax: 6, forkBuy0: 400, forkBuyStep: 200,
-  digCost0: 250, digCostG: 2.8, digMon0: 10, digMonG: 3, landCost0: 1500, landCostG: 4, awayCost0: 300, awayCostG: 1.25,
+  hireFee0: 40, hireFeeLv: 30, wage0: 10, wageLv: 6, forkSpd0: 3, forkSpdG: 1.2, forkSpdMax: 3, forkBuy0: 300, forkBuyStep: 150,
+  digCost0: 250, digCostG: 2.8, digMon0: 10, digMonG: 3, landCost0: 150000, landCostG: 4, awayCost0: 300, awayCostG: 1.25,
   priceUpMul: 1.15, priceCostG: 1.6,
   ironP5: 0.17, ironP10: 0.33, goldP10: 0.07, goldP30: 0.18, diaP30: 0.045, diaP50: 0.11, oilP: 0.012, hotP: 0.03,   // v0.72：鉄・金・ダイヤを出やすく（×1.4）
   offCostG: 3, offCapG: 1.3, capMax: 200, brandMul: 1.1, labAlone: 0.25, beltManned: 1.5, elevSpeed: 6, rareP: 0.006, museumFee: 60, truckAdd0: 8000, truckAddG: 2.5,
@@ -82,7 +82,7 @@ const LV = {
               cost: [10, 40, 200, 5000] },   // コンベアの速さ（マス/秒）。Lv1〜5。最後（Lv5＝乗る数が無制限）はとても高い
   machine: { v0: 1, vg: 1.3, c0: 100, cg: 2.5, cap: 5 },   // レベルアップは5回まで（強化だけで解決しないように。効率化・施設を生かす余地を残す）   // 強化の値段は1レベルごとに2.5倍（作った物の売値は1.5倍ずつ上がるので、伸びすぎないように）                                    // 加工の速さ（倍）
   truck:   { val: [2, 4, 7, 12, 20, 32, 50, 80], vg: 1.5, cost: [30, 80, 200, 450, 1000, 2000, 4000], cg: 2.1, cap: 80 },   // 積める数（最初は2個だけ）
-  fork:    { val: [1, 2, 4, 7, 11, 16, 24], vg: 1.45, cost: [40, 120, 300, 700, 1500, 3200], cg: 2.1, cap: 80 },          // フォークリフトの積める数（最初は1個・速さも上がる）
+  fork:    { val: [1, 2, 3, 4], vg: 1, cost: [60, 300, 1500], cg: 2.1, cap: 3 },          // v0.98：積める数は4まで・速さはレベルで上がらない（台数を増やす意味を出す）
 };
 function lvVal(g, lv) {
   const d = LV[g];
@@ -191,12 +191,12 @@ const layerAt = d => (d === 5 ? 1 : d >= 10 && d % 10 === 0 ? 1 + d / 10 : 0);
 const rockLv = layer => layer - 1;                                      // 画面に出す岩盤レベル
 const stageOf = deepest => { let n = 1; while (deepest - SKY >= layerDepth(n)) n++; return n; };
 // 事務所のレベル：休憩の速さ・定員
-const OFFICE_LV = { rest: [1, 1.5, 2, 3, 4], cap: [3, 5, 8, 12, 16], forks: [1, 2, 3, 4, 5], cost: [1000, 4000, 16000, 64000] };   // レベル2＝岩盤Lv0を破れる・研究所。その先は4倍ずつ（会社レベルが大きな目標。インフレ）
+const OFFICE_LV = { rest: [1, 1.5, 2, 3, 4], cap: [3, 5, 8, 12, 16], forks: [2, 4, 8, 12, 16], cost: [1000, 4000, 16000, 64000] };   // レベル2＝岩盤Lv0を破れる・研究所。その先は4倍ずつ（会社レベルが大きな目標。インフレ）
 const LV_EXP = [180, 600, 1500, 3000, 5400, 9000, 14000, 21000];   // v0.72：上がりやすすぎたので3倍くらいに   // 働いた時間（秒）の合計でレベルアップ
 const HIRE_FEE = lv => BAL.hireFee0 + BAL.hireFeeLv * lv;                           // 雇うときの契約金
 const wageOf = w => (w.boss ? 0 : BAL.wage0 + BAL.wageLv * w.lv);              // 給料（月）。社長は0
 const staffN = () => S.workers.filter(w => !w.boss).length;     // 雇っている人数（社長は数えない）
-const forkSpeed = lv => Math.min(BAL.forkSpdMax, BAL.forkSpd0 * Math.pow(BAL.forkSpdG, lv));   // フォークリフトの速さ（最初はゆっくり）
+const forkSpeed = lv => Math.min(BAL.forkSpdMax, BAL.forkSpd0);   // v0.98：フォークリフトの速さはレベルで変わらない
 const FORK_BUY = n => BAL.forkBuy0 + BAL.forkBuyStep * (n - 1);                     // n台目のフォークリフトの値段
 // 研究所で研究して使えるようになる機械 [費用, 月数]。レンガ焼成機・クラッシャーは最初から
 const RESEARCH_MACH = { sieve: [800, 2], roller: [3000, 3], caster: [3500, 3], glassF: [2500, 3], metalwork: [6000, 4], adit: [800, 2], smelter: [600, 2], bagger: [500, 2], factory: [1500, 3], washer: [1200, 3], cutter: [1800, 3], polisher: [2500, 4], drawer: [1500, 3], atelier: [5000, 4] };
@@ -272,7 +272,7 @@ const TXT = {
     lv: n => `レベル${n}`, levelUp: 'レベルアップ',
     pw: { drill: '掘る力', belt: '速さ', machine: '加工の速さ', truck: '積める数', fork: '積める数' },
     pwUnit: { drill: v => `×${v}`, belt: v => `${v}マス/秒`, machine: v => `×${v}`, truck: v => `${v}個`, fork: v => `${v}個` },
-    grp: { drill: 'ドリル', belt: 'コンベア・仕分け', machine: '機械', truck: 'トラック' },
+    grp: { drill: 'ドリル', belt: 'コンベア・仕分け', machine: '機械', truck: 'トラック', fork: 'フォークリフト' },
     allUp: (g, n) => `${g}をまとめてレベルアップ（${n}台）`, none: '対象がありません',
     items: { soil: '土', stone: '石', iron: '鉄', gold: '金', dia: 'ダイヤ原石', gravel: '砂利', brick: 'レンガ',
       ironbar: '鉄の延べ棒', goldbar: '金の延べ棒', tool: '鉄製品', jewel: '金細工', diaClean: '洗ったダイヤ',
@@ -280,13 +280,13 @@ const TXT = {
     mach: { kiln: 'レンガ焼成機', crusher: 'クラッシャー', smelter: '溶鉱炉', factory: '商品製造機', bagger: '袋詰め機',
       washer: 'クリーニング機', cutter: 'カット機', polisher: '研磨機' },
     glyph: { kiln: '窯', crusher: '砕', smelter: '炉', factory: '製', bagger: '袋', washer: '洗', cutter: '切', polisher: '磨' },
-    bagRule: '同じ物5個 → 1袋（売値1.2倍・3種類まで同時に）',
+    bagRule: '同じ物5個 → 1袋（売値1.2倍・何種類でも同時に）',
     office: '事務所', workers: '作業員', hire: '雇う', fire: '解雇', stamina: '体力', tech: '技術',
     wage: '給料', perMonth: '/月', fee: '契約金', payroll: '人件費（毎月）', cands: '雇える人（毎月入れかわる）',
     noCands: '今月はもういません', nobody: 'まだいません',
     wstate: { idle: '待機', toWork: '持ち場へ', work: '作業中', drive: '運転中', toRest: '休みに戻る', rest: '休憩中' },
     worker: n => `作業員${n}`, manned: n => `作業員：${n}`, unmanned: '作業員なし（とても遅い）',
-    sortRare: '珍品（まとめて）', sortGrp: { raw: '原料', prod: '製品' }, payPop: '人件費', payMsg: v => `今月の給料 ${v} を払いました`,
+    sortRare: '珍品（まとめて）', sortGrp: { raw: '原料', prod: '製品' }, eject: '材料を排出', ejecting: n => `排出中…（残り${n}）　止める`, payPop: '人件費', payMsg: v => `今月の給料 ${v} を払いました`,
     infoRows: { money: '資金', mSale: '今月の売上', mCost: '今月の経費', mNet: '今月の収支', lNet: '先月の収支',
       tSale: '売上の合計', tCost: '経費の合計', ships: '出荷した回数', deepest: 'いちばん深い所', drills: 'ドリル',
       machines: '機械', belts: 'コンベア・仕分け', workers: '作業員（作業中）', yard: 'ヤードの資源', loan: '借入（売上から返す）' },
@@ -416,7 +416,7 @@ const TXT = {
     lv: n => `レベル${n}`, levelUp: 'レベルアップ',
     pw: { drill: 'ほる ちから', belt: 'はやさ', machine: 'つくる はやさ', truck: 'つめる かず', fork: 'つめる かず' },
     pwUnit: { drill: v => `×${v}`, belt: v => `${v}マス/びょう`, machine: v => `×${v}`, truck: v => `${v}こ`, fork: v => `${v}こ` },
-    grp: { drill: 'ドリル', belt: 'コンベア・しわけ', machine: 'きかい', truck: 'トラック' },
+    grp: { drill: 'ドリル', belt: 'コンベア・しわけ', machine: 'きかい', truck: 'トラック', fork: 'フォークリフト' },
     allUp: (g, n) => `${g}を まとめて レベルアップ（${n}だい）`, none: 'ありません',
     items: { soil: 'つち', stone: 'いし', iron: 'てつ', gold: 'きん', dia: 'ダイヤの げんせき', gravel: 'じゃり', brick: 'レンガ',
       ironbar: 'てつの ぼう', goldbar: 'きんの ぼう', tool: 'てつの どうぐ', jewel: 'きんの かざり', diaClean: 'あらった ダイヤ',
@@ -424,13 +424,13 @@ const TXT = {
     mach: { kiln: 'レンガやき', crusher: 'クラッシャー', smelter: 'ようこうろ', factory: 'しょうひん こうば', bagger: 'ふくろづめき',
       washer: 'あらいき', cutter: 'カットき', polisher: 'みがきき' },
     glyph: { kiln: 'か', crusher: 'く', smelter: 'ろ', factory: 'せ', bagger: 'ふ', washer: 'あ', cutter: 'き', polisher: 'み' },
-    bagRule: 'おなじ もの 5こ → 1ふくろ（うりね 1.2ばい・3しゅるいまで いっしょに）',
+    bagRule: 'おなじ もの 5こ → 1ふくろ（うりね 1.2ばい・なんしゅるいでも いっしょに）',
     office: 'じむしょ', workers: 'さぎょういん', hire: 'やとう', fire: 'やめてもらう', stamina: 'たいりょく', tech: 'うでまえ',
     wage: 'きゅうりょう', perMonth: '/つき', fee: 'けいやくきん', payroll: 'きゅうりょう（まいつき）', cands: 'やとえる ひと（まいつき かわる）',
     noCands: 'こんげつは もう いません', nobody: 'まだ いません',
     wstate: { idle: 'まち', toWork: 'しごとへ', work: 'しごとちゅう', drive: 'うんてんちゅう', toRest: 'やすみに もどる', rest: 'やすみちゅう' },
     worker: n => `さぎょういん${n}`, manned: n => `さぎょういん：${n}`, unmanned: 'さぎょういん なし（とても おそい）',
-    sortRare: 'めずらしい もの（まとめて）', sortGrp: { raw: 'げんりょう', prod: 'せいひん' }, payPop: 'きゅうりょう', payMsg: v => `こんげつの きゅうりょう ${v} を はらいました`,
+    sortRare: 'めずらしい もの（まとめて）', sortGrp: { raw: 'げんりょう', prod: 'せいひん' }, eject: 'ざいりょうを だす', ejecting: n => `だしている…（のこり${n}）　とめる`, payPop: 'きゅうりょう', payMsg: v => `こんげつの きゅうりょう ${v} を はらいました`,
     infoRows: { money: 'おかね', mSale: 'こんげつ うれた', mCost: 'こんげつ つかった', mNet: 'こんげつの もうけ', lNet: 'せんげつの もうけ',
       tSale: 'うれた ごうけい', tCost: 'つかった ごうけい', ships: 'しゅっか した かいすう', deepest: 'いちばん ふかい ところ', drills: 'ドリル',
       machines: 'きかい', belts: 'コンベア・しわけ', workers: 'さぎょういん（しごとちゅう）', yard: 'おきばの もの', loan: 'かりている おかね' },
@@ -558,7 +558,7 @@ const TXT = {
     lv: n => `Lv ${n}`, levelUp: 'Level up',
     pw: { drill: 'Power', belt: 'Speed', machine: 'Work speed', truck: 'Capacity', fork: 'Capacity' },
     pwUnit: { drill: v => `×${v}`, belt: v => `${v} cells/s`, machine: v => `×${v}`, truck: v => `${v}`, fork: v => `${v}` },
-    grp: { drill: 'drills', belt: 'conveyors & sorters', machine: 'machines', truck: 'truck' },
+    grp: { drill: 'drills', belt: 'conveyors & sorters', machine: 'machines', truck: 'truck', fork: 'forklifts' },
     allUp: (g, n) => `Level up all ${g} (${n})`, none: 'Nothing to upgrade',
     items: { soil: 'Dirt', stone: 'Stone', iron: 'Iron', gold: 'Gold', dia: 'Raw diamond', gravel: 'Gravel', brick: 'Brick',
       ironbar: 'Iron bar', goldbar: 'Gold bar', tool: 'Iron goods', jewel: 'Gold jewelry', diaClean: 'Clean diamond',
@@ -566,13 +566,13 @@ const TXT = {
     mach: { kiln: 'Brick kiln', crusher: 'Crusher', smelter: 'Smelter', factory: 'Workshop', bagger: 'Bagger',
       washer: 'Washer', cutter: 'Cutter', polisher: 'Polisher' },
     glyph: { kiln: 'K', crusher: 'C', smelter: 'S', factory: 'W', bagger: 'B', washer: 'Wa', cutter: 'Cu', polisher: 'P' },
-    bagRule: '5 of the same → 1 bag (value ×1.2, up to 3 kinds at once)',
+    bagRule: '5 of the same → 1 bag (value ×1.2, any number of kinds)',
     office: 'Office', workers: 'Workers', hire: 'Hire', fire: 'Dismiss', stamina: 'Stamina', tech: 'Skill',
     wage: 'Wage', perMonth: '/mo', fee: 'Signing fee', payroll: 'Payroll (monthly)', cands: 'Candidates (change monthly)',
     noCands: 'No more candidates this month', nobody: 'Nobody yet',
     wstate: { idle: 'Idle', toWork: 'Going to work', work: 'Working', drive: 'Driving', toRest: 'Going to rest', rest: 'Resting' },
     worker: n => `Worker ${n}`, manned: n => `Operator: ${n}`, unmanned: 'No operator (very slow)',
-    sortRare: 'Rarities (all)', sortGrp: { raw: 'Raw', prod: 'Products' }, payPop: 'Wages', payMsg: v => `Paid this month's wages: ${v}`,
+    sortRare: 'Rarities (all)', sortGrp: { raw: 'Raw', prod: 'Products' }, eject: 'Eject materials', ejecting: n => `Ejecting… (${n} left)  Stop`, payPop: 'Wages', payMsg: v => `Paid this month's wages: ${v}`,
     infoRows: { money: 'Money', mSale: 'Sales this month', mCost: 'Costs this month', mNet: 'Net this month', lNet: 'Net last month',
       tSale: 'Total sales', tCost: 'Total costs', ships: 'Shipments', deepest: 'Deepest', drills: 'Drills',
       machines: 'Machines', belts: 'Conveyors & sorters', workers: 'Workers (working)', yard: 'Items in yard', loan: 'Loan (repaid from sales)' },
@@ -755,7 +755,7 @@ const TXT_ADD = {
       autoUpg: ['技術部', 'お金にかなり余裕がある時、ときどき強化します。どれを強化するかは気まぐれです（事務所でオン・オフ）。'],
       autoPrice: ['営業部', 'お金に余裕がある時、いちばん安い売値アップを自動で買います（事務所でオン・オフ）。'],
       goldUp: ['金の匂い', '金が出やすくなります（1段ごとに+10%。これから掘る所から）。'], diaUp: ['暗闇の光', 'ダイヤが出やすくなります（1段ごとに+10%。これから掘る所から）。'],
-      newTech: ['新技術導入', '加工機械が速くなります（1段ごとに+5%）。'], bored: ['飽き性', '仕事の無い作業員が、早くほかの持ち場へ移ります（8秒 → 5秒 → 3秒 → 1秒）。'],
+      newTech: ['新技術導入', '加工機械が速くなります（1段ごとに+5%）。'], bored: ['飽き性', '仕事の無い作業員が、早くほかの持ち場へ移ります（8秒 → 5秒 → 3秒 → 2秒）。'],
       sortPlus: ['仕分けコンベア改良', '仕分けコンベアで、選ぶ資源を複数にできます。'],
       oilScan: ['油田探索', '今の深さから下を調べて、油田の場所を地図に印します（1段ごとに、さらに深くまで）。'],
       warehouse: ['事務所倉庫', '事務所に倉庫の部屋ができます。社長の私物（？）を置けるようになります。'],
@@ -910,7 +910,7 @@ const TXT_ADD = {
       autoUpg: ['Tech department', 'Sometimes upgrades something when money is plentiful. It picks on a whim (toggle in the office).'],
       autoPrice: ['Sales dept.', 'Buys the cheapest price-up when you can afford it (toggle in the office).'],
       goldUp: ['Nose for gold', 'More gold (+10% per level, in cells dug from now on).'], diaUp: ['Light in the dark', 'More diamonds (+10% per level, in cells dug from now on).'],
-      newTech: ['New technology', 'Machines run faster (+5% per level).'], bored: ['Easily bored', 'Idle workers move on sooner (8s → 5s → 3s → 1s).'],
+      newTech: ['New technology', 'Machines run faster (+5% per level).'], bored: ['Easily bored', 'Idle workers move on sooner (8s → 5s → 3s → 2s).'],
       sortPlus: ['Better sorter', 'Sorting conveyors can pick more than one resource.'],
       oilScan: ['Oil survey', 'Surveys below your current depth and marks oil fields on the map (deeper each level).'],
       warehouse: ['Office storeroom', 'Adds a storeroom to the office. The boss can keep personal things (?) there.'],
@@ -995,7 +995,7 @@ const lvOf = s => (s === 'truck' ? S.truck.lv : s.lv);
 const valOf = s => lvVal(grpOf(s), lvOf(s));
 const sk = id => (S.skills[id] || 0);
 const lvCap = g => (g === 'belt' ? BELT_CAP.length - 1 : LV[g].cap);   // レベルの上限
-const BELT_CAP = [1, 2, 5, 10, Infinity];   // コンベア1マスに同時に乗る数（レベルごと。最大レベルは無制限）
+const BELT_CAP = [1, 2, 5, 10, 100];   // v0.98：最大レベルも100まで（無制限はやめる）   // コンベア1マスに同時に乗る数（レベルごと。最大レベルは無制限）
 const beltCap = s => BELT_CAP[Math.min(s.lv || 0, BELT_CAP.length - 1)];
 // 時間の速さ：最初は×1だけ。スキルで増える（管理メニューの×16はテスト用）
 function speeds() { const a = autoLive ? [1, 2, 4, 8] : [1, 2, 4, 8].slice(0, 1 + sk('speed')); if (S.adminFast || autoLive) a.push(16); return a; }   // 自動プレイ（見る）の間は16倍まで
@@ -1005,7 +1005,7 @@ const offLast = a => a[a.length - 1];
 const offCost = lv => (lv < OFFICE_LV.cost.length ? OFFICE_LV.cost[lv] : Math.round(offLast(OFFICE_LV.cost) * Math.pow(BAL.offCostG, lv - OFFICE_LV.cost.length + 1) / 1000) * 1000);
 const offCap0 = lv => (lv < OFFICE_LV.cap.length ? OFFICE_LV.cap[lv] : Math.round(offLast(OFFICE_LV.cap) * Math.pow(BAL.offCapG, lv - OFFICE_LV.cap.length + 1)));
 const offCap = lv => { const b = offCap0(lv), n = S ? sk('conne') : 0; return Math.min(BAL.capMax, b + n * Math.max(2, Math.round(b * BAL.conneP))); };   // コネ採用で増える   // 定員は200人まで（重くならないように）
-const offForks = lv => (lv < OFFICE_LV.forks.length ? OFFICE_LV.forks[lv] : offLast(OFFICE_LV.forks) + (lv - OFFICE_LV.forks.length + 1));
+const offForks = lv => (lv < OFFICE_LV.forks.length ? OFFICE_LV.forks[lv] : offLast(OFFICE_LV.forks) + 4 * (lv - OFFICE_LV.forks.length + 1));   // v0.98：1台で運べる数が減ったので、台数を多く
 const offRest = lv => (lv < OFFICE_LV.rest.length ? OFFICE_LV.rest[lv] : offLast(OFFICE_LV.rest) + 0.25 * (lv - OFFICE_LV.rest.length + 1));
 const brandMul = () => Math.pow(BAL.brandMul, Math.floor((S.office.lv + 1) / 10));   // 会社レベル10・20…ごとに、売値が上がる（ブランド力）
 const restMul = () => [1, 1.5, 2][sk('welfare')] * offRest(S.office.lv) * (sk('garden') ? 1.2 : 1); // 休憩の速さ（屋上庭園で少し速い）
@@ -1294,16 +1294,16 @@ function earn(v, wx, wy) {
 }
 
 // ---- 機械 ----
+const BUF_MAX = 500;   // 機械の中に溜められる数（材料ごと）
 function accepts(m, it) {
   const def = MACHINES[m.m];
   if (def.bag) {   // 袋詰め機：3種類まで同時に詰められる
     if (it.k === 'bag') return false;
     const b = m.bags || (m.bags = {});
-    if (b[it.k] !== undefined) return b[it.k] < def.bag * 2;
-    return Object.keys(b).length < 3;
+    return (b[it.k] || 0) < BUF_MAX;   // v0.98：何種類でも同時に
   }
   const rec = def.recipes.find(x => x.in === it.k || (x.ins && x.ins[it.k]));
-  return !!rec;   // 材料はいくつでも機械の中に入って、加工の順番を待つ（入口で詰まらない）
+  return !!rec && (m.buf[it.k] || 0) < BUF_MAX;   // 材料は500個まで中で待つ。いっぱいの材料は、機械の中を通って出口へ（機械を並べれば解決できる）
 }
 function absorb(m, it) {
   if (MACHINES[m.m].bag) { const b = m.bags || (m.bags = {}); b[it.k] = (b[it.k] || 0) + 1; }
@@ -1329,10 +1329,38 @@ function typeList(kind) {   // 機械だけ・ドリルだけの一覧
   if (typeLists.stamp !== stamp) { typeLists = { stamp, mach: [], drill: [] }; for (const v of S.st.values()) { if (v.type === 'machine') typeLists.mach.push(v); else if (v.type === 'drill') typeLists.drill.push(v); } }
   return typeLists[kind];
 }
+// 作り方ごとに1つずつ、同時に作る（m.jobs[作り方の番号]）。表示用に m.cur・m.prog は動いている1つ目
+function parMachine(m, k, def, dt) {
+  m.jobs = m.jobs || [];
+  if (m.cur && !m.jobs.some(Boolean)) { const i0 = def.recipes.findIndex(x => x.out === m.cur.k); m.jobs[i0 < 0 ? 0 : i0] = { cur: m.cur, prog: m.prog || 0 }; }   // 前の形のセーブ
+  def.recipes.forEach((rec, i) => {
+    if (m.jobs[i]) return;
+    if (rec.ins) { if (Object.entries(rec.ins).every(([k2, n]) => (m.buf[k2] || 0) >= n)) { for (const [k2, n] of Object.entries(rec.ins)) m.buf[k2] -= n; m.jobs[i] = { cur: { k: rec.out, v: ITEMS[rec.out].v * valueMul(m) }, prog: 0 }; } }
+    else if ((m.buf[rec.in] || 0) >= rec.n) { m.buf[rec.in] -= rec.n; m.jobs[i] = { cur: { k: rec.out, v: ITEMS[rec.out].v * valueMul(m), n: rec.outN || 1 }, prog: 0 }; }
+  });
+  const sp = dt * valOf(m) * workFactor(m) * (1 + 0.05 * sk('newTech'));
+  let first = null;
+  m.jobs.forEach((j, i) => {
+    if (!j) return;
+    j.prog = Math.min(def.time, j.prog + sp);
+    if (j.prog >= def.time) {
+      const keep = m.cur; m.cur = j.cur; const ok = emitFront(k, m); m.cur = keep;
+      if (ok) { if ((j.cur.n || 1) > 1) j.cur.n--; else { m.jobs[i] = null; return; } }
+    }
+    if (!first) first = j;
+  });
+  m.cur = first ? first.cur : null; m.prog = first ? first.prog : 0;
+}
 function updateMachines(dt) {
   for (const m of typeList('mach')) {
     const k = stationKey(m); if (k < 0) continue;
     const def = MACHINES[m.m];
+    if (m.eject) {   // 材料を排出中：1回に1個ずつ前へ出す（出せない時は待つ）
+      const left = Object.entries(m.bags && def.bag ? m.bags : m.buf).find(([, n]) => n > 0);
+      if (!left) m.eject = false;
+      else { const keep = m.cur; m.cur = { k: left[0] }; if (emitFront(k, m)) { const src = def.bag ? m.bags : m.buf; src[left[0]]--; if (!src[left[0]]) delete src[left[0]]; } m.cur = keep; continue; }
+    }
+    if (!def.bag && !def.src && def.recipes.length > 1) { parMachine(m, k, def, dt); continue; }   // 作り方が複数：並行して作る
     if (!m.cur && def.src) { m.cur = { k: aditOre(rOf(k)) }; m.prog = 0; }   // 横穴：材料なしで次の1個を掘り出す
     if (!m.cur) {
       if (def.bag) {
@@ -1580,15 +1608,17 @@ function autoDepts() {
   const mBefore = S.money; try { autoDepts0(); } finally { if (S.money < mBefore) S.stats.deptCost = (S.stats.deptCost || 0) + (mBefore - S.money); }   // 部署が使ったお金（放置の見積もりで使う）
 }
 function autoDepts0() {
+  if (catchBusy) return;   // v0.98：放置中は部署は動かない（社長の裁可が下りない）
   const o = S.opts || {};
   if (sk('autoHire') && o.autoHire !== false) {   // 人事部：持ち場（コンベア以外）が人より多い時だけ、余裕があれば雇う
     const posts = [...S.st.values()].filter(x => x.type === 'drill' || x.type === 'machine').length + S.fac.length + (S.lab.built ? 1 : 0) + S.forks.length;
     if (staffN() < Math.min(offCap(S.office.lv), posts) && S.money > HIRE_FEE(hireLv()) * 3) { const n0 = staffN(); hire(); if (staffN() > n0) deptLog.hr++; }
   }
-  if (sk('autoUpg') && o.autoUpg !== false && Math.random() < 0.3) {   // 技術部：気まぐれ。たまに、適当に選んだ物を、お金がかなりある時だけ強化
+  if (S.techMon && S.techMon.m !== S.month) S.techMon = null;
+  if (sk('autoUpg') && o.autoUpg !== false && (!S.techMon || S.techMon.n < 3) && Math.random() < 0.3) {   // v0.98：月に3か所まで   // 技術部：気まぐれ。たまに、適当に選んだ物を、お金がかなりある時だけ強化
     const ts = [...S.st.values()].filter(x => x.type === 'drill' || x.type === 'machine' || isBelt(x));
     const t = ts[Math.floor(Math.random() * ts.length)], c = t ? nextCost(t) : null;
-    if (c !== null && S.money > c * 8) { levelUp(t); deptLog.tech++; const tk = findKey(t); if (tk >= 0) deptLog.techAt = { c: cOf(tk), r: rOf(tk), open: () => { if ([...S.st.values()].includes(t)) openPop(t); } }; }   // 最後に強化した物へ飛べる
+    if (c !== null && S.money > c * 8) { levelUp(t); deptLog.tech++; S.techMon = { m: S.month, n: (S.techMon ? S.techMon.n : 0) + 1 }; const tk = findKey(t); if (tk >= 0) deptLog.techAt = { c: cOf(tk), r: rOf(tk), open: () => { if ([...S.st.values()].includes(t)) openPop(t); } }; }   // 最後に強化した物へ飛べる
   }
   if (sk('autoPrice') && o.autoPrice !== false) {   // 営業部：売ったことのある資源のうち、いちばん安い売値アップを、余裕があれば
     const rs = ROOT_ORDER.filter(r => S.sold['@' + r]).sort((a, b) => priceCost(a) - priceCost(b));
@@ -2695,7 +2725,7 @@ function updateWorkers(dt) {
         // 暇な持ち場（材料が無い機械・止まったドリル・液体の無い施設）に8秒いたら、仕事のある空いた持ち場へ移る
         if (w.target.type !== 'lab') {
           w.idleT = workNeed(w.target) <= 0 ? (w.idleT || 0) + dt : 0;
-          if (w.idleT > [8, 5, 3, 1][sk('bored')]) { w.idleT = 0; if (betterPost(w)) leavePost(w); }
+          if (w.idleT > (w.boss ? 1 : [8, 5, 3, 2][sk('bored')])) { w.idleT = 0; if (betterPost(w)) leavePost(w); }   // v0.98：最速2秒（せわしなくない）。社長は1秒
         }
         break;
       }
@@ -2741,7 +2771,10 @@ function betterPost(w) {
 // 持ち場の「仕事の多さ」：ドリルは掘っていれば5（ふさがっていれば-30）、機械は中の材料の数（0なら-10）
 function workNeed(st) {
   if (st.type === 'drill') return st.off ? -60 : st.stuck ? -30 : 5;
-  if (isBelt(st)) { const k2 = stationKey(st); return (beltN.get(k2) || 0) > 0 ? 1 : -5; }   // コンベア：資源が乗っていれば少しだけ仕事
+  if (isBelt(st)) {   // コンベア：資源が乗っていれば少しだけ仕事。詰まっていれば（乗る数いっぱい）大きな仕事・地上に近いほど先
+    const k2 = stationKey(st), n = beltN.get(k2) || 0; if (!n) return -5;
+    return n >= BELT_CAP[st.lv || 0] ? 7 + Math.max(0, 5 - (rOf(k2) - SKY) / 6) : 1;
+  }
   if (st.type === 'fac') return (st.f === 'museum' ? Object.keys(S.museum || {}).length > 0 : st.f === 'refinery' ? S.tank.oil >= 2 : st.f === 'spa' ? S.tank.hot >= 5 : S.tank.hot + S.tank.oil >= 1) ? 8 : -10;
   if (st.type === 'machine') {
     const n = st.cur ? 3 : 0, b = Object.values(st.buf || {}).reduce((a, v) => a + v, 0) + Object.values(st.bags || {}).reduce((a, v) => a + v, 0);
@@ -3019,6 +3052,7 @@ function levelUp(t) {
 }
 function groupTargets(g) {
   if (g === 'truck') return nextCost('truck') !== null ? ['truck'] : [];
+  if (g === 'fork') return S.forks.filter(f => nextCost(f) !== null);
   return [...S.st.values()].filter(s => grpOf(s) === g && nextCost(s) !== null);
 }
 function groupCost(g) { return groupTargets(g).reduce((a, t) => a + nextCost(t), 0); }
@@ -3263,7 +3297,15 @@ function popInfoText() {
   }
   return opLine.trim();
 }
+function updateEject() {   // 機械の「材料を排出」ボタン
+  const t = popTarget, b = $('popEject'), T = tx();
+  const ok = t && t !== 'truck' && t.type === 'machine' && !MACHINES[t.m].src;
+  const n = ok ? Object.values(MACHINES[t.m].bag ? t.bags || {} : t.buf || {}).reduce((a, v) => a + v, 0) : 0;
+  b.hidden = !ok; if (!ok) return;
+  b.textContent = t.eject ? T.ejecting(n) : T.eject + (n ? `（${n}）` : ''); b.disabled = !n && !t.eject; b.classList.toggle('active', !!t.eject);
+}
 function updatePop() {
+  updateEject();
   if (!popTarget || popTarget.type === 'digcell' || popTarget.type === 'item' || popTarget.type === 'pick' || popTarget.type === 'elev' || popTarget.type === 'elevPlace' || popTarget.type === 'lid' || popTarget.type === 'lamp') return;
   const t = popTarget, T = tx();
   if (t.type === 'pend') {
@@ -3296,7 +3338,7 @@ function updatePop() {
   $('popLevel').textContent = `${T.lv(lv + 1)}` + (showPw ? `　${T.pw[g]} ${unit(lvVal(g, lv))}` + (cost !== null ? ` → ${unit(lvVal(g, lv + 1))}` : '') : '')
     + (g === 'belt' ? `\n${T.beltCapT} ${capTxt(BELT_CAP[lv])}` + (cost !== null ? ` → ${capTxt(BELT_CAP[lv + 1])}` : '') : '')
     + (g === 'machine' && t.m && !MACHINES[t.m].src ? `\n${T.valueUp} ×${fmtMul(valueMul({ lv }))}` + (cost !== null ? ` → ×${fmtMul(valueMul({ lv: lv + 1 }))}` : '') : '')
-    + (g === 'fork' ? `\n${T.forkSpd} ×${fmtMul(forkSpeed(lv) / forkSpeed(0))}` + (cost !== null ? ` → ×${fmtMul(forkSpeed(lv + 1) / forkSpeed(0))}` : '') : '');
+    ;
   const btn = $('popLvUp'); btn.innerHTML = '';
   if (cost === null) { const cn = t !== 'truck' || true ? coNeed(t) : null; btn.textContent = cn ? T.coNeed(cn) : T.maxed; btn.disabled = true; }
   else {
@@ -3330,6 +3372,7 @@ document.querySelectorAll('#pop [data-pdir]').forEach(b => b.addEventListener('c
 document.querySelectorAll('#pop [data-ps]').forEach(b => b.addEventListener('click', () => {
   if (popTarget && popTarget !== 'truck') { popTarget.side = b.dataset.ps; updatePop(); }
 }));
+$('popEject').addEventListener('click', () => { const t = popTarget; if (t && t.type === 'machine') { t.eject = !t.eject; updatePop(); } });
 $('popLvUp').addEventListener('click', () => { if (popTarget) { levelUp(popTarget); updatePop(); updateUI(); } });
 document.querySelectorAll('#pop [data-pp]').forEach(b => b.addEventListener('click', () => { if (popTarget && popTarget !== 'truck') { popTarget.prio = +b.dataset.pp; updatePop(); } }));
 $('popAction').addEventListener('click', () => {
@@ -3636,7 +3679,7 @@ function renderPanel(id) {
       const tc = truckAddCost();
       box.append(rowEl(T.truckAddT, T.truckAddN(S.fleet.length), costBtn(T.truckAddB, tc, () => { addTruck(); renderPanel('powerPanel'); updateUI(); })));
     }
-    for (const g of ['truck', 'drill', 'belt', 'machine']) {
+    for (const g of ['truck', 'drill', 'belt', 'machine', 'fork']) {
       if (g === 'drill') { if (!S.unlock.batch) break; box.append(secEl(T.secBatch)); }
       if (g !== 'truck' && !S.unlock.batch) continue;
       const ts = groupTargets(g), total = groupCost(g);
@@ -6178,7 +6221,7 @@ function autoStep(build = true) {
   if (dockN > 6) {
     const f0 = S.forks.reduce((a, b) => (a.lv <= b.lv ? a : b));
     const c = nextCost(f0);
-    if (S.forks.length < forkMax() && S.money > FORK_BUY(S.forks.length + 1) * 1.5 && f0.lv >= 3) buyFork();
+    if (S.forks.length < forkMax() && S.money > FORK_BUY(S.forks.length + 1) * 1.5 && (f0.lv >= 2 || c === null)) buyFork();   // v0.98：台数を増やす方が効く
     else if (c !== null && S.money > c * W.fork) levelUp(f0);
   }
   if (S.yard.length > valOf('truck') * 4 && nextCost('truck') !== null && S.money < nextCost('truck') * 3) return;   // ヤードが山になっている → トラックのためにお金を残す
@@ -6506,7 +6549,7 @@ function balSet(path, v) {
   o[last] = v;
 }
 // キノメノが「釣り合い調整」で決めた数字（2026-11-24）。標準として先に入れる
-const BAL_PRESET = {"ITEMS.iron.v": 15, "ITEMS.gold.v": 50, "ITEMS.dia.v": 100, "ITEMS.gravel.v": 5, "ITEMS.brick.v": 7, "ITEMS.ironbar.v": 200, "ITEMS.goldbar.v": 800, "ITEMS.tool.v": 700, "ITEMS.jewel.v": 1000, "ITEMS.diaClean.v": 800, "ITEMS.diaCut.v": 1200, "ITEMS.gem.v": 500, "ITEMS.tile.v": 8, "ITEMS.glossTile.v": 16, "ITEMS.wire.v": 300, "ITEMS.goldleaf.v": 950, "ITEMS.decoIron.v": 3200, "ITEMS.decoGold.v": 7000, "LV.belt.cost.1": 50, "LV.belt.cost.2": 500, "LV.fork.cost.2": 500, "LV.fork.cost.3": 900, "LV.fork.cost.4": 1800, "LV.fork.cost.5": 4000, "COST.fdrill": 1200, "COST.adrill": 1500, "OFFICE_LV.cap.0": 5, "OFFICE_LV.cap.1": 10, "OFFICE_LV.cap.2": 20, "OFFICE_LV.cap.3": 50, "OFFICE_LV.cap.4": 100, "OFFICE_LV.forks.2": 4, "OFFICE_LV.forks.3": 6, "OFFICE_LV.forks.4": 10, "RESEARCH_TOOL.pipe.0": 200, "RESEARCH_TOOL.pipe.1": 1, "RESEARCH_BATCH.0": 10000, "RESEARCH_BATCH.1": 6, "SKILLS.speed.cost.2": 10000, "SKILLS.dragPlus.months.0": 1, "SKILLS.welfare.cost.0": 4000, "SKILLS.welfare.cost.1": 8000, "SKILLS.black.cost.0": 5000, "SKILLS.labRoom.cost.0": 1000, "SKILLS.labRoom.cost.1": 4000, "SKILLS.labRoom.cost.2": 8000, "RES_STAGE.m:bagger": 2, "RES_STAGE.sk:yardPlus": 3, "RES_STAGE.t:cross": 4, "RES_STAGE.t:pipe": 4, "RES_STAGE.sk:truck2": 4, "SK_STAGE.speed.0": 2, "SK_STAGE.labRoom.0": 2, "BELT_CAP.0": 5, "BELT_CAP.1": 10, "BELT_CAP.2": 20, "BELT_CAP.3": 40, "LV.truck.cap": 10, "OFFICE_LV.cost.0": 1200, "OFFICE_LV.cost.1": 5000, "OFFICE_LV.cost.2": 56000, "OFFICE_LV.cost.3": 164000, "RES_STAGE.sk:land": 4, "RES_STAGE.batch": 3, "RES_STAGE.sk:veteran": 3, "RES_STAGE.f:refinery": 5, "SK_STAGE.labRoom.1": 3, "SK_STAGE.labRoom.2": 4, "BAL.priceUpMul": 1.2, "BAL.priceCostG": 2, "BAL.hotP": 0.033, "BAL.beltSlowMin": 0.03};
+const BAL_PRESET = {"ITEMS.iron.v": 15, "ITEMS.gold.v": 50, "ITEMS.dia.v": 100, "ITEMS.gravel.v": 5, "ITEMS.brick.v": 7, "ITEMS.ironbar.v": 200, "ITEMS.goldbar.v": 800, "ITEMS.tool.v": 700, "ITEMS.jewel.v": 1000, "ITEMS.diaClean.v": 800, "ITEMS.diaCut.v": 1200, "ITEMS.gem.v": 500, "ITEMS.tile.v": 8, "ITEMS.glossTile.v": 16, "ITEMS.wire.v": 300, "ITEMS.goldleaf.v": 950, "ITEMS.decoIron.v": 3200, "ITEMS.decoGold.v": 7000, "LV.belt.cost.1": 50, "LV.belt.cost.2": 500, "COST.fdrill": 1200, "COST.adrill": 1500, "OFFICE_LV.cap.0": 5, "OFFICE_LV.cap.1": 10, "OFFICE_LV.cap.2": 20, "OFFICE_LV.cap.3": 50, "OFFICE_LV.cap.4": 100, "RESEARCH_TOOL.pipe.0": 200, "RESEARCH_TOOL.pipe.1": 1, "RESEARCH_BATCH.0": 10000, "RESEARCH_BATCH.1": 6, "SKILLS.speed.cost.2": 10000, "SKILLS.dragPlus.months.0": 1, "SKILLS.welfare.cost.0": 4000, "SKILLS.welfare.cost.1": 8000, "SKILLS.black.cost.0": 5000, "SKILLS.labRoom.cost.0": 1000, "SKILLS.labRoom.cost.1": 4000, "SKILLS.labRoom.cost.2": 8000, "RES_STAGE.m:bagger": 2, "RES_STAGE.sk:yardPlus": 3, "RES_STAGE.t:cross": 4, "RES_STAGE.t:pipe": 4, "RES_STAGE.sk:truck2": 4, "SK_STAGE.speed.0": 2, "SK_STAGE.labRoom.0": 2, "BELT_CAP.0": 5, "BELT_CAP.1": 10, "BELT_CAP.2": 20, "BELT_CAP.3": 40, "LV.truck.cap": 10, "OFFICE_LV.cost.0": 1200, "OFFICE_LV.cost.1": 5000, "OFFICE_LV.cost.2": 56000, "OFFICE_LV.cost.3": 164000, "RES_STAGE.sk:land": 4, "RES_STAGE.batch": 3, "RES_STAGE.sk:veteran": 3, "RES_STAGE.f:refinery": 5, "SK_STAGE.labRoom.1": 3, "SK_STAGE.labRoom.2": 4, "BAL.priceUpMul": 1.2, "BAL.priceCostG": 2, "BAL.hotP": 0.033, "BAL.beltSlowMin": 0.03};
 for (const [p2, v] of Object.entries(BAL_PRESET)) balSet(p2, v);
 const BAL_DEF = new Map(balLeaves().map(p2 => [p2, balGet(p2)]));   // 標準の数字（変えた所を見分ける）
 for (const d of TUNE_DEF) if (BAL_DEF.has('TUNE.' + d.k)) BAL_DEF.set('TUNE.' + d.k, d.def);   // 「調整」は保存済みの値が先に入っているので、標準は表の値
@@ -6607,7 +6650,7 @@ setupText();
 resize();
 resetCam();
 showTitle();
-window.__game = { tapAt: p => tapAt(p), itemSprite: (k, of) => itemSprite(k, of), ITEMS: () => ITEMS, get YARD_R() { return YARD_R; }, get OFFICE_C() { return OFFICE_C; }, get SKY() { return SKY; }, // 動作確認用
+window.__game = { tapAt: p => tapAt(p), key: (c, r) => key(c, r), updateMachines: dt => updateMachines(dt), itemSprite: (k, of) => itemSprite(k, of), ITEMS: () => ITEMS, get YARD_R() { return YARD_R; }, get OFFICE_C() { return OFFICE_C; }, get SKY() { return SKY; }, // 動作確認用
   get S() { return S; }, draw: () => draw(), openPop: t => openPop(t), launchAt: e => { launchT = performance.now() - e * 1000; }, tutTarget: () => tutTarget(), closePop: () => closePop(), tripStart: () => tripStart(), cappedAllDone: () => cappedAllDone(), TRIP_NEED, toggle: id => togglePanel(id), openCatT: c => { openCat = c; renderSub(); updateUI(); }, tutStart: () => startTutorial(), tutSet: st => tutSet(st), setNoDraw: v => { noDraw = !!v; }, BAL, openBalance, balChanged, TUNE, OFFICE_LV, AI_W, BELT_CAP, fpsCtl, row, canPlaceAt, officeUp, buyFork, finishResearch, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
   setTool: t => setTool(t), setDir: d => { dir = d; }, pause: () => { running = false; },
   checkStage, resAvail, buildCost, allResIds, resDef, autoSave, catchUp, showTitle, leaveTitle, autoPlay, autoStep, workNeed,
