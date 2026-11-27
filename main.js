@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.59（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.60（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.59';
+const VERSION = '1.60';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -2955,7 +2955,9 @@ function updateWorkers(dt) {
         if (w.target === S.lab && S.workers.filter(o => o.target === S.lab && o.state === 'work').length > labSeats()) { leavePost(w); break; }   // 研究が減って席が余った
         // 暇な持ち場（材料が無い機械・止まったドリル・液体の無い施設）に8秒いたら、仕事のある空いた持ち場へ移る
         if (w.target.type !== 'lab') {
-          w.idleT = workNeed(w.target) <= 0 ? (w.idleT || 0) + dt : 0;
+          const sig = progSig(w.target);   // 進み具合が変わらない＝先が詰まって止まっている
+          if (sig !== w.pSig) { w.pSig = sig; w.pT = 0; } else if (wKey(w) === stK) w.pT = (w.pT || 0) + dt;
+          w.idleT = workNeed(w.target) <= 0 || (sig && w.pT > (w.target.type === 'drill' ? Math.max(4, drillIv(w.target) * 3) : 4)) ? (w.idleT || 0) + dt : 0;
           if (w.idleT > (w.boss ? 1 : [8, 5, 3, 2][sk('bored')])) { w.idleT = 0; if (betterPost(w)) leavePost(w); }   // v0.98：最速2秒（せわしなくない）。社長は1秒
         }
         break;
@@ -2993,9 +2995,17 @@ function leavePost(w) {
   if (w.target && w.target.op === w.id) w.target.op = null;
   w.leftFrom = w.target; w.target = null; w.path = []; w.state = 'idle'; w.lastLook = -9;
 }
+// ドリル・機械の進み具合（変わらなければ、止まっている）。ほかの持ち場は '' で調べない
+function progSig(st) {
+  if (st.type === 'drill') return 'd' + (st.hit || 0);
+  if (st.type === 'machine' && !MACHINES[st.m].src) return 'm' + (st.prog || 0).toFixed(2) + '|' + (st.cur ? st.cur.k || 1 : 0) + '|' + (st.jobs ? st.jobs.length : 0);
+  return '';
+}
 // 仕事があって、まだ誰もいない持ち場があるか（移る価値があるか）
 function betterPost(w) {
   const { dist } = officeMap();
+  for (const f of S.forks) if (f !== w.target && !opOf(f) && (f.load.length || pickDock(f) !== null) && !S.workers.some(o => o.target === f)) return true;   // 23：運ぶ物があるのに運転手のいないフォークリフト
+  for (const t of S.fleet) if (t !== w.target && t.phase === 'here' && !opOf(t) && t.load && !S.workers.some(o => o.target === t)) return true;   // 積んだのに運転手のいないトラック
   for (const [k, st] of S.st) if (isStation(st) && st !== w.target && !opOf(st) && dist.has(k) && workNeed(st) > 0 && !S.workers.some(o => o.target === st)) return true;
   for (const f of S.fac) if (f !== w.target && workNeed(f) > 0 && S.workers.filter(o => o.target === f).length < BAL.facSlots) return true;
   return false;
@@ -6901,7 +6911,7 @@ function autoAdit(drills) {
 }
 // AIのお金の使い方（試走で「24・60・120か月後の資金」が大きくなるように調整する重み）
 // 数字＝「値段の何倍のお金があったら買うか」。大きいほど慎重
-const AI_W = { belt: 1.5, hire: 100, office: 1.6, office0: 1.05, drill: 2, mach: 3, price: 3, resPad: 300, truck: 1.3, fork: 1.3,
+const AI_W = { belt: 1.5, hire: 100, office: 1.6, office0: 2.1, drill: 2, mach: 3, price: 3, resPad: 300, truck: 1.3, fork: 1.3,
   save: 0.5, gate: 1, mq: 1 };   // mq＝機械を強化する時の、順番待ちの数の下限   // save＝次の会社レベルの値段の何割を残しておくか／gate＝1なら、効く時だけ強化（機械は順番待ちがたまっている・ドリルは運ぶ所が空いている）
 const AI_SKIP = new Set(['sk:speed', 'sk:dragPlus', 'sk:away']);   // 稼ぎに関係しない研究（画面の速さ・操作・放置時間）はAIは買わない
 const aiResRank = id => (id === 'sk:digLv' ? 0 : id === 'm:adit' ? 1 : id === 'sk:labRoom' ? 1 : 2);
