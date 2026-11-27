@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.53（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.55（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.53';
+const VERSION = '1.55';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -3872,7 +3872,7 @@ function cutRooms(kind) {
     const bs = bossOf();
     const bossSleep = !!(bs && bs.state === 'rest');
     rooms.push({ key: 'boss', name: T.roomBoss, n: bs && (!S.bossWork || bs.state === 'idle' || bs.state === 'off' || bossSleep) ? 1 : 0, boss: true, desk: !bossSleep, sleep: bossSleep, poster: true });
-    if (secOn()) rooms.push({ key: 'sec', name: T.roomSec, n: 1, who: 'sec', desk: false, walk: true });   // 40：秘書は左右にうろうろ
+    if (secOn()) rooms.push({ key: 'sec', name: T.roomSec, n: 1, who: 'sec', desk: true, walk: true });   // 40：秘書は机の向こうでうろうろ、たまに座る
     if (sk('autoHire')) rooms.push({ key: 'hr', name: T.sk.autoHire[0], n: (S.opts || {}).autoHire !== false ? 2 : 0, desk: true });
     if (sk('autoUpg')) rooms.push({ key: 'tech', name: T.sk.autoUpg[0], n: (S.opts || {}).autoUpg !== false ? 2 : 0, desk: false, machine: true });   // 38：技術部は机ではなく機械をいじる
     if (sk('autoPrice')) rooms.push({ key: 'sales', name: T.sk.autoPrice[0], n: (S.opts || {}).autoPrice !== false ? 2 : 0, desk: true, phone: true });   // 83：営業部は電話中
@@ -3939,12 +3939,19 @@ function drawCutaway(cv2, kind) {
     rm.heads = [];
     for (let j = 0; j < n; j++) {   // 人（机の部屋は机の向こうで働く・休憩室と待機はならぶ）
       const f = anim ? Math.floor(t / 420 + j * 0.7 + i) % 2 : 1, px = rm.desk ? x + w * (n > 1 ? 0.3 + 0.32 * j : 0.45) - sz / 2 : x + 4 + j * ((w - sz - 8) / Math.max(1, n - 1));
-      const fr = rm.boss ? BOSS_FR[f] : WORKER_FR[f];
-      let px2 = px; if (rm.walk) px2 = x + 4 + (0.5 + 0.5 * Math.sin(t / 1400 + j)) * (w - sz - 8);   // 40：うろうろ
+      const fr = rm.boss ? BOSS_FR[f] : rm.who === 'sec' ? SEC_FR[f] : WORKER_FR[f];
+      let px2 = px, sit = false, wv = 0;
+      if (rm.walk) {   // 40：20秒のうち14秒は机の向こうをうろうろ、6秒は机の真ん中に座る
+        const cyc = (t / 1000) % 20, k = Math.min(cyc, 14);
+        sit = cyc > 14; wv = Math.cos(k * 0.9);
+        px2 = x + w * 0.45 - sz / 2 + (sit ? 0 : Math.sin(k * 0.45) * (w * 0.3 - sz / 2));   // 机の真ん中から出て、真ん中へ戻って座る
+        if (!sit) wv = Math.cos(k * 0.45);
+      }
       if (rm.machine) px2 = x + w * (j ? 0.62 : 0.14);   // 機械の左右で作業
-      const flip = rm.phone ? false : rm.walk ? Math.cos(t / 1400 + j) < 0 : Math.floor(t / 4000 + j * 1.7 + i) % 3 === 0;   // 38：ときどき向きが変わる
-      if (flip) { g.save(); g.translate(Math.round(px2) + sz, 0); g.scale(-1, 1); g.drawImage(fr, 0, Math.round(y + h - 4 - sz), sz, sz); g.restore(); } else g.drawImage(fr, Math.round(px2), Math.round(y + h - 4 - sz), sz, sz);
-      rm.heads.push([px2 + sz / 2, y + h - 4 - sz + 2]);
+      const flip = rm.phone ? false : rm.walk ? (!sit && wv < 0) : Math.floor(t / 4000 + j * 1.7 + i) % 3 === 0;   // 38：ときどき向きが変わる
+      const py2 = Math.round(y + h - 4 - sz + (sit ? 4 : 0));   // 座ると少し低くなる（机に隠れる）
+      if (flip) { g.save(); g.translate(Math.round(px2) + sz, 0); g.scale(-1, 1); g.drawImage(fr, 0, py2, sz, sz); g.restore(); } else g.drawImage(fr, Math.round(px2), py2, sz, sz);
+      rm.heads.push([px2 + sz / 2, py2 + 2]);
       if (rm.phone) {   // 受話器を耳に当てて、手で持つ（8×8の絵の1ドット＝sz/8）
         const u = sz / 8, top = y + h - 4 - sz, hx = px + u * 5, hy = top + u * 0.6;
         g.fillStyle = '#2b2b2e'; g.fillRect(Math.round(hx), Math.round(hy), Math.max(2, Math.round(u)), Math.round(u * 2.6));   // 受話器
@@ -5106,6 +5113,12 @@ const workerFrames = col => WORKER_PIX.map(rows => {
   return c2;
 });
 const WORKER_FR = workerFrames(WORKER_COL);
+// 秘書（断面図用）：横向きのドット絵。右を向いた絵（左へ歩く時は反転）。h=髪 b=肌 k=目 c=スーツ d=くつ
+const SEC_PIX = [
+  ['...hhh..', '..hhhbb.', '..hhbkb.', '...cc...', '..cccb..', '...cc...', '...cc...', '..d..d..'],
+  ['...hhh..', '..hhhbb.', '..hhbkb.', '...cc...', '...ccb..', '...cc...', '...cc...', '...dd...'],
+];
+const SEC_FR = SEC_PIX.map(rows => { const c2 = document.createElement('canvas'); c2.width = c2.height = 8; const g = c2.getContext('2d'); const col = { h: '#3a2a22', b: '#e8c8a0', k: '#2b2b2e', c: '#3a4a6e', d: '#1a1a1a' }; rows.forEach((rw, y) => [...rw].forEach((ch, x) => { if (col[ch]) { g.fillStyle = col[ch]; g.fillRect(x, y, 1, 1); } })); return c2; });
 const BELT_PIX = ['...aa...', '...bb...', '..cccc..', '..cccc..', '..bccb..'];   // コンベアについた作業員の上半身（8×5）：気を付け（動かない）
 const BELT_FR = (() => { const c2 = document.createElement('canvas'); c2.width = 8; c2.height = 5; const g = c2.getContext('2d'); BELT_PIX.forEach((rw, y) => [...rw].forEach((ch, x) => { if (WORKER_COL[ch]) { g.fillStyle = WORKER_COL[ch]; g.fillRect(x, y, 1, 1); } })); return c2; })();
 // コンベアの横の縁に立つ：縦のコンベアは右の縁、横のコンベアは奥（上）の縁から上半身がのぞく
