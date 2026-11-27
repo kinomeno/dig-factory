@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.24（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.26（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.24';
+const VERSION = '1.26';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -2166,6 +2166,9 @@ const awaySec = () => (S && S.tut ? 0.3 : TUNE.away * (sk('speeding') ? 0.5 : 1)
 const animSec = () => ANIM_SEC * (sk('speeding') ? 0.7 : 1);
 // 駐車場にいる（または出入り中の）トラック
 const bayTruck = () => S.fleet.find(t => t.phase === 'here' || t.phase === 'leaving' || t.phase === 'returning');
+const inBay = t => t.phase === 'here' || t.phase === 'leaving' || t.phase === 'returning';
+const BAYS = () => (sk('yardPlus') ? 4 : 3);   // v1.26：ヤードに同時に入れるトラックの数（横に並ぶ）
+const bayFull = () => S.fleet.filter(inBay).length >= BAYS();
 function payTruck(t) {
   earn(t.value, BED + 0.5, YARD_R);        // 帰ってきたら売上
   if (S.loan > 0 && t.value > 0) {         // 融資の返済（売上の2割）
@@ -2192,12 +2195,12 @@ function updateTruck(dt) {
       if (t.load >= cap || (t.load > 0 && t.wait >= BAL.truckWait)) { t.phase = 'leaving'; t.t = 0; t.wait = 0; }
       continue;
     }
-    if (t.phase === 'standby') { if (!bayTruck()) { t.phase = 'returning'; t.t = 0; } continue; }   // 2台目：空いたら入る
+    if (t.phase === 'standby') { if (!bayFull()) { t.phase = 'returning'; t.t = 0; } continue; }   // 空きがあれば入る
     t.t += dt;
     if (t.phase === 'leaving' && t.t >= animSec()) { t.phase = 'away'; t.t = 0; }
     else if (t.phase === 'away' && t.t >= awaySec() * (opOf(t) ? 1 : 2)) {   // 運転手がいないと2倍かかる
       t.t = 0;
-      if (bayTruck()) { payTruck(t); t.phase = 'standby'; } else t.phase = 'returning';
+      if (bayFull()) { payTruck(t); t.phase = 'standby'; } else t.phase = 'returning';
     } else if (t.phase === 'returning' && t.t >= animSec()) {
       if (t.load) payTruck(t);
       t.phase = 'here'; t.t = 0;
@@ -5648,9 +5651,12 @@ function drawFork(f) {
   }
 }
 const ease = t => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
-function drawTruck() {   // 1マスの小さなトラック。右からヤードに直接入ってきて、右へ出ていく
-  const cell = cp, t = bayTruck() || { phase: 'away' }, y = YARD_R * cell, bx = BED * cell;
-  if (t.phase === 'away') return;
+function drawTruck() {   // ヤードにいるトラックを全部（2台目からは右へ少しずつずらして、後ろに並ぶ）
+  const bay = S.fleet.filter(inBay);
+  for (let i = bay.length - 1; i >= 0; i--) { ctx.save(); ctx.translate(i * cp * 0.62, -i * cp * 0.06); drawTruck1(bay[i]); ctx.restore(); }
+}
+function drawTruck1(t) {   // 1マスの小さなトラック。右からヤードに直接入ってきて、右へ出ていく
+  const cell = cp, y = YARD_R * cell, bx = BED * cell;
   let p = 0;
   if (t.phase === 'leaving') p = ease(t.t / animSec());
   else if (t.phase === 'returning') p = 1 - ease(t.t / animSec());
@@ -6916,7 +6922,7 @@ function frame(now) {
   if (noDraw || autoBusy) { requestAnimationFrame(frame); return; }   // 画面表示カット
   fpsTick(dt);
   const sp = speeds(); if (speedIdx >= sp.length) speedIdx = sp.length - 1;
-  if (running && !inTitle && !launchT) {   // 発進〜宇宙の間は、ゲームを止める
+  if (running && !inTitle && !launchT && !adBusy) {   // 発進〜宇宙の間・広告の間（56）は、ゲームを止める
     const gdt = dt * sp[speedIdx] * (Date.now() < S.boost.speedUntil ? 10 : 1);
     drawDt = gdt;
     const tS = performance.now(); sim(gdt); fpsMs('sim', performance.now() - tS);
