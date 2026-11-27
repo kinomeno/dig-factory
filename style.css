@@ -511,3 +511,17 @@ html[lang="en"] #dash .dtab b { font-size: 11.5px; letter-spacing: 0; padding-le
 .spbox p { margin: 0 0 12px; font-size: 12px; opacity: .8; }
 #msg .mtext { white-space: pre-line; }
 .modal.space { transition: opacity 1.2s ease; }
+
+/* v0.96：ヘッダーがまだはみ出す時（ひらがな・小さい画面） */
+#hdr.c4 .zl, #hdr.c4 #timeGroup .sep { display: none !important; }
+#hdr.c5 button { padding: 4px 4px; font-size: 11px; letter-spacing: 0; } #hdr.c5 button.sq { width: 22px; } #hdr.c5 #timeGroup { gap: 2px; }
+/* v0.96：見出し（×）はスクロールしても上に残る・縦に長い物は中をスクロール */
+.panel:not(.bottom) > .head { position: sticky; top: -10px; z-index: 3; margin: -10px -12px 6px; padding: 10px 12px 6px; background: var(--paper2, #fbfaf7); }
+#pop { overflow-y: auto; overscroll-behavior: contain; }
+#popFilters { max-height: 34vh; overflow-y: auto; overscroll-behavior: contain; }
+#subMenu { max-height: calc(100% - var(--hdr) - 70px); overflow-y: auto; overscroll-behavior: contain; }
+body.dash #subMenu { max-height: calc(100% - var(--hdr) - var(--dash) - 40px); }
+#popFilters { display: block !important; }
+#popFilters .pfHead { font-size: 11px; color: var(--sub); padding: 4px 0 2px; cursor: pointer; user-select: none; border-bottom: 1px solid var(--line); margin-bottom: 3px; }
+#popFilters .pfHead::before { content: '▸ '; } #popFilters .pfHead.open::before { content: '▾ '; }
+#popFilters .pfList { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 4px; }
