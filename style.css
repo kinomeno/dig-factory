@@ -676,3 +676,10 @@ body.moneyFold #goalHud, body.moneyFold #monthHud, body.moneyFold #aiHud, body.m
 /* v1.69：手順の中の共有ボタン・メニューの絵（Safari のボタンと同じ青） */
 .stepIco { display: inline-flex; align-items: center; justify-content: center; width: 1.5em; height: 1.5em; margin: 0 .1em; vertical-align: -.4em; color: #2f7bf0; }
 .stepIco svg { width: 1.5em; height: 1.5em; }
+
+/* v1.70：目標の行は1行ずつ（はみ出す時は字を小さく）・ほかのフロートを開いている間は小さな○に畳む */
+#tutGoal .gl { white-space: nowrap; overflow: hidden; }
+#tutGoal { transition: width .18s, height .18s, border-radius .18s, padding .18s; }
+#tutGoal.mini { width: 24px; height: 24px; padding: 0; border-radius: 50%; overflow: hidden; cursor: pointer; pointer-events: auto; }
+#tutGoal.mini .gl { display: none; }
+#tutGoal.mini::after { content: ''; display: block; width: 8px; height: 8px; margin: 7px auto 0; border-radius: 50%; background: #d0661f; }

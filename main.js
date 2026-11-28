@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.69（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.70（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.69';
+const VERSION = '1.70';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -1788,8 +1788,25 @@ function tutSet(step) { S.tut.step = step; S.tut.t = 0; tutShow(); try { ura.tu(
 function tutGoalShow() {   // 6：はじめの手順の目標（小さく固定）
   const g = $('tutGoal'); if (!g) return;
   const on = !!(S && !inTitle && (S.tut || S.tut2 || S.deepest - SKY <= BR(0)) && !S.goalOff);
-  g.hidden = !on; if (on) { const need = offCost(S.office.lv) - S.money, t2 = staffN() >= 1 ? tx().tutGoal2 + (need > 0 ? tx().tutNeed(fmt(need)) : tx().tutCan) : ''; const txt = tx().tutGoal + (t2 ? '\n' + t2 : ''); if (g.textContent !== txt) g.textContent = txt; }
+  g.hidden = !on; if (on) { const need = offCost(S.office.lv) - S.money, t2 = staffN() >= 1 ? tx().tutGoal2 + (need > 0 ? tx().tutNeed(fmt(need)) : tx().tutCan) : ''; const txt = tx().tutGoal + (t2 ? '\n' + t2 : ''); if (g.dataset.txt !== txt) { g.dataset.txt = txt; g.textContent = ''; for (const ln of txt.split('\n')) { const d = document.createElement('div'); d.className = 'gl'; d.textContent = ln; g.append(d); } fitGoal(); } }
 }
+// v1.70：目標の行は1行のまま。画面に入らない時は、字を少しずつ小さくする（iPhone で変な所で折り返さない）
+function fitGoal() {
+  const g = $('tutGoal'); if (!g || g.hidden || g.classList.contains('mini')) return;
+  g.style.fontSize = '';
+  let fs = parseFloat(getComputedStyle(g).fontSize) || 13;
+  while (fs > 9 && [...g.children].some(d => d.scrollWidth > d.clientWidth + 0.5)) { fs -= 0.5; g.style.fontSize = fs + 'px'; }
+}
+window.addEventListener('resize', () => fitGoal());
+// v1.70：ほかのフロート（タップメニュー・パネル・窓）を開いている間は、目標の行を小さな○に畳む。閉じたら自動で開く（○を押しても開く）
+setInterval(() => {
+  const g = $('tutGoal'); if (!g || g.hidden) return;
+  const busy = ['pop', 'info', 'mapPanel', 'unlockCard', ...PANELS].some(id => $(id) && !$(id).hidden) || [...document.querySelectorAll('.modal')].some(m => !m.hidden);
+  if (!busy) delete g.dataset.open;
+  const mini = busy && !g.dataset.open;
+  if (g.classList.contains('mini') !== mini) { g.classList.toggle('mini', mini); if (!mini) fitGoal(); }
+}, 200);
+setTimeout(() => $('tutGoal').addEventListener('click', () => { const g = $('tutGoal'); if (g.classList.contains('mini')) { g.dataset.open = '1'; g.classList.remove('mini'); fitGoal(); } }), 0);   // $ の準備ができてから
 function tutShow() {
   tutGoalShow();
   const T = tx(), st = S.tut ? S.tut.step : null, st2 = S.tut2 && S.tut2.step !== 'wait' ? S.tut2.step : null;
@@ -1830,7 +1847,7 @@ function tutTarget() {
     const fl = Math.ceil(0.72 * offFloors(S.office.lv) + 0.1); return cellRect(OFFICE_C, YARD_R + 1 - fl, 2, fl);
   }
   if (st2 === 'lab') {   // 研究所を建てよう：設置 → 施設 → 研究所 → 地上の置く所
-    if (tool === 'lab') return null;
+    if (tool === 'lab') return cellRect(S.landL, YARD_R, S.landR - S.landL + 1, 1);   // v1.70：地上の置ける所（メッセージはここをよける）
     const tb3 = [...document.querySelectorAll('#subMenu .si')].find(b => b.dataset.tool === 'lab'); if (vis(tb3)) return tb3;
     const gb3 = [...document.querySelectorAll('#subMenu .grp')].find(b => b.dataset.grp === 'fac'); if (vis(gb3)) return gb3;
     return [...document.querySelectorAll('[data-open="build"], #catBar [data-cat="build"]')].find(vis) || null;
@@ -1896,7 +1913,7 @@ function tutEnd() {
   S.tut2 = tutSkipped ? null : { step: 'wait', next: 'kiln', t: 0 };   // 少ししてから、次の案内（スキップした時は出さない）
   if (!tutSkipped) { ura.add('tu', 'end'); try { if (window.knTrack) window.knTrack('goal'); } catch (e) { } }
   tutSkipped = false;
-  tutShow(); say(tx().tutDone, 7000, 'good');
+  tutShow();   // v1.70：「ドリルやコンベアを置いて〜」は目標の行と同じなので出さない
 }
 // はじめの手順のあとの案内：待つ（wait）→ 案内を出す → できたら（または▼を押したら）少し待って次へ
 const TUT2 = ['kiln', 'hire', 'lvup', 'office', 'lab'];   // v1.46：掘る向きの段は外す・レベルアップはフォークリフト   // v1.30：研究所の段
@@ -2253,7 +2270,10 @@ function emitOre(c, r, s, kind) {
   const bc = c + bx, br = r + by;
   const m = machineAt(bc, br);
   if (m && accepts(m, { k: kind })) { absorb(m, { k: kind }); return; }
-  if (canPut(bc, br)) spawnItem(kind, c + 0.5 + bx * 0.75, r + 0.5 + by * 0.75, bc, br);
+  if (canPut(bc, br)) {   // v1.70：ドリルの後ろの黒い口から出す（口のはばの中・ふちのすぐ外）。掘った物が出てくるのが分かるように
+    const it = spawnItem(kind, c + 0.5 + bx * 0.56, r + 0.5 + by * 0.56, bc, br);
+    it.x = clamp(c + 0.5 + bx * 0.56 + (bx ? 0 : rand(-0.07, 0.07)), bc + 0.04, bc + 0.96); it.y = clamp(r + 0.5 + by * 0.56 + (by ? 0 : rand(-0.07, 0.07)), br + 0.04, br + 0.96);
+  }
   else spawnItem(kind, c + 0.5, r + 0.5, c, r);
 }
 
@@ -2963,7 +2983,12 @@ function updateWorkers(dt) {
           const sig = progSig(w.target);   // 進み具合が変わらない＝先が詰まって止まっている
           if (sig !== w.pSig) { w.pSig = sig; w.pT = 0; } else if (wKey(w) === stK) w.pT = (w.pT || 0) + dt;
           w.idleT = workNeed(w.target) <= 0 || (sig && w.pT > (w.target.type === 'drill' ? Math.max(4, drillIv(w.target) * 3) : 4)) ? (w.idleT || 0) + dt : 0;
-          if (w.idleT > (w.boss ? 1 : [8, 5, 3, 2][sk('bored')])) { w.idleT = 0; if (betterPost(w)) leavePost(w); }   // v0.98：最速2秒（せわしなくない）。社長は1秒
+          if (w.idleT > (w.boss ? 1 : [8, 5, 3, 2][sk('bored')])) { w.idleT = 0; if (betterPost(w)) leavePost(w); break; }   // v0.98：最速2秒（せわしなくない）。社長は1秒
+          // v1.70：社長と、少人数（3人まで）の時は、働いていても3秒ごとに見比べて、ずっと大事な持ち場が空いていれば移る
+          if ((w.boss || staffN() <= 3) && wKey(w) === stK) {
+            w.prioT = (w.prioT || 0) + dt;
+            if (w.prioT > 3) { w.prioT = 0; if (bestFreeNeed(w) > workNeed(w.target) + 3) leavePost(w); }
+          }
         }
         break;
       }
@@ -3014,6 +3039,16 @@ function betterPost(w) {
   for (const [k, st] of S.st) if (isStation(st) && st !== w.target && !opOf(st) && dist.has(k) && workNeed(st) > 0 && !S.workers.some(o => o.target === st)) return true;
   for (const f of S.fac) if (f !== w.target && workNeed(f) > 0 && S.workers.filter(o => o.target === f).length < BAL.facSlots) return true;
   return false;
+}
+// v1.70：まだ誰もいない持ち場の中で、いちばん大事な所の「仕事の多さ」（運転手のいない乗り物は大事）
+function bestFreeNeed(w) {
+  const { dist } = officeMap(); let best = -99;
+  const dockN = Object.values(S.dock).reduce((a2, p2) => a2 + p2.length, 0);
+  for (const f of S.forks) if (f !== w.target && !opOf(f) && (f.load.length || dockN >= 6) && !S.workers.some(o => o.target === f)) best = Math.max(best, 9);   // 地上に6個以上たまった時だけ急ぐ
+  for (const t of S.fleet) if (t !== w.target && t.phase === 'here' && !opOf(t) && t.load && !S.workers.some(o => o.target === t)) best = Math.max(best, 10);
+  for (const [k, st] of S.st) if (isStation(st) && st !== w.target && !opOf(st) && dist.has(k) && !S.workers.some(o => o.target === st)) best = Math.max(best, workNeed(st));
+  for (const f of S.fac) if (f !== w.target && S.workers.filter(o => o.target === f).length < BAL.facSlots) best = Math.max(best, workNeed(f));
+  return best;
 }
 // 持ち場の「仕事の多さ」：ドリルは掘っていれば5（ふさがっていれば-30）、機械は中の材料の数（0なら-10）
 function workNeed(st) {
@@ -3340,6 +3375,13 @@ function metrics() {
   camLim.y0 = Math.min(camTop() - 0.7, SKY - ch / cp + 0.6);   // v1.23：地上の線が画面の下に来るくらいまで上を見られる
   camLim.y1 = Math.max(camLim.y0, S.deepest - hdrH / cp);   // いちばん深い所が、画面のいちばん上に見える所まで（v1.43：v1.23でこの行がコメントに飲まれ、下へ動かせなかった）
   if (!inTitle) cam.y = clamp(cam.y, camLim.y0, camLim.y1);
+}
+// v1.70：地上（置ける所）が画面の上下の邪魔な物に隠れていたら、地上が真ん中より少し下に来るように動かす
+function showSurface() {
+  metrics();
+  const top = cam.y + (hdrH + 70) / cp, bot = cam.y + (ch - 130) / cp;
+  if (YARD_R - 1 >= top && YARD_R + 1 <= bot) return;
+  cam.y = Math.max(camTop(), YARD_R + 1 - (ch / cp) * 0.55); metrics();
 }
 function resetCam() {
   cam.z = START_ZOOM;
@@ -3709,6 +3751,7 @@ function setTool(id) {
   if (S.seen && id && id !== 'none' && id !== 'pan') S.seen[id] = 1;   // 一度使ったら「new」は消える
   if (id.startsWith('m:')) { machSel = id.slice(2); tool = 'machine'; }
   else tool = id;
+  if (id === 'lab' || isFacTool(id)) showSurface();   // v1.70：地上に置く物は、置ける所が見えるように
   const m = memGet(toolId());   // 前に選んだ向き（コンベアは、はじめは「オート」）
   dir = m || (tool === 'conv' ? 'auto' : dir === 'auto' ? 'right' : dir);
 }
@@ -5013,12 +5056,13 @@ function feedsInto(nc, nr, c, r) {
 function curveSide(c, r, s) {
   if (s.type !== 'conv') return null;
   const [bx, by] = DIRS[OPP[s.dir]];
-  if (feedsInto(c + bx, r + by, c, r)) return null;
+  const back = feedsInto(c + bx, r + by, c, r);
   let side = null, n = 0;
   for (const sd of ['left', 'right']) {
     const [ax, ay] = DIRS[sd === 'left' ? CCW[s.dir] : CW[s.dir]];
     if (feedsInto(c + ax, r + ay, c, r)) { side = sd; n++; }
   }
+  if (back) return n === 2 ? 'tboth' : n === 1 ? 't' + side : null;   // v1.70：後ろ＋横から＝合流のT字（ふちの線つき）
   return n === 1 ? side : n === 2 ? 'both' : null;   // 両側から：合流の形
 }
 const beltPh = new WeakMap();   // コンベアごとの縞々の進み具合（保存しない）
@@ -5036,6 +5080,20 @@ function drawBeltCell(x, y, s, speed, ghost, c, r) {
     part(-cell / 2, -w / 2, cell / 2, w, CW[s.dir]);   // 左から入る腕
     part(0, -w / 2, cell / 2, w, CCW[s.dir]);          // 右から入る腕
     part(-w / 2, -cell / 2, w, cell / 2 + w / 2, s.dir);   // 真ん中から前へ
+  } else if (side && side[0] === 't') {   // v1.70：合流のT字。まっすぐの上に、横から入る腕を重ねて、T字路と同じふちの線
+    const cx = x + cell / 2, cy = y + cell / 2, w = cell * 0.56, a = CONV_ROT[s.dir], h = cell / 2, q = w / 2;
+    const L = side === 'tleft' || side === 'tboth', Rt = side === 'tright' || side === 'tboth';
+    drawConvSprite(x, y, s.dir, speed, ph);
+    const part = (rx, ry, rw, rh, d) => { ctx.save(); ctx.translate(cx, cy); ctx.rotate(a); ctx.beginPath(); ctx.rect(rx, ry, rw, rh); ctx.rotate(-a); ctx.translate(-cx, -cy); ctx.clip(); drawConvSprite(x, y, d, speed, ph); ctx.restore(); };
+    if (L) part(-h, -q, h - q, w, CW[s.dir]);
+    if (Rt) part(q, -q, h - q, w, CCW[s.dir]);
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(a);
+    ctx.strokeStyle = 'rgba(0,0,0,.45)'; ctx.lineWidth = Math.max(1, cell * 0.03); ctx.beginPath();
+    if (L) { ctx.moveTo(-q, -h); ctx.lineTo(-q, -q); ctx.lineTo(-h, -q); ctx.moveTo(-h, q); ctx.lineTo(-q, q); ctx.lineTo(-q, h); }
+    else { ctx.moveTo(-q, -h); ctx.lineTo(-q, h); }
+    if (Rt) { ctx.moveTo(q, -h); ctx.lineTo(q, -q); ctx.lineTo(h, -q); ctx.moveTo(h, q); ctx.lineTo(q, q); ctx.lineTo(q, h); }
+    else { ctx.moveTo(q, -h); ctx.lineTo(q, h); }
+    ctx.stroke(); ctx.restore();
   } else if (side) {
     const f0 = Math.floor(ph !== null ? ph : S.time * speed * 16), f = isFinite(f0) ? ((f0 % 4) + 4) % 4 : 0;
     ctx.save(); ctx.imageSmoothingEnabled = false;
@@ -5054,7 +5112,7 @@ function drawBeltCell(x, y, s, speed, ghost, c, r) {
     ctx.restore();
   }
   if (s.type === 'cross') { ctx.save(); ctx.globalAlpha = 0.7; drawConvSprite(x, y, CW[s.dir], speed, ph); ctx.restore(); }
-  if (!side) drawChevron(x, y, s.dir, THEME.arrow);
+  if (!side || side[0] === 't') drawChevron(x, y, s.dir, THEME.arrow);
   if (s.type === 'sort') {
     const sd = s.side === 'left' ? CCW[s.dir] : CW[s.dir], [sx, sy] = DIRS[sd];
     drawItemShape({ k: s.filter === 'rare' ? 'ammonite' : s.filter }, x + cell / 2 + sx * cell * 0.3, y + cell / 2 + sy * cell * 0.3, 0.8);
@@ -5681,6 +5739,10 @@ function drawSkyFliers() {
     }
   }
 }
+function drawTutFrames(x, y, w, h) {   // 64：枠は1本。少し大きくなったり戻ったりするだけ（明るさは変えない）   v1.70：v1.51 で誤って消していたのを戻す（無いと案内の「雇う」等で描画が止まり、事務所が消えた）
+  const cell = cp, lw = Math.max(2, cell * 0.07), d = (0.5 + 0.5 * Math.sin(performance.now() / 260)) * cell * 0.08;
+  ctx.save(); ctx.strokeStyle = 'rgba(208,102,31,.9)'; ctx.lineWidth = lw; ctx.strokeRect(x - d, y - d, w + d * 2, h + d * 2); ctx.restore();
+}
 function drawBossCar(x, base, kind) {   // 1マスの車（黒塗りの車か軽トラ）。前の席に赤いヘルメットが小さく見える
   const cell = cp, y = base;
   if (kind === 'sedan') {
@@ -6065,8 +6127,8 @@ function jumpTo(at) {
 }
 $('tutMsg').addEventListener('pointerup', () => { if (!S.tut && S.tut2 && S.tut2.step !== 'wait') { tut2Next(); updateUI(); return; } if (tutWait()) { tutNext(); updateUI(); } });
 $('tutSkip').addEventListener('click', () => {   // はじめの手順をとばす（ドリルを1台もらって、ふつうに始める）。そのあとの案内も出さない
-  if (!S.tut) { S.tut2 = null; tutShow(); document.querySelectorAll('.tutPulse2, .tutPulse').forEach(el => el.classList.remove('tutPulse2', 'tutPulse')); updateUI(); return; }
-  tutSkipped = true; ura.add('tu', 'skip');
+  if (!S.tut) { S.tut2 = null; S.goalOff = true; tutShow(); document.querySelectorAll('.tutPulse2, .tutPulse').forEach(el => el.classList.remove('tutPulse2', 'tutPulse')); updateUI(); return; }
+  tutSkipped = true; S.goalOff = true; ura.add('tu', 'skip');   // v1.70：スキップしたら目標の行も消す
   tutEnd(); updateUI();   // v1.44：スキップした時、ドリルは置かない（41）
 });
 $('msg').addEventListener('pointerup', () => { const a = msgAt; say(''); if (a) { jumpTo(a); updateUI(); } });   // タップで消える（飛べる物は飛ぶ）
