@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.77（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.78（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.77';
+const VERSION = '1.78';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -397,7 +397,7 @@ const TXT = {
     },
     needDig: n => `掘削レベル${n}が必要です（スキル）`,
     rockHint: n => `硬い岩盤：掘削レベル${n}が無いと、とても遅くしか掘れません（研究所で研究）`,
-    quit: '給料が払えず、作業員が1人やめました',
+    quit: '給料が払えず、作業員が1人やめました', bonusName: 'ボーナス（6月・12月）', bonusOpt0: 'なし', bonusOpt1: 'ふつう', bonusOpt2: 'はずむ', bonusEst: v => `次の額：${v}`, bonusNow: ['今：少し元気がない（ボーナスなし）', '今：ふつう', '今：元気（休憩が少し速い）', '今：とても元気（休憩と歩くのが速い）'], bonusPaid: v => `ボーナス ${v} を支給しました`, bonusShort: 'お金が足りないので、今回のボーナスは出ませんでした', bonusNone: '今回はボーナスなし。作業員の元気が少し落ちました', bonusPop: 'ボーナス', bonusBub: 'ボーナス！',
     homeAdd: 'ホーム画面に追加', diaryLink: '制作日誌', homeLead: 'ホーム画面に置くと、アプリのように全画面で遊べます（無料・インストール不要）。', homeDone: 'もうホーム画面から開いています。', homeInstallB: 'ホーム画面に追加する', homeSteps: { ios: ['Safari の下（または上）にある共有ボタン[share]を押す', '「ホーム画面に追加」を選ぶ', '右上の「追加」を押す'], android: ['Chrome の右上の[menu]（メニュー）を押す', '「ホーム画面に追加」または「アプリをインストール」を選ぶ', '「追加」（「インストール」）を押す'], pc: ['Chrome・Edge なら、アドレスバーの右にあるインストールの印を押す', 'または、メニューから「アプリとしてインストール」を選ぶ'] }, veinFound: '鉱脈だ！', planeLines: ['おう', 'やめて', 'あぶない', 'なに', 'びゅーん', 'さむい'], tutGoal: '目標：ドリルで資源を掘って、コンベアで地上に運ぼう', tutGoal2: '目標：お金をためて、会社レベルを上げよう', tutNeed: v => `（あと ${v}）`, tutCan: '（上げられます！事務所へ）', vendLine: 'ぷはー', vend: '自販機コーナー', vendDesc: '坑道の空いたマスに置きます。近く（1マス以内）を通ったり働いたりする作業員が、疲れていたら一息ついて1本買います（体力+25%・100）。同じ人は1分に1回まで。', vendN: n => `休憩の速さ +${n * 10}%`, hcEmpty: '棚はからっぽ（製品がヤードに来ると並びます）', sortInvL: '出す物', sortOnly: '選んだ物のみ', sortExcept: '選んだ物以外', unlockT: n => `会社レベル${n}　新しく使えるもの`, unlockUse: 'すぐ使えます（設置メニュー）', unlockRes: '研究所で研究できます', roomEmpty: '・・・しーん', roomLines: { exhibit: ["記念の品です", "ぴかぴか", "ほこりを払っとこ", "触らないでね"], boss: ["ふむ", "ちょっと休憩", "もっと掘れ！", "ふー", "はあ", "やれやれ", "おっ", "さてと", "わっはっは", "zzz", "うむっ", "今月の数字は…", "いい土だ"], sec: ["お茶です", "スケジュール通りです", "ぐーぐー", "すやすや", "はっ", "あ、こんにちは", "あれれ", "次の予定は", "♪", "社長、はんこを", "書類はこちらです", "電話、鳴りっぱなしです"], hr: ["面接中", "履歴書の山…", "はいはい", "そうですねえ", "ぼー", "みんなわがままだ", "どうしよう", "足りない", "はいはい、あーご家族がねー", "またゆうきゅう", "平均55歳・・・", "怪我はやめてね", "採用！", "カタカタ、お祈りしますっと"], tech: ["油、差しとこ", "異音なし", "どうぐは大事に", "らくしょう！", "なせばなる", "まあな", "おらっ", "ヨシッ", "あーあ", "だんどり！", "安全第一", "ネジが1本あまった"], sales: ["売れました！", "値上げ交渉中です", "え！弊社の車が駐車場に3時間！？", "うぇーい", "はいっ！しょうちしました！", "がちゃん、ツーツーツー", "もしもし！今から行きます！", "もしもし！すみません！", "ケっ", "ちっ", "名刺が切れた"], rest: ["あと5分…", "おなかすいた", "ぐう", "・・・ぷ", "すやすや", "ｚｚｚ", "ピコピコ", "ぷはー", "もくもく", "疲れた…", "うっ", "ばたり"], lab: ["できた！…と思ったら", "メモメモ", "カチャカチャ", "いま、研究中です", "こんなものかな", "肩こった"], spa: ["かぽーん", "ばしゃー", "ざばー", "ふー", "はー", "らんらん", "最高", "あっつ！"], museum: ["ほー", "勉強になる", "これが見たかった", "こんなもんか", "すごーい", "……"], refinery: ["石油、よし", "燃料、できあがり", "においが すごい", "火気厳禁！", "温度よし、圧力よし", "パイプ、異常なし", "今日もよく流れてる", "こぼすなよー"] }, elevOne: 'エレベーターは1本だけです（今ある列の上か下に足せます）', cellLook: '地面の中', otherMix: 'その他', mixLine: (p, n) => `中身：${p}（あと${n}個）`, hDepth: '資源の出る深さ', dAlways: '最初から', dBelow: n => `岩盤${n}より下`, dWell: '温泉は岩盤3、石油は岩盤4より下で湧くことがあります。（1マス＝3m。岩盤0は15m、そのあとは18mごと）', colTitle: 'コレクション', col: { title: 'コレクション', 'p:worker': '作業員', 'p:boss': '社長', 'v:fork': 'フォークリフト', 'v:bossFork': '社長専用フォークリフト', 'v:truck': 'トラック', 'b:office': '事務所', 'p:sec': '秘書', 'p:hr': '人事部の人', 'p:tech': '技術部の人', 'p:sales': '営業部の人', 'p:guest': 'お客さん', 'v:sedan': '社長の黒い車', 'v:kei': '社長の軽トラ', 'v:guestCar': 'お客さんの車', 'x:plane': '飛行機', 'x:birds': '鳥の群れ', 'x:stake': '土地の杭', 'x:rocket': '事務所ロケット', 'w:hot': '温泉の湧き口', 'w:oil': '油井', unknown: '？（まだ見ていません）', hint: 'タップで名前' }, bedBonus: (lv, n) => `岩盤${lv}を突破！ ご褒美に資源が${n}個、地上に出ました`, coUnlock: (lv, n) => `会社レベル${lv}：${n} が使えるようになりました（研究所に出ている物もあります）`, autoConvOpt: 'コンベア自動設置', secAdvOpt: '秘書の提案', coLvMsg: '会社レベルを上げられます（タップで事務所へ）',
     adv: { jam: 'コンベアが詰まっています。人をつけるか、強化しては？', buf: n => `${n}の中に材料が溜まっています`, coUp: '会社レベルを上げられます',
       truck: 'ヤードに資源が溜まっています。トラックを強化しては？', fork: '地上に資源が溜まっています。フォークリフトを増やしては？',
@@ -549,7 +549,7 @@ const TXT = {
     },
     needDig: n => `あなほり レベル${n}が ひつよう です（スキル）`,
     rockHint: n => `かたい がんばん：あなほり レベル${n}が ないと、とても ゆっくりしか ほれません`,
-    quit: 'きゅうりょうが はらえず、さぎょういんが 1にん やめました',
+    quit: 'きゅうりょうが はらえず、さぎょういんが 1にん やめました', bonusName: 'ボーナス（6がつ・12がつ）', bonusOpt0: 'なし', bonusOpt1: 'ふつう', bonusOpt2: 'はずむ', bonusEst: v => `つぎの がく：${v}`, bonusNow: ['いま：すこし げんきが ない', 'いま：ふつう', 'いま：げんき', 'いま：とても げんき'], bonusPaid: v => `ボーナス ${v} を しきゅう しました`, bonusShort: 'おかねが たりないので、こんかいの ボーナスは でませんでした', bonusNone: 'こんかいは ボーナス なし。すこし げんきが おちました', bonusPop: 'ボーナス', bonusBub: 'ボーナス！',
     homeAdd: 'ホームがめんに ついか', diaryLink: 'せいさく にっし', homeLead: 'ホームがめんに おくと、アプリのように ぜんがめんで あそべます（むりょう）。', homeDone: 'もう ホームがめんから ひらいています。', homeInstallB: 'ホームがめんに ついかする', homeSteps: { ios: ['Safari の した（または うえ）の きょうゆうボタン[share]を おす', '「ホーム画面に追加」を えらぶ', 'みぎうえの「追加」を おす'], android: ['Chrome の みぎうえの [menu]（メニュー）を おす', '「ホーム画面に追加」か「アプリをインストール」を えらぶ', '「追加」（「インストール」）を おす'], pc: ['Chrome・Edge なら、アドレスバーの みぎの インストールの しるしを おす', 'または、メニューから「アプリとしてインストール」を えらぶ'] }, veinFound: 'こうみゃくだ！', planeLines: ['おう', 'やめて', 'あぶない', 'なに', 'びゅーん', 'さむい'], tutGoal: 'もくひょう：ドリルで ほって、コンベアで ちじょうに はこぼう', tutGoal2: 'もくひょう：おかねを ためて、かいしゃ レベルを あげよう', tutNeed: v => `（あと ${v}）`, tutCan: '（あげられます！）', vendLine: 'ぷはー', vend: 'じはんき', vendDesc: 'あなの あいた マスに おきます。ちかくの つかれた さぎょういんが 1ぽん かって ひといき つきます（たいりょく+25%・100）。', vendN: n => `きゅうけいの はやさ +${n * 10}%`, hcEmpty: 'たなは からっぽ', sortInvL: 'だす もの', sortOnly: 'えらんだ もの だけ', sortExcept: 'えらんだ もの いがい', unlockT: n => `かいしゃ レベル${n}　あたらしく つかえる もの`, unlockUse: 'すぐ つかえます（おく メニュー）', unlockRes: 'けんきゅうしょで けんきゅう できます', roomEmpty: '・・・しーん', roomLines: { exhibit: ["きねんの しなです", "ぴかぴか", "ほこりを はらっとこ", "さわらないでね"], boss: ["ふむ", "ちょっと きゅうけい", "もっと ほれ！", "ふー", "はあ", "やれやれ", "おっ", "さてと", "わっはっは", "zzz", "うむっ", "こんげつの すうじは…", "いい つちだ"], sec: ["おちゃです", "よてい どおりです", "ぐーぐー", "すやすや", "はっ", "あ、こんにちは", "あれれ", "つぎの よていは", "♪", "しゃちょう、はんこを", "しょるいは こちらです", "でんわ、なりっぱなしです"], hr: ["めんせつちゅう", "りれきしょの やま…", "はいはい", "そうですねえ", "ぼー", "みんな わがままだ", "どうしよう", "たりない", "はいはい、あー ごかぞくがねー", "また ゆうきゅう", "へいきん 55さい・・・", "けがは やめてね", "さいよう！", "カタカタ、おいのり しますっと"], tech: ["あぶら さしとこ", "へんな おと なし", "どうぐは だいじに", "らくしょう！", "なせば なる", "まあな", "おらっ", "ヨシッ", "あーあ", "だんどり！", "あんぜん だいいち", "ネジが 1ぽん あまった"], sales: ["うれました！", "ねあげ こうしょうちゅう", "え！ うちの くるまが ちゅうしゃじょうに 3じかん！？", "うぇーい", "はいっ！ しょうち しました！", "がちゃん、ツーツーツー", "もしもし！ いまから いきます！", "もしもし！ すみません！", "ケっ", "ちっ", "めいしが きれた"], rest: ["あと 5ふん…", "おなか すいた", "ぐう", "・・・ぷ", "すやすや", "ｚｚｚ", "ピコピコ", "ぷはー", "もくもく", "つかれた…", "うっ", "ばたり"], lab: ["できた！…と おもったら", "メモメモ", "カチャカチャ", "いま、けんきゅうちゅうです", "こんな ものかな", "かた こった"], spa: ["かぽーん", "ばしゃー", "ざばー", "ふー", "はー", "らんらん", "さいこう", "あっつ！"], museum: ["ほー", "べんきょうに なる", "これが みたかった", "こんな もんか", "すごーい", "……"], refinery: ["せきゆ、よし", "ねんりょう、できあがり", "においが すごい", "ひのき げんきん！", "おんど よし、あつりょく よし", "パイプ、いじょう なし", "きょうも よく ながれてる", "こぼすなよー"] }, elevOne: 'エレベーターは 1ぽんだけ です（いまの れつの うえか したに たせます）', cellLook: 'じめんの なか', otherMix: 'そのほか', mixLine: (p, n) => `なかみ：${p}（あと${n}こ）`, hDepth: 'しげんの でる ふかさ', dAlways: 'さいしょから', dBelow: n => `がんばん${n}より した`, dWell: 'おんせんは がんばん3、せきゆは がんばん4より したで わくことが あります。', colTitle: 'コレクション', col: { title: 'コレクション', 'p:worker': 'さぎょういん', 'p:boss': 'しゃちょう', 'v:fork': 'フォークリフト', 'v:bossFork': 'しゃちょうの フォークリフト', 'v:truck': 'トラック', 'b:office': 'じむしょ', 'p:sec': 'ひしょ', 'p:hr': 'じんじぶの ひと', 'p:tech': 'ぎじゅつぶの ひと', 'p:sales': 'えいぎょうぶの ひと', 'p:guest': 'おきゃくさん', 'v:sedan': 'しゃちょうの くろい くるま', 'v:kei': 'しゃちょうの けいトラ', 'v:guestCar': 'おきゃくさんの くるま', 'x:plane': 'ひこうき', 'x:birds': 'とりの むれ', 'x:stake': 'とちの くい', 'x:rocket': 'じむしょ ロケット', 'w:hot': 'おんせんの わきぐち', 'w:oil': 'ゆせい', unknown: '？（まだ みていません）', hint: 'タップで なまえ' }, bedBonus: (lv, n) => `がんばん${lv}を とっぱ！ ごほうびに しげんが ${n}こ、ちじょうに でました`, coUnlock: (lv, n) => `かいしゃ レベル${lv}：${n} が つかえるように なりました`, autoConvOpt: 'コンベア じどう おき', secAdvOpt: 'ひしょの ていあん', coLvMsg: 'かいしゃ レベルを あげられます（タップで じむしょへ）',
     adv: { jam: 'コンベアが つまっています。ひとを つけるか、つよく しては？', buf: n => `${n}の なかに ざいりょうが たまっています`, coUp: 'かいしゃ レベルを あげられます',
       truck: 'ヤードに しげんが たまっています。トラックを つよく しては？', fork: 'ちじょうに しげんが たまっています。フォークリフトを ふやしては？',
@@ -694,7 +694,7 @@ const TXT = {
     },
     needDig: n => `Needs dig level ${n} (skill)`,
     rockHint: n => `Hard bedrock: without dig level ${n} it is very slow (research it at the Lab)`,
-    quit: 'Could not pay wages: one worker quit',
+    quit: 'Could not pay wages: one worker quit', bonusName: 'Bonus (June & December)', bonusOpt0: 'None', bonusOpt1: 'Normal', bonusOpt2: 'Generous', bonusEst: v => `Next: ${v}`, bonusNow: ['Now: a bit low (no bonus)', 'Now: normal', 'Now: cheerful (faster rest)', 'Now: very cheerful (faster rest & walk)'], bonusPaid: v => `Paid a bonus of ${v}`, bonusShort: 'Not enough money, so no bonus this time', bonusNone: 'No bonus this time. Workers are a little less cheerful', bonusPop: 'Bonus', bonusBub: 'Bonus!',
     homeAdd: 'Add to Home Screen', diaryLink: 'Dev diary', homeLead: 'Put it on your home screen to play full screen like an app (free, no install from a store).', homeDone: 'You are already playing from your home screen.', homeInstallB: 'Add to Home Screen', homeSteps: { ios: ['In Safari, tap the Share button [share]', 'Choose "Add to Home Screen"', 'Tap "Add" at the top right'], android: ['In Chrome, tap [menu] (menu) at the top right', 'Choose "Add to Home screen" or "Install app"', 'Tap "Add" ("Install")'], pc: ['In Chrome or Edge, click the install icon at the right of the address bar', 'Or choose "Install app" from the menu'] }, veinFound: 'A vein!', planeLines: ['Whoa', 'Stop it', 'Careful!', 'What?', 'Zoom', 'Brrr'], tutGoal: 'Goal: dig with drills and carry it up with conveyors', tutGoal2: 'Goal: save up and raise the company level', tutNeed: v => ` (${v} more)`, tutCan: ' (ready! go to the office)', vendLine: 'Ahh!', vend: 'Vending corner', vendDesc: 'Place it in an empty tunnel cell. Tired workers passing or working within 1 cell stop for a drink (+25% stamina, 100). Once a minute per worker.', vendN: n => `Rest speed +${n * 10}%`, hcEmpty: 'Shelves are empty', sortInvL: 'Send out', sortOnly: 'Only picked', sortExcept: 'All but picked', unlockT: n => `Company level ${n}: new things`, unlockUse: 'Ready to use (Build menu)', unlockRes: 'Research it at the Lab', roomEmpty: '... silence', roomLines: { exhibit: ["Our souvenirs", "Shiny", "A little dusting", "Please do not touch"], boss: ["Hmm.", "Coffee break", "Dig more!", "Phew", "Sigh", "Oh well", "Oh?", "Right then", "Ha ha ha!", "zzz", "Mm-hm!", "This month's numbers...", "Fine soil, this"], sec: ["Tea is ready", "Right on schedule", "Zzz...", "Snooze...", "Oh!", "Oh, hello", "Huh?", "Next on the agenda...", "♪", "Boss, your stamp please", "Papers are here", "The phone keeps ringing"], hr: ["Interviewing", "A mountain of CVs...", "Yes, yes", "Well, let me see", "...", "Everyone wants something", "What do I do", "Not enough people", "Yes, yes, family matters...", "Another day off", "Average age 55...", "No injuries, please", "Hired!", "Tap tap... \"we wish you the best\""], tech: ["A drop of oil here", "No odd noises", "Take care of your tools", "Easy!", "Where there is a will...", "I guess", "Hup!", "All good!", "Oops", "Plan first!", "Safety first", "One screw left over"], sales: ["Sold!", "Negotiating a raise", "What! Our truck's been parked there 3 hours?!", "Wahey!", "Yes! Right away!", "Click. Beep beep beep", "Hello! I'm on my way!", "Hello! So sorry!", "Tch", "Ugh", "Out of business cards"], rest: ["5 more minutes...", "I'm hungry", "Zzz", "...pff", "Snooze...", "zzz", "Beep boop (game)", "Ahh!", "Munch munch", "So tired...", "Ugh", "Thud"], lab: ["Done! ...or not", "Taking notes", "Clink clank", "Research in progress", "That should do", "Stiff shoulders"], spa: ["Ahh...", "Splash", "Sploosh", "Phew", "Haa...", "La la la", "The best", "Hot!"], museum: ["Ooh", "Very educational", "I came to see this", "Is that it?", "Amazing!", "..."], refinery: ["Oil, check", "Fuel is ready", "What a smell", "No open flames!", "Temp OK, pressure OK", "Pipes look fine", "Flowing nicely today", "Don't spill it"] }, elevOne: 'Only one elevator shaft (extend the current one up or down)', cellLook: 'Underground', otherMix: 'other', mixLine: (p, n) => `Contents: ${p} (${n} left)`, hDepth: 'Where resources appear', dAlways: 'From the start', dBelow: n => `Below bedrock ${n}`, dWell: 'Hot springs may appear below bedrock 3, oil below bedrock 4. (1 cell = 3m; bedrock 0 at 15m, then every 18m)', colTitle: 'Collection', col: { title: 'Collection', 'p:worker': 'Worker', 'p:boss': 'Boss', 'v:fork': 'Forklift', 'v:bossFork': "Boss's forklift", 'v:truck': 'Truck', 'b:office': 'Office', 'p:sec': 'Secretary', 'p:hr': 'HR staff', 'p:tech': 'Engineer', 'p:sales': 'Sales rep', 'p:guest': 'Customer', 'v:sedan': "Boss's black car", 'v:kei': "Boss's kei truck", 'v:guestCar': "Customer's car", 'x:plane': 'Airplane', 'x:birds': 'Flock of birds', 'x:stake': 'Land stake', 'x:rocket': 'Office rocket', 'w:hot': 'Hot spring source', 'w:oil': 'Oil well', unknown: '? (not seen yet)', hint: 'Tap for the name' }, bedBonus: (lv, n) => `Broke through bedrock ${lv}! ${n} bonus resources popped out on the surface`, coUnlock: (lv, n) => `Company level ${lv}: ${n} now available (some appear in the Lab)`, autoConvOpt: 'Auto conveyor', secAdvOpt: 'Secretary tips', coLvMsg: 'You can raise the company level (tap to open the office)',
     adv: { jam: 'A conveyor is jammed. Add a worker or upgrade it?', buf: n => `Materials are piling up in the ${n}`, coUp: 'You can raise the company level',
       truck: 'Resources are piling up in the yard. Upgrade the truck?', fork: 'Resources are piling up on the surface. Buy more forklifts?',
@@ -1100,7 +1100,9 @@ const offCap = lv => { const b = offCap0(lv), n = S ? sk('conne') : 0; return Ma
 const offForks = lv => (lv < OFFICE_LV.forks.length ? OFFICE_LV.forks[lv] : offLast(OFFICE_LV.forks) + 4 * (lv - OFFICE_LV.forks.length + 1));   // v0.98：1台で運べる数が減ったので、台数を多く
 const offRest = lv => (lv < OFFICE_LV.rest.length ? OFFICE_LV.rest[lv] : offLast(OFFICE_LV.rest) + 0.25 * (lv - OFFICE_LV.rest.length + 1));
 const brandMul = () => Math.pow(BAL.brandMul, Math.floor((S.office.lv + 1) / 10));   // 会社レベル10・20…ごとに、売値が上がる（ブランド力）
-const restMul = () => [1, 1.5, 2][sk('welfare')] * offRest(S.office.lv) * (sk('garden') ? 1.2 : 1); // 休憩の速さ（屋上庭園で少し速い）
+const BONUS_REST = { '-1': 0.9, 0: 1, 1: 1.15, 2: 1.3 }, BONUS_WALK = { '-1': 0.95, 0: 1, 1: 1.05, 2: 1.1 };   // v1.78：ボーナスの効き目（なし＝-1・払えなかった＝0・ふつう＝1・はずむ＝2）
+const bonusLv = () => (S && S.bonusFx && S.month < S.bonusFx.until ? S.bonusFx.lv : 0);
+const restMul = () => [1, 1.5, 2][sk('welfare')] * offRest(S.office.lv) * (sk('garden') ? 1.2 : 1) * BONUS_REST[bonusLv()]; // 休憩の速さ（屋上庭園で少し速い・ボーナス）
 const newTruck = phase => ({ type: 'truck', op: null, load: 0, value: 0, phase, t: 0, acc: 0 });
 
 // ■をつくる（中身は見えない）
@@ -2089,6 +2091,21 @@ function sim(sec) {
   }
 }
 
+// v1.78：ボーナス（6月・12月の初め）。額は事務所で選ぶ（なし／ふつう＝給料1か月分／はずむ＝2か月分）。払うとマイナスになる時は出ない
+// 次のボーナスまでの6か月、休憩と歩く速さが少し変わる（なし＝少し元気が落ちる。研究「ブラック企業」なら落ちない）
+function payBonus(m) {
+  const mo = m % 12 + 1; if (mo !== 6 && mo !== 12) return;
+  const staff = S.workers.filter(w => !w.boss); if (!staff.length) return;
+  const T = tx(), opt = (S.opts || {}).bonus === undefined ? 1 : S.opts.bonus;
+  if (opt === 0) { S.bonusFx = { lv: sk('black') ? 0 : -1, until: m + 6 }; if (!catchBusy) say(T.bonusNone, 3000); return; }
+  const total = Math.round(staff.reduce((a, w) => a + wageOf(w), 0) * (sk('black') ? 0.8 : 1) * TUNE.wage * opt);
+  if (total <= 0) return;
+  if (S.money - total < 0) { S.bonusFx = { lv: 0, until: m + 6 }; if (!catchBusy) say(T.bonusShort, 3500); addHist(T.bonusShort); return; }
+  spend(total, OFFICE_C + 1, YARD_R, T.bonusPop, true);
+  S.bonusFx = { lv: opt, until: m + 6 };
+  if (!catchBusy) { say(T.bonusPaid(fmt(total)), 3500, 'good'); const until = performance.now() + 2600; for (const w of staff.slice().sort(() => Math.random() - 0.5).slice(0, 6)) w.bub = { text: T.bonusBub, until }; }
+  addHist(T.bonusPaid(fmt(total)));
+}
 // 月が変わったら：給料を払う・その月の収支を記録・雇える人を入れかえ
 function updateMonth() {
   const m = Math.floor(S.time / TUNE.month);
@@ -2107,6 +2124,7 @@ function updateMonth() {
       say(tx().quit); addHist(tx().quit);
     }
   }
+  payBonus(m);
   // 銀行の融資：お金が100未満で、先月の売上が0なら300貸してくれる（売上の2割ずつ返す。合計1500まで）
   if (S.money < 100 && S.stats.cur.sale === 0 && (S.loan || 0) + BAL.loan <= BAL.loanMax && S.month > 1) {   // 返している途中でも、上限までは借りられる
     S.money += BAL.loan; S.loan = (S.loan || 0) + BAL.loan;
@@ -2915,7 +2933,7 @@ function walk(w, dt) {
     if (inElev) w.elevT = S.time;   // エレベーターで縦に動いた時刻（箱を出し続けるため）
     if (vert && !inElev) w.vT = S.time; else if (!vert && Math.abs(ddx) > 0.02) w.vT = -9;   // 縦に歩いた時刻（絵を境目の線へ寄せる）
     else if (!vert && Math.abs(ddx) > 0.02) w.elevT = -9;   // 横に歩き出したら、箱はもう出さない
-    const sp = (vert ? BAL.walkV * (inElev ? BAL.elevSpeed : 1) : BAL.walkH) * TUNE.walk;   // エレベーターのあるマスは、縦がとても速い
+    const sp = (vert ? BAL.walkV * (inElev ? BAL.elevSpeed : 1) : BAL.walkH) * TUNE.walk * (w.boss ? 1 : BONUS_WALK[bonusLv()]);   // エレベーターのあるマスは、縦がとても速い（ボーナスで少し速い）
     const d = Math.hypot(ddx, ddy), step = sp * dt;
     if (step >= d) { w.x = tx_; w.y = ty; dt -= d / sp; w.path.shift(); }
     else { w.x += ddx / d * step; w.y += ddy / d * step; dt = 0; }
@@ -2968,7 +2986,7 @@ function updateWorkers(dt) {
           const adv = [];
           if (S.lab.built && labN < labSeats()) adv.push(S.lab);   // 研究所：研究の数だけ席
           for (const f of S.forks) adv.push(f);
-          for (const t of S.fleet) if (t.phase === 'here') adv.push(t);
+          for (const t of S.fleet) if (t.phase === 'here' && (t.load || S.yard.length)) adv.push(t);   // v1.78：空で積む物も無いトラックには乗りに行かない
           for (const p of adv) { if (p !== S.lab && taken.has(p) || p.type === 'fork' && p.state === 'idle' && !p.load.length && pickDock(p) === null) continue; const d = dist.get(postKey(p)); if (d !== undefined && d < bd) { bd = d; best = p; } }
         }
         if (!best && w.lv < BAL.advLv) {   // v1.05：フォークリフトは運転手がいないと止まるので、Lv1の人も、運ぶ物がある時は乗る
@@ -2991,6 +3009,9 @@ function updateWorkers(dt) {
           const sc = d - workNeed(f) * 3 - (f.prio === undefined ? 1 : f.prio) * 40;
           if (sc < bd) { bd = sc; best = f; }
         }
+        // v1.78：仕事の無い持ち場（材料の無い機械・空のコンベア・止まったドリルなど）には行かない。行く所が無ければ事務所に戻って待つ（うろうろしない）
+        if (best && best !== S.lab && best.type !== 'fork' && best.type !== 'truck' && workNeed(best) <= 0) best = null;
+        if (!best && wKey(w) !== OFFICE_K && !w.boss) { w.path = pathBetween(wKey(w), OFFICE_K) || []; if (w.path.length) w.state = 'toIdle'; }
         if (best) {
           w.target = best; if (best !== S.lab) taken.add(best); else labN++; if (best.type === 'fac') facN.set(best, (facN.get(best) || 0) + 1);
           w.path = (wKey(w) === OFFICE_K ? pathFromOffice(postKey(best)) : pathBetween(wKey(w), postKey(best))) || [];   // 今いる所から
@@ -4205,6 +4226,12 @@ function renderPanel(id) {
         const bar = document.createElement('div'); bar.className = 'bar'; const fl = document.createElement('i'); fl.style.width = (100 * g / TRIP_NEED[k]) + '%'; bar.append(fl); el.querySelector('.spec').append(bar);
         tBox.append(el);
       }
+    }
+    {   // v1.78：ボーナス（6月・12月）
+      const opt = (S.opts || {}).bonus === undefined ? 1 : S.opts.bonus, grp = document.createElement('span'); grp.className = 'bonusOpt';
+      [[0, T.bonusOpt0], [1, T.bonusOpt1], [2, T.bonusOpt2]].forEach(([v, lb]) => { const b = document.createElement('button'); b.textContent = lb; b.classList.toggle('active', opt === v); b.addEventListener('click', () => { S.opts.bonus = v; renderPanel('office'); }); grp.append(b); });
+      const est = Math.round(S.workers.filter(w => !w.boss).reduce((a, w) => a + wageOf(w), 0) * (sk('black') ? 0.8 : 1) * TUNE.wage * opt);
+      box.append(rowEl(T.bonusName, `${T.bonusEst(fmt(est))}\n${T.bonusNow[bonusLv() + 1]}`, grp));
     }
     // 会社のレベル（定員・休憩の速さ・フォークリフトの台数）
     const coBox = foldSec(box, 'co', T.secCo, 'office');

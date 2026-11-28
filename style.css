@@ -683,3 +683,7 @@ body.moneyFold #goalHud, body.moneyFold #monthHud, body.moneyFold #aiHud, body.m
 #tutGoal.mini { width: 24px; height: 24px; padding: 0; border-radius: 50%; overflow: hidden; cursor: pointer; pointer-events: auto; }
 #tutGoal.mini .gl { display: none; }
 #tutGoal.mini::after { content: ''; display: block; width: 8px; height: 8px; margin: 7px auto 0; border-radius: 50%; background: #d0661f; }
+
+/* v1.78：ボーナスの額（3つのボタン） */
+.bonusOpt { display: inline-flex; gap: 4px; }
+.bonusOpt button { padding: 4px 8px; }
