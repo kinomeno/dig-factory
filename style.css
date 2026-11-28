@@ -703,3 +703,6 @@ body.moneyFold #goalHud, body.moneyFold #monthHud, body.moneyFold #aiHud, body.m
 
 /* v1.86：目標の行が、いちばん小さい字でも入らない時は折り返す */
 #tutGoal.wrap .gl { white-space: normal; }
+
+/* v1.87：iPhone が字を勝手に大きくしないように（はみ出しの原因になる） */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
