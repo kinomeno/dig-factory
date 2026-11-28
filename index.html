@@ -307,7 +307,9 @@
   </div>
 </div>
 
-<script src="sprites.js?v=1.67"></script>
-<script src="main.js?v=1.67"></script>
+<script>/* 共通のアクセス計測（開いた数・どこから来たか・案内を終えた数）。本番のアドレスで、管理モードでない時だけ */
+(function () { try { if (location.hostname !== 'horihori.kinomeno.com' || localStorage.getItem('dfAdminMode') === '1' || /[?&]dev/.test(location.search)) return; var e = document.createElement('script'); e.src = 'js/kn-track.js?v=1'; e.setAttribute('data-kn-app', 'horihori'); document.head.appendChild(e); } catch (e) { } })();</script>
+<script src="sprites.js?v=1.68"></script>
+<script src="main.js?v=1.68"></script>
 </body>
 </html>

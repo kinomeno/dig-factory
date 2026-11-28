@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.67（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.68（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.67';
+const VERSION = '1.68';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -325,7 +325,7 @@ const TXT = {
     loanPop: '銀行から融資',
     unitN: '台', unitP: '人', unitK: '個', unitT: '回',
     gMoney: '資金の動き', gMonth: '月ごとの収支（緑＝プラス・赤＝マイナス）',
-    adm: { m1: '資金 ＋1000', m10: '資金 ＋10000', maxLv: '全部レベル最大', ace: '優秀な作業員を雇う',
+    adm: { ura: 'うらがわ（遊び方の記録）を開く', m1: '資金 ＋1000', m10: '資金 ＋10000', maxLv: '全部レベル最大', ace: '優秀な作業員を雇う',
       month: '1か月進める', fast: '速さ ×16', clear: '地中を見る（切替）', allSk: 'スキル全部取得', finRes: '研究を即完了', tune: '調整',
       stageUp: '段階ジャンプ（次の岩盤を突破）', auto10: '自動プレイ 10分', auto60: '自動プレイ 60分', tripTest: '社員旅行（テスト・回数に数えない）', pixel: 'ドット編集ツール',
       liveOn: '自動プレイ（見る）開始', liveOff: '自動プレイ（見る）終了', liveOnMsg: '自動プレイ中：AIが3秒ごとに考えて動かします', liveTag: '自動プレイ中' },
@@ -479,7 +479,7 @@ const TXT = {
     loanPop: 'ぎんこうから かりた',
     unitN: 'だい', unitP: 'にん', unitK: 'こ', unitT: 'かい',
     gMoney: 'おかねの うごき', gMonth: 'つきごとの もうけ（みどり＝プラス・あか＝マイナス）',
-    adm: { m1: 'おかね ＋1000', m10: 'おかね ＋10000', maxLv: 'ぜんぶ レベル さいだい', ace: 'すごい さぎょういんを やとう',
+    adm: { ura: 'うらがわ（あそびかたの きろく）', m1: 'おかね ＋1000', m10: 'おかね ＋10000', maxLv: 'ぜんぶ レベル さいだい', ace: 'すごい さぎょういんを やとう',
       month: '1かげつ すすめる', fast: 'はやさ ×16', clear: 'つちの なかを みる（きりかえ）', allSk: 'スキル ぜんぶ', finRes: 'けんきゅうを すぐ おわらせる', tune: 'ちょうせい', stageUp: 'だんかい ジャンプ', auto10: 'じどう プレイ 10ぷん', auto60: 'じどう プレイ 60ぷん', tripTest: 'しゃいん りょこう（テスト）', pixel: 'ドット へんしゅう' },
     tuneInfo: 'バーを うごかすと すぐ かわります。「けっかを コピー」で チャットに はれます。',
     tuneCopy: 'けっかを コピー', tuneCopied: 'コピー しました', tuneReset: 'はじめの あたいに もどす', tuneT: 'ちょうせい',
@@ -624,7 +624,7 @@ const TXT = {
     loanPop: 'Bank loan',
     unitN: '', unitP: '', unitK: '', unitT: '',
     gMoney: 'Money over time', gMonth: 'Monthly net (green = profit, red = loss)',
-    adm: { m1: 'Money +1000', m10: 'Money +10000', maxLv: 'Max all levels', ace: 'Hire an ace worker',
+    adm: { ura: 'Open the back room (play records)', m1: 'Money +1000', m10: 'Money +10000', maxLv: 'Max all levels', ace: 'Hire an ace worker',
       month: 'Skip 1 month', fast: 'Speed ×16', clear: 'Reveal underground (toggle)', allSk: 'All skills', finRes: 'Finish research now', tune: 'Tuning', stageUp: 'Stage jump', auto10: 'Auto play 10 min', auto60: 'Auto play 60 min', tripTest: 'Company trip (test, not counted)', pixel: 'Pixel editor' },
     tuneInfo: 'Changes apply right away (starting money, ore and hardness after Restart). Copy the result to paste in chat.',
     tuneCopy: 'Copy result', tuneCopied: 'Copied', tuneReset: 'Reset to defaults', tuneT: 'Tuning',
@@ -1783,7 +1783,7 @@ function startTutorial() {
   S.tut = { step: 'hello', t: 0 };
   tutShow();
 }
-function tutSet(step) { S.tut.step = step; S.tut.t = 0; tutShow(); }
+function tutSet(step) { S.tut.step = step; S.tut.t = 0; tutShow(); try { ura.tu(step); } catch (e) { } }   // うらがわ：短い段も取りこぼさない
 // 画面：吹き出し（社長）・メッセージ（秘書ではない）・メニューの隠しと光らせ
 function tutGoalShow() {   // 6：はじめの手順の目標（小さく固定）
   const g = $('tutGoal'); if (!g) return;
@@ -1894,6 +1894,7 @@ function tutEnd() {
   const b = bossOf(); if (b) { b.state = 'idle'; b.lastLook = -9; b.target = null; b.carry = 0; if (tutSkipped) { b.path = []; b.x = cOf(OFFICE_K) + 0.5; b.y = rOf(OFFICE_K) + 0.5; } }   // 42（スキップの時だけ）：事務所に戻して、ふつうに働き出す（歩いている途中で止まらない）
   S.tut = null;
   S.tut2 = tutSkipped ? null : { step: 'wait', next: 'kiln', t: 0 };   // 少ししてから、次の案内（スキップした時は出さない）
+  if (!tutSkipped) { ura.add('tu', 'end'); try { if (window.knTrack) window.knTrack('goal'); } catch (e) { } }
   tutSkipped = false;
   tutShow(); say(tx().tutDone, 7000, 'good');
 }
@@ -4197,6 +4198,7 @@ function renderPanel(id) {
     const box = $('adminBody'); box.innerHTML = '';
     const A = T.adm;
     const add = (label, f) => { const b = document.createElement('button'); b.textContent = label; b.addEventListener('click', () => { f(); updateUI(); }); box.append(b); };
+    add(A.ura, () => { window.open(ura.admin(), '_blank', 'noopener'); });   // 管理モードからだけ行ける
     add(A.m1, () => { S.money += 1000; });
     add(A.m10, () => { S.money += 10000; });
     add(A.maxLv, () => { for (const s of S.st.values()) s.lv = Math.min(capOf(s), s.lv + 5); S.truck.lv = Math.min(lvCap('truck'), S.truck.lv + 5); for (const f2 of S.forks) f2.lv += 5; });
@@ -6063,7 +6065,7 @@ function jumpTo(at) {
 $('tutMsg').addEventListener('pointerup', () => { if (!S.tut && S.tut2 && S.tut2.step !== 'wait') { tut2Next(); updateUI(); return; } if (tutWait()) { tutNext(); updateUI(); } });
 $('tutSkip').addEventListener('click', () => {   // はじめの手順をとばす（ドリルを1台もらって、ふつうに始める）。そのあとの案内も出さない
   if (!S.tut) { S.tut2 = null; tutShow(); document.querySelectorAll('.tutPulse2, .tutPulse').forEach(el => el.classList.remove('tutPulse2', 'tutPulse')); updateUI(); return; }
-  tutSkipped = true;
+  tutSkipped = true; ura.add('tu', 'skip');
   tutEnd(); updateUI();   // v1.44：スキップした時、ドリルは置かない（41）
 });
 $('msg').addEventListener('pointerup', () => { const a = msgAt; say(''); if (a) { jumpTo(a); updateUI(); } });   // タップで消える（飛べる物は飛ぶ）
@@ -6716,7 +6718,7 @@ function autoPipePath(wk) {
 //   ↑ ← 戻し        （r-1）
 //   仕 → 機械↑      （r）      材料が2つの機械は、もう1段下に「仕 → ↑」を足して、下からも入れる（r+1）
 // 上の段ほど後の工程（下で作った物が、上の機械に流れて行く）
-const AUTO_RAW = ['soil', 'stone', 'iron', 'gold', 'dia'];
+const AUTO_RAW = [...RAW_KINDS];   // v1.68：原料は全部（前は土・石・鉄・金・ダイヤだけで、粘土・銅・石炭・石英・銀を使う機械をAIが選べなかった）
 const recInsOf = rec => (rec.ins ? Object.keys(rec.ins) : [rec.in]);
 const recNOf = (rec, x) => (rec.ins ? rec.ins[x] : rec.n);
 const AUTO_LINES = (() => {
@@ -6735,7 +6737,7 @@ const AUTO_LINES = (() => {
 // 今使う工程を選ぶ：掘っている資源から作れる物だけ。材料ごとに、いちばん得になる使い道を1つ
 function autoPlan() {
   const lines = AUTO_LINES.filter(l => S.unlock[l.m]);
-  const raw = AUTO_RAW.filter(r => S.sold['@' + r]);
+  const raw = AUTO_RAW.filter(r => S.sold[r] || S.sold['@' + r]);
   const prod = new Set(raw);
   for (let p = 0; p < 8; p++) for (const l of lines) if (l.ins.every(x => prod.has(x))) prod.add(l.rec.out);
   const usable = lines.filter(l => l.ins.every(x => prod.has(x)));
@@ -7049,7 +7051,9 @@ function autoStep(build = true) {
   // 地上の施設：使う液体がたまっていれば建てる（1種類1つ）
   for (const fid of FAC_IDS) {
     const use = FAC_USE[fid] || [];
-    const ok = fid === 'museum' ? RARE.some(([k2]) => S.sold[k2] || S.yard.some(it => it.k === k2)) : use.some(l => S.tank[l] > 20);   // 博物館は珍しい物を見つけてから
+    const ok = fid === 'museum' ? RARE.some(([k2]) => S.sold[k2] || S.yard.some(it => it.k === k2))   // 博物館は珍しい物を見つけてから
+      : fid === 'hc' ? Object.keys(S.sold).some(k2 => k2[0] !== '@' && !RAW_KINDS.has(k2) && !isRare(k2) && k2 !== 'bag' && k2 !== 'fuel')   // v1.68 ホームセンター：製品を作って売っていたら（前はAIの条件に無く、建たなかった）
+      : use.some(l => S.tank[l] > 20);
     if (!ok || !S.unlock[fid] || S.fac.some(x => x.f === fid)) continue;
     const c = autoFreeCol(), cost = buildCost(fid);
     if (c === undefined || S.money < cost * 1.5 * R) continue;
@@ -7188,7 +7192,7 @@ function leaveTitle() {
   fitHeader(); resize(); resetCam(); updateUI();
 }
 $('tNew').addEventListener('click', () => {
-  const go = () => { newGame(); leaveTitle(); startTutorial(); autoSave(); };
+  const go = () => { newGame(); leaveTitle(); startTutorial(); autoSave(); ura.start('new'); };
   if (savedJson()) askConfirm(tx().confirmNew, go); else go();
 });
 $('tCont').addEventListener('click', () => {
@@ -7196,7 +7200,7 @@ $('tCont').addEventListener('click', () => {
   let at = 0;
   try { S = deserialize(j); at = JSON.parse(j).at || 0; } catch (e) { say(tx().saveNG); return; }
   pathCache.ver = -1; digCache.ver = -1; speedIdx = 0;
-  leaveTitle();
+  leaveTitle(); ura.start('cont');
   const gone = at ? Math.min((Date.now() - at) / 1000, awayLimit()) : 0;
   if (gone >= 10) catchUp(gone);
 });
@@ -7229,6 +7233,70 @@ document.addEventListener('visibilitychange', () => {
   if (gone >= AWAY_MIN && !inTitle && S && !autoBusy) catchUp(Math.min(gone, awayLimit()));
 });
 setInterval(autoSave, 30000);
+
+// ---- うらがわ（遊び方の記録）：どこまで進んだか・何を使ったかを、名前の分からない形で記録する ----
+// 送るもの：どの案内の段まで進んだか・会社レベル・岩盤・ゲーム内の月・置いた物の種類・研究・遊んだ秒数・言語・PC/スマホ。
+// 送らないもの：名前・入力した文字・お金の額・セーブの中身。来た人の目印は、この端末の中で作ったでたらめな文字。
+// 送らない時：本番のアドレス以外（localStorage digfactory.uraDev=1 の時だけ送る）・管理モード・?dev・?kn_notrack=1・自動プレイ
+const URA = 'https://horihori-ura-57e41c.kinomeno.workers.dev';
+const ura = (() => {
+  const q = new URLSearchParams(location.search);
+  let dev = false; try { dev = localStorage.getItem('digfactory.uraDev') === '1'; } catch (e) { }
+  const on = () => (location.hostname === 'horihori.kinomeno.com' || dev) && !adminMode() && !q.has('dev') && !q.has('kn_notrack') && !autoTainted;
+  let autoTainted = false;
+  const rid = () => { const a = new Uint8Array(8); crypto.getRandomValues(a); return [...a].map(b => b.toString(16).padStart(2, '0')).join(''); };
+  let vid = ''; try { vid = localStorage.getItem('digfactory.vid') || ''; if (!/^[0-9a-f]{16}$/.test(vid)) { vid = rid(); localStorage.setItem('digfactory.vid', vid); } } catch (e) { vid = rid(); }
+  const sid = rid(), dv = matchMedia('(pointer: coarse)').matches ? 'sp' : 'pc';
+  let q2 = [], base = null, playSec = 0, sentSec = 0, lastTu = '';
+  const ctxOf = () => S ? { mo: S.month | 0, lv: S.office.lv | 0, br: S.stage | 0 } : { mo: 0, lv: 0, br: 0 };
+  function add(k, t, n = 0) { if (!on()) return; q2.push({ k, t: String(t).slice(0, 40), n: Math.round(n) || 0, ...ctxOf() }); if (q2.length >= 30) flush(); }
+  function flush(beacon) {
+    if (!q2.length || !on()) { q2 = []; return; }
+    const body = JSON.stringify({ a: 'horihori', v: vid, s: sid, l: lang, d: dv, ev: q2.splice(0, 40) });
+    try {
+      if (beacon && navigator.sendBeacon) navigator.sendBeacon(URA + '/e', new Blob([body], { type: 'text/plain' }));
+      else fetch(URA + '/e', { method: 'POST', body, headers: { 'Content-Type': 'text/plain' }, keepalive: true, mode: 'cors' }).catch(() => { });
+    } catch (e) { /* 記録の失敗は、遊びに影響させない */ }
+  }
+  function builtSet() {
+    const b = new Set();
+    for (const x of S.st.values()) b.add(x.type === 'machine' ? 'm:' + x.m : x.type === 'drill' ? 'd:' + (x.tid || 'drill') : 't:' + x.type);
+    for (const f of S.fac || []) b.add('f:' + f.f);
+    if (S.lab && S.lab.built) b.add('f:lab');
+    if (Object.keys(S.elev || {}).length) b.add('t:elev');
+    if (Object.keys(S.lamps || {}).length) b.add('t:lamp');
+    if (Object.keys(S.vends || {}).length) b.add('t:vend');
+    return b;
+  }
+  const resDone = () => new Set(allResIds().filter(id => !id.startsWith('sk:') && resDef0(id).done));
+  const skillLv = () => { const o = {}; for (const x of SKILL_ORDER) o[x] = sk(x); return o; };
+  const tuStep = () => S.tut ? S.tut.step : S.tut2 && S.tut2.step !== 'wait' ? S.tut2.step : '';
+  function snap() { return { lv: S.office.lv | 0, br: S.stage | 0, built: builtSet(), res: resDone(), sk: skillLv() }; }
+  function markTu(tu) { if (tu && tu !== lastTu) { add('tu', tu); lastTu = tu; } }
+  function start(kind) { base = null; lastTu = ''; add('st', kind); }
+  function tick(sec) {   // 5秒ごと：前と比べて、新しく起きたことだけを送る
+    if (autoBusy || autoLive) { autoTainted = true; q2 = []; return; }
+    if (!S || inTitle || document.hidden) return;
+    playSec += sec;
+    if (playSec - sentSec >= 60) { add('hb', 'p', playSec - sentSec); sentSec = playSec; }
+    markTu(tuStep());
+    const now = snap();
+    if (base) {
+      for (let l = base.lv + 1; l <= now.lv; l++) add('lv', 'L' + l);
+      for (let b = base.br + 1; b <= now.br; b++) add('br', 'B' + b);
+      for (const x of now.built) if (!base.built.has(x)) add('bd', x);
+      for (const x of now.res) if (!base.res.has(x)) add('rs', x);
+      for (const x in now.sk) if (now.sk[x] > (base.sk[x] || 0)) add('sk', x, now.sk[x]);
+    }
+    base = now;
+  }
+  setInterval(() => { try { tick(5); } catch (e) { } }, 5000);
+  setInterval(() => flush(), 30000);
+  const bye = () => { try { if (playSec > sentSec) { add('hb', 'p', playSec - sentSec); sentSec = playSec; } flush(true); } catch (e) { } };
+  document.addEventListener('visibilitychange', () => { if (document.hidden) bye(); });
+  addEventListener('pagehide', bye);
+  return { start, add, flush, tu: markTu, admin: () => URA + '/admin' };
+})();
 
 function showNotice(text, mood) {
   const nm = $('noticeMsg'); nm.innerHTML = ''; nm.append(secIcon(mood, 'secBig'));
@@ -7463,7 +7531,7 @@ window.__game = { specDump: () => {   // 開発用：今の仕様（解放の順
   get S() { return S; }, draw: () => draw(), openPop: t => openPop(t), launchAt: e => { launchT = performance.now() - e * 1000; }, tutTarget: () => tutTarget(), closePop: () => closePop(), tripStart: () => tripStart(), cappedAllDone: () => cappedAllDone(), TRIP_NEED, toggle: id => togglePanel(id), openCatT: c => { openCat = c; renderSub(); updateUI(); }, tutStart: () => startTutorial(), tutSet: st => tutSet(st), setNoDraw: v => { noDraw = !!v; }, BAL, openBalance, balChanged, TUNE, OFFICE_LV, AI_W, BELT_CAP, fpsCtl, row, canPlaceAt, officeUp, buyFork, finishResearch, sim, apply, gainSkill, startResearch, saveTo, loadFrom, speeds, bayTruck, levelUp, levelUpAll, departNow, cam, diggable, hire,
   setTool: t => setTool(t), setDir: d => { dir = d; }, pause: () => { running = false; },
   checkStage, resAvail, buildCost, allResIds, resDef, autoSave, catchUp, showTitle, leaveTitle, autoPlay, autoStep, workNeed,
-  deserialize, serialize, newGame: () => newGame(), aiLearn, autoPlan, AUTO_LINES, autoDiagnose, setLive: v => { autoLive = v; showAiLog(); }, setAutoBuild: v => { autoBuild = v; }, fmt, itemVal, placePend, priceUp, lvVal, lvCost, catalogIds,
+  deserialize, serialize, newGame: () => newGame(), aiLearn, autoPlan, AUTO_LINES, autoDiagnose, setLive: v => { autoLive = v; showAiLog(); }, autoPipePath, setAutoBuild: v => { autoBuild = v; }, fmt, itemVal, placePend, priceUp, lvVal, lvCost, catalogIds,
 };
 requestAnimationFrame(frame);
 })();
