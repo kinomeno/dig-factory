@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.91（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.92（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.91';
+const VERSION = '1.92';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -166,6 +166,9 @@ const ITEMS = {
   bucket:     { v: 380, c: ['#3f7cc4', '#1f4470'], s: 'bucket' },     // バケツ（商品製造機）
   rcCar:      { v: 6500, c: ['#d8402c', '#2b2b2e'], s: 'rc' },        // ラジコン（組立機：プラスチック＋電線）
   decoGravel: { v: 14, c: ['#f2efe6', '#9a958d'], s: 'small' },        // 化粧砂利（砂利を研磨）
+  // v1.92 鉄筋と鉄筋コンクリート
+  rebar:      { v: 900,  c: ['#8a6a5a', '#3a2a22'], s: 'bar' },         // 鉄筋（鋼を圧延機で）
+  rcBlock:    { v: 1400, c: ['#a8a49a', '#5a4a40'], s: 'block' },       // 鉄筋コンクリート（鉄筋＋コンクリートブロック）
 };
 const ITEM_ORDER = Object.keys(ITEMS);
 const RARE = [['ammonite', 24], ['fossil', 30], ['haniwa', 36], ['rareMin', 42], ['relic', 54], ['mummy', 60]];   // 珍しい資源と、出始める段（v1.04：岩盤3・4・5・6・8・9の下）
@@ -176,7 +179,7 @@ const MACHINES = {
   kiln:     { cost: 120, time: 3, recipes: [{ in: 'soil', n: 2, out: 'brick' }, { in: 'clay', n: 1, out: 'kawara' }, { ins: { brick: 1, tile: 1 }, out: 'pottery' }] },   // 粘土→瓦・レンガ＋タイル→陶器も
   crusher:  { cost: 100, time: 2, recipes: [{ in: 'stone', n: 1, out: 'gravel' }, { in: 'gold', n: 1, out: 'goldDust', outN: 2 }] },
   smelter:  { cost: 200, time: 4, recipes: [{ in: 'iron', n: 2, out: 'ironbar' }, { in: 'gold', n: 2, out: 'goldbar' }, { in: 'copper', n: 2, out: 'copperBar' }, { in: 'silver', n: 2, out: 'silverBar' }, { ins: { ironbar: 1, coal: 1 }, out: 'steel' }] },
-  factory:  { cost: 400, time: 5, recipes: [{ in: 'ironbar', n: 2, out: 'tool' }, { in: 'goldbar', n: 2, out: 'jewel' }, { ins: { gravel: 1, stone: 1 }, out: 'concrete' }, { in: 'copperWire', n: 2, out: 'cable' }, { in: 'plastic', n: 2, out: 'bucket' }] },
+  factory:  { cost: 400, time: 5, recipes: [{ in: 'ironbar', n: 2, out: 'tool' }, { in: 'goldbar', n: 2, out: 'jewel' }, { ins: { gravel: 1, stone: 1 }, out: 'concrete' }, { ins: { rebar: 1, concrete: 1 }, out: 'rcBlock' }, { in: 'copperWire', n: 2, out: 'cable' }, { in: 'plastic', n: 2, out: 'bucket' }] },
   bagger:   { cost: 150, time: 2, bag: 5 },  // 同じ物5個を1袋に（売値1.2倍）
   washer:   { cost: 300, time: 2, recipes: [{ in: 'dia', n: 1, out: 'diaClean' }] },
   cutter:   { cost: 400, time: 3, recipes: [{ in: 'diaClean', n: 1, out: 'diaCut' }, { in: 'stone', n: 1, out: 'tile' }] },     // 切断：石→タイルも
@@ -185,7 +188,7 @@ const MACHINES = {
   atelier:  { cost: 700, time: 6, recipes: [{ ins: { ironbar: 1, gem: 1 }, out: 'decoIron' }, { ins: { goldbar: 1, gem: 1 }, out: 'decoGold' }, { ins: { glossTile: 1, goldleaf: 1 }, out: 'goldTile' }] },   // 装飾工房（2つの材料を組み合わせる）
   adit:     { cost: 500, time: 3, recipes: [], src: true },
   sieve:    { cost: 300, time: 3, recipes: [{ in: 'soil', n: 6, out: 'iron' }, { in: 'gravel', n: 5, out: 'copper' }] },   // ふるい：土・砂利から小さな鉱石を拾う
-  roller:   { cost: 800, time: 4, recipes: [{ in: 'ironbar', n: 1, out: 'ironPlate' }, { in: 'copperBar', n: 1, out: 'copperPlate' }] },   // 圧延機：延べ棒→板
+  roller:   { cost: 800, time: 4, recipes: [{ in: 'ironbar', n: 1, out: 'ironPlate' }, { in: 'copperBar', n: 1, out: 'copperPlate' }, { in: 'steel', n: 1, out: 'rebar' }] },   // 圧延機：延べ棒→板
   caster:   { cost: 900, time: 5, recipes: [{ in: 'ironbar', n: 1, out: 'ironPot' }, { in: 'copperBar', n: 1, out: 'copperPot' }] },     // 鋳造機：延べ棒→鍋
   glassF:   { cost: 700, time: 4, recipes: [{ in: 'gravel', n: 2, out: 'glass' }, { in: 'quartz', n: 1, out: 'luxGlass' }] },         // ガラス炉：純粋な石英は高級ガラス
   assembler: { cost: 3000, time: 6, recipes: [{ ins: { steelPart: 1, ironPlate: 1 }, out: 'engine' }, { ins: { cable: 1, copperPlate: 1 }, out: 'switchboard' }, { ins: { goldTile: 1, glossTile: 1 }, out: 'decoPanel' }, { ins: { lens: 1, copperPlate: 1 }, out: 'telescope' }, { ins: { plastic: 1, cable: 1 }, out: 'rcCar' }] },
@@ -773,7 +776,7 @@ const TXT_ADD = {
     lv0Open: '岩盤0を破れるようになりました',
     aditHelp: ['横穴掘削口', '研究所で研究すると置けます（段階2から）。置いた深さの資源（掘った時と同じ出方）が、前から出続けます。掘り進めない代わりに、ずっと出ます。\n岩盤と岩盤の間（5〜10m、10〜20m…）に1つずつ置けます。作業員がつくと速くなり、レベルも3回まで上げられます。掘削レベルが足りずにドリルが岩盤で止まっている間の稼ぎに。'],
     items: { clay: '粘土', copper: '銅', coal: '石炭', quartz: '石英', silver: '銀', kawara: '瓦', pottery: '陶器', copperBar: '銅の延べ棒', silverBar: '銀の延べ棒', steel: '鋼', ironPlate: '鉄板', copperPlate: '銅板',
-      glass: 'ガラス', luxGlass: '高級ガラス', ironPot: '鉄鍋', copperPot: '銅鍋', wireMesh: '金網', silverware: '銀食器', steelPart: '鋼の部品', concrete: 'コンクリートブロック', copperWire: '銅線', cable: '電線', goldTile: '金縁タイル', lens: 'レンズ', engine: '機械', switchboard: '配電盤', decoPanel: '装飾パネル', telescope: '望遠鏡', plastic: 'プラスチック', hose: 'ホース', bucket: 'バケツ', rcCar: 'ラジコン', decoGravel: '化粧砂利',
+      glass: 'ガラス', luxGlass: '高級ガラス', ironPot: '鉄鍋', copperPot: '銅鍋', wireMesh: '金網', silverware: '銀食器', steelPart: '鋼の部品', concrete: 'コンクリートブロック', copperWire: '銅線', cable: '電線', goldTile: '金縁タイル', lens: 'レンズ', engine: '機械', switchboard: '配電盤', decoPanel: '装飾パネル', telescope: '望遠鏡', plastic: 'プラスチック', hose: 'ホース', bucket: 'バケツ', rcCar: 'ラジコン', decoGravel: '化粧砂利', rebar: '鉄筋', rcBlock: '鉄筋コンクリート',
       goldDust: '金粉', tile: 'タイル', glossTile: 'つやタイル', wire: 'ワイヤー', goldleaf: '金箔', decoIron: '高級装飾品（鉄）', decoGold: '高級装飾品（金）',
       ammonite: 'アンモナイト', fossil: '化石', haniwa: '埴輪', rareMin: '稀少鉱物', relic: '古代文明の宝', mummy: 'ミイラ' },
     fac: { museum: '博物館' }, facDesc: { museum: '掘り当てた珍しい物を展示します。お客さんが来て入場料（展示の種類が多いほど高い）。2つ目からは売店で1.5倍で売ります。' },
@@ -822,7 +825,7 @@ const TXT_ADD = {
     priceNote: 'うった ことの ある ものだけ でます。つくった ものも、おなじように ねだんが あがります。', yardHas: 'おきばの なかみ',
     infoPick: 'みたい ものを えらぶ', close: 'とじる',
     items: { clay: 'ねんど', copper: 'どう', coal: 'せきたん', quartz: 'せきえい', silver: 'ぎん', kawara: 'かわら', pottery: 'とうき', copperBar: 'どうの のべぼう', silverBar: 'ぎんの のべぼう', steel: 'はがね', ironPlate: 'てっぱん', copperPlate: 'どうばん',
-      glass: 'ガラス', luxGlass: 'こうきゅう ガラス', ironPot: 'てつの なべ', copperPot: 'どうの なべ', wireMesh: 'かなあみ', silverware: 'ぎんの しょっき', steelPart: 'はがねの ぶひん', concrete: 'コンクリート', copperWire: 'どうせん', cable: 'でんせん', goldTile: 'きんぶち タイル', lens: 'レンズ', engine: 'きかい', switchboard: 'はいでんばん', decoPanel: 'かざり パネル', telescope: 'ぼうえんきょう', plastic: 'プラスチック', hose: 'ホース', bucket: 'バケツ', rcCar: 'ラジコン', decoGravel: 'きれいな じゃり',
+      glass: 'ガラス', luxGlass: 'こうきゅう ガラス', ironPot: 'てつの なべ', copperPot: 'どうの なべ', wireMesh: 'かなあみ', silverware: 'ぎんの しょっき', steelPart: 'はがねの ぶひん', concrete: 'コンクリート', copperWire: 'どうせん', cable: 'でんせん', goldTile: 'きんぶち タイル', lens: 'レンズ', engine: 'きかい', switchboard: 'はいでんばん', decoPanel: 'かざり パネル', telescope: 'ぼうえんきょう', plastic: 'プラスチック', hose: 'ホース', bucket: 'バケツ', rcCar: 'ラジコン', decoGravel: 'きれいな じゃり', rebar: 'てっきん', rcBlock: 'てっきん コンクリート',
       goldDust: 'きんぷん', tile: 'タイル', glossTile: 'つやつや タイル', wire: 'ワイヤー', goldleaf: 'きんぱく', decoIron: 'こうきゅう かざり（てつ）', decoGold: 'こうきゅう かざり（きん）',
       ammonite: 'アンモナイト', fossil: 'かせき', haniwa: 'はにわ', rareMin: 'めずらしい こうせき', relic: 'こだいの たから', mummy: 'ミイラ' },
     fac: { museum: 'はくぶつかん' }, facDesc: { museum: 'めずらしい ものを かざります。おきゃくさんが きて にゅうじょうりょう。' },
@@ -932,7 +935,7 @@ const TXT_ADD = {
     lv0Open: 'Company level 1: you can now break bedrock 0 (5m)',
     aditHelp: ['Adit', 'Research it at the Lab (from stage 2). It keeps giving the resources of the depth it sits at, out of its front. It never moves on, but never runs out.\nOne per band between bedrocks (5-10m, 10-20m...). Workers make it faster, and you can level it up. Good income while drills wait at bedrock.'],
     items: { clay: 'Clay', copper: 'Copper', coal: 'Coal', quartz: 'Quartz', silver: 'Silver', kawara: 'Roof tile', pottery: 'Pottery', copperBar: 'Copper bar', silverBar: 'Silver bar', steel: 'Steel', ironPlate: 'Iron plate', copperPlate: 'Copper plate',
-      glass: 'Glass', luxGlass: 'Fine glass', ironPot: 'Iron pot', copperPot: 'Copper pot', wireMesh: 'Wire mesh', silverware: 'Silverware', steelPart: 'Steel parts', concrete: 'Concrete block', copperWire: 'Copper wire', cable: 'Cable', goldTile: 'Gold-rim tile', lens: 'Lens', engine: 'Engine', switchboard: 'Switchboard', decoPanel: 'Deco panel', telescope: 'Telescope', plastic: 'Plastic', hose: 'Hose', bucket: 'Bucket', rcCar: 'RC car', decoGravel: 'Decorative gravel',
+      glass: 'Glass', luxGlass: 'Fine glass', ironPot: 'Iron pot', copperPot: 'Copper pot', wireMesh: 'Wire mesh', silverware: 'Silverware', steelPart: 'Steel parts', concrete: 'Concrete block', copperWire: 'Copper wire', cable: 'Cable', goldTile: 'Gold-rim tile', lens: 'Lens', engine: 'Engine', switchboard: 'Switchboard', decoPanel: 'Deco panel', telescope: 'Telescope', plastic: 'Plastic', hose: 'Hose', bucket: 'Bucket', rcCar: 'RC car', decoGravel: 'Decorative gravel', rebar: 'Rebar', rcBlock: 'Reinforced concrete',
       goldDust: 'Gold dust', tile: 'Tile', glossTile: 'Glossy tile', wire: 'Wire', goldleaf: 'Gold leaf', decoIron: 'Luxury ornament (iron)', decoGold: 'Luxury ornament (gold)',
       ammonite: 'Ammonite', fossil: 'Fossil', haniwa: 'Haniwa', rareMin: 'Rare mineral', relic: 'Ancient treasure', mummy: 'Mummy' },
     fac: { museum: 'Museum' }, facDesc: { museum: 'Shows the rare things you dig up. Visitors pay admission (more kinds, higher fee). Duplicates sell at the shop ×1.5.' },
@@ -1066,7 +1069,7 @@ const surfaceFree = c => inB(c, YARD_R) && owned(c) && !isYard(c, YARD_R) && !is
 const OFFICE_K = key(OFFICE_C + 1, YARD_R);   // 事務所の出入り口
 // 元の資源（売値アップの倍率をどれに掛けるか）
 const ROOT = { clay: 'soil', kawara: 'soil', pottery: 'soil', concrete: 'stone', glass: 'stone', copper: 'iron', copperBar: 'iron', copperPlate: 'iron', copperPot: 'iron', copperWire: 'iron', cable: 'iron',
-  engine: 'iron', switchboard: 'iron', decoPanel: 'gold', lens: 'dia', telescope: 'dia', plastic: 'fuel', hose: 'fuel', bucket: 'fuel', rcCar: 'fuel', decoGravel: 'stone',
+  engine: 'iron', switchboard: 'iron', decoPanel: 'gold', lens: 'dia', telescope: 'dia', plastic: 'fuel', hose: 'fuel', bucket: 'fuel', rcCar: 'fuel', decoGravel: 'stone', rebar: 'iron', rcBlock: 'iron',
   ironPlate: 'iron', ironPot: 'iron', wireMesh: 'iron', steel: 'iron', steelPart: 'iron', coal: 'fuel', quartz: 'dia', luxGlass: 'dia', silver: 'gold', silverBar: 'gold', silverware: 'gold', goldTile: 'gold',
   goldDust: 'gold', soil: 'soil', brick: 'soil', stone: 'stone', gravel: 'stone', tile: 'stone', glossTile: 'stone', iron: 'iron', ironbar: 'iron', tool: 'iron', wire: 'iron',
   gold: 'gold', goldbar: 'gold', jewel: 'gold', goldleaf: 'gold', dia: 'dia', diaClean: 'dia', diaCut: 'dia', gem: 'dia', decoIron: 'dia', decoGold: 'dia', fuel: 'fuel',
@@ -1295,9 +1298,10 @@ function canPlaceAt(c, r) {
   if (tool === 'lab') return r === YARD_R && surfaceFree(c) && !S.lab.built;
   if (isFacTool(tool)) return r === YARD_R && surfaceFree(c);
   if (!inB(c, r) || r < SKY) return false;
+  { const rv = tutResv(); if (rv && c === rv.c && r === SKY && tool !== 'pipe' && tool !== 'pipex') return false; }   // v1.92：焼成機の置き場所に取っておく
   if (tool === 'pipe' || tool === 'pipex') { const w0 = S.st.get(key(c, r)); return blk(c, r) === null && !(w0 && w0.type === 'well'); }   // v1.72：パイプは掘ってあるマスだけ（ほかの物と重なってよい）
   const b = blk(c, r);
-  if (S.tut && isDrillTool(tool) && r !== SKY) return false;   // 31：はじめの手順の間、ドリルは地下1段目だけ
+  if (S.tut && isDrillTool(tool) && (r !== SKY || !tutDrillOk(c))) return false;   // 31：はじめの手順の間、ドリルは地下1段目だけ   // v1.92：横に焼成機を置ける所だけ
   if (isDrillTool(tool) && b) return diggable().has(key(c, r));   // 岩盤にも置ける（レベル不足ならとても遅い）
   // 機械・コンベア類・パイプも、坑道に隣接した土なら上書きして置ける（中の資源はなくなる）。破れない岩盤は不可
   if (b && (tool === 'machine' || tool === 'conv' || tool === 'sort' || tool === 'tee' || tool === 'cross' || tool === 'tri' || tool === 'branch' || tool === 'pipe')) return diggable().has(key(c, r)) && !(b.mat === 'rock' && false);
@@ -1856,8 +1860,15 @@ setInterval(() => {
   if (!mini && g.dataset.fitKey !== window.innerWidth + '|' + g.dataset.txt) fitGoal();   // v1.86：測った時と幅や文が違えば測り直す（iPhone で、最初の測り方がずれて、はみ出たままになっていた）
 }, 200);
 setTimeout(() => $('tutGoal').addEventListener('click', () => { const g = $('tutGoal'); if (g.classList.contains('mini')) { g.dataset.open = '1'; g.classList.remove('mini'); g._unmini = performance.now(); g.dataset.fitKey = ''; } }), 0);   // $ の準備ができてから
+// v1.92：設置メニューの中で光らせる物（焼成機の段で、選べる所を絞っている時は光る枠の方で案内する）
+function tutSubPulse(id, g) {
+  if (S.tut && S.tut.step === 'buy') return id === 'drill' || g === 'drill';
+  if (S.tut2 && S.tut2.step === 'kiln' && tutKilnPhase() === 'free') return id === 'm:kiln' || g === 'machine';
+  return false;
+}
+function tutSubSync() { document.querySelectorAll('#subMenu [data-tool], #subMenu [data-grp]').forEach(el => el.classList.toggle('tutPulse', tutSubPulse(el.dataset.tool || null, el.dataset.grp || null))); }
 function tutShow() {
-  tutGoalShow();
+  tutGoalShow(); tutSubSync();
   const T = tx(), st = S.tut ? S.tut.step : null, st2 = S.tut2 && S.tut2.step !== 'wait' ? S.tut2.step : null;
   if (!st && st2) {   // はじめの手順のあとの案内（メニューは隠さない。▼で閉じる）
     document.body.classList.remove('tut');
@@ -2002,8 +2013,9 @@ function tut2Update(dt) {
     while (t.next && tut2Done(t.next)) t.next = TUT2[TUT2.indexOf(t.next) + 1];   // もう自分でやった案内はとばす
     if (S.tutRockPend) { S.tutRockPend = 0; t.after = t.next; t.step = 'bedrock'; t.t = 0; tutShow(); return; }   // v1.90：岩盤の説明は、割り込まずに順番待ち
     if (!t.next) { tutFinish(); return; }
-    const ready = t.next === 'office' ? S.money >= offCost(S.office.lv) : t.next === 'lab' ? S.office.lv >= 1 : t.next === 'kiln' ? [...S.st.values()].filter(x => isBelt(x)).length >= 2
-      : t.next === 'hire' ? (S.soloTrips || 0) >= 1 : t.next === 'lvup' ? dockTotal() >= 5 : t.next === 'resAuto' ? S.lab.built : true;
+    if (t.next === 'lvup' && dockTotal() < 5 && t.t >= 45) tutPileUp(5 - dockTotal());   // v1.92：地上に荷が5個たまらない時は、どこからか積み上がる（案内のため）
+    const ready = t.next === 'office' ? S.money >= offCost(S.office.lv) : t.next === 'lab' ? S.office.lv >= 1 : t.next === 'kiln' ? [...S.st.values()].filter(x => isBelt(x)).length >= 2 || t.t >= 120
+      : t.next === 'hire' ? (S.soloTrips || 0) >= 1 || t.t >= 150 : t.next === 'lvup' ? dockTotal() >= 5 : t.next === 'resAuto' ? S.lab.built : true;   // v1.92：コンベアを置かない・出荷しない時も、しばらくしたら案内へ
     if (t.next === 'kiln' && ready) { S.tutKilnGo = true; tutKilnPlan(); }   // v1.74：雇う案内は、社長ひとりで掘る・運ぶ・出荷を1回回してから（大変さが分かったところで）   // v1.73：レンガ焼成機の案内は、コンベアを1つ以上置いてから   // v1.40：お金がたまる・解放されるまで待つ
     if (t.t >= (['kilnDone', 'resAuto', 'final'].includes(t.next) ? 1.5 : TUT2_WAIT) && ready) { t.step = t.next; t.t = 0; tutShow(); }
     return;
@@ -2012,15 +2024,25 @@ function tut2Update(dt) {
   if (t.step === 'kiln') { const ph = tutKilnPhase(); if (ph !== t.ph) { t.ph = ph; tutShow(); } }   // 仕分け → 焼成機 で、文を替える
 }
 // v1.90：案内の終わり（スキップも）。目標の行・案内の制限も終わり
-function tutFinish() { S.tut2 = null; S.tutDone = true; S.goalOff = true; tutShow(); document.querySelectorAll('.tutPulse2, .tutPulse').forEach(el => el.classList.remove('tutPulse2', 'tutPulse')); }
+function tutFinish() { S.tut2 = null; S.tutDone = true; S.goalOff = true; tutShow(); document.querySelectorAll('.tutPulse2, .tutPulse, .tutShake').forEach(el => el.classList.remove('tutPulse2', 'tutPulse', 'tutShake')); }
 // v1.90：焼成機の段の置き場所を、始まる時に1つに決める（縦穴の上向きコンベアの1つを仕分けに・その横に焼成機）
 function tutKilnPlan() {
   if (S.tut2 && S.tut2.plan) return S.tut2.plan;
+  { const rv = S.tutResv, s0 = rv && S.st.get(key(rv.sc, SKY)); if (s0 && s0.type === 'conv' && s0.dir === 'up' && tutSideOk(rv.c)) { const plan = { sc: rv.sc, sr: SKY, mc: rv.c, side: rv.c > rv.sc ? 'right' : 'left', mdir: 'up' }; if (S.tut2) S.tut2.plan = plan; return plan; } }   // v1.92：取っておいたマス
   const ok = (c, r) => inB(c, r) && owned(c) && r >= SKY && !S.st.has(key(c, r)) && (blk(c, r) === null || (blk(c, r).mat !== 'rock' && diggable().has(key(c, r))));
   const cands = [...S.st.entries()].filter(([, x]) => x.type === 'conv' && x.dir === 'up').map(([k]) => [cOf(k), rOf(k)]).sort((a, b) => a[1] - b[1]);
   for (const [c, r] of cands) { if (r !== SKY) continue; for (const dx of [1, -1]) if (ok(c + dx, r) && c + dx !== YARD_C) { const plan = { sc: c, sr: r, mc: c + dx, side: dx > 0 ? 'right' : 'left', mdir: 'up' }; if (S.tut2) S.tut2.plan = plan; return plan; } }   // 地下1段目だけ：焼成機は上向き＝レンガはそのまま地上へ（機械は前から入らないので、縦穴の方へは向けない）
   return null;
 }
+const tutSideOk = x => inB(x, SKY) && owned(x) && x !== YARD_C && !S.st.has(key(x, SKY)) && (blk(x, SKY) === null || blk(x, SKY).mat !== 'rock');
+function tutResv() {   // v1.92：はじめのドリルの横1マスは、焼成機の案内まで取っておく（ほかの物を置けない）
+  if (!S || S.tutDone || S.tutKilnGo) return null;
+  if (S.tutResv) return S.tutResv;
+  const k = firstDrillKey(); if (k < 0) return null;
+  const dc = cOf(k), d = [1, -1].find(d2 => tutSideOk(dc + d2)); if (!d) return null;
+  return (S.tutResv = { c: dc + d, sc: dc });
+}
+const tutDrillOk = c => [1, -1].some(d => tutSideOk(c + d));   // v1.92：はじめのドリルの横に、焼成機の置き場所が残るか
 const tutKilnPhase = () => { const pl = S.tut2 && S.tut2.plan; if (!pl) return 'free'; const s0 = S.st.get(key(pl.sc, pl.sr)); return s0 && s0.type === 'sort' ? 'mach' : 'sort'; };
 const tutGuided = () => !!(S && S.tut2 && ['kiln', 'lab', 'resAuto'].includes(S.tut2.step) && !(S.tut2.step === 'kiln' && tutKilnPhase() === 'free'));   // 選べる所を絞る段
 const tutDirLock = () => !!(S && !S.tutDone && !S.tutKilnGo);   // 焼成機の段までは、ドリルの向きを変えられない
@@ -2035,7 +2057,7 @@ function tutCellOk(c, r) {   // 案内で絞っている時：光っているマ
 function tutLockEvt(e) {
   if (!S || !tutGuided()) return;
   const el = e.target; if (!el || !el.closest) return;
-  if (el.closest('#tutSkip') || el.closest('#tutMsg') || el === cv) return;
+  if (el.closest('#tutSkip') || el.closest('#tutMsg') || el.closest('.modal') || el === cv) return;   // v1.92：確認・お知らせの窓は押せる（詰まらない）
   const tg = tutTarget(); if (!tg || tg.cell) { if (!tg) return; }
   else if (tg === el || tg.contains(el) || (tg.dataset && tg.dataset.px && pxOf(tg) === el)) return;   // 下のタブは、裏のボタンを押して開く（それも通す）
   e.preventDefault(); e.stopPropagation(); if (e.type === 'pointerdown') tutShake();
@@ -2044,6 +2066,12 @@ for (const ev of ['pointerdown', 'pointerup', 'click']) document.addEventListene
 function tutShake() {   // 違う所を押した：誘導の赤枠がぷるぷる（ここだよ）
   tutShakeUntil = performance.now() + 420;
   document.querySelectorAll('.tutPulse2, .tutPulse').forEach(el => { el.classList.remove('tutShake'); void el.offsetWidth; el.classList.add('tutShake'); setTimeout(() => el.classList.remove('tutShake'), 450); });
+}
+function tutPileUp(n) {   // 案内用：荷おろし場に土が積み上がる
+  const c0 = YARD_C >= 0 ? YARD_C : S.landL;
+  for (let i = 0; i < n; i++) toSurface({ k: 'soil', v: ITEMS.soil.v, x: c0 + 0.5 });
+  const c1 = Object.keys(S.dock).map(Number).sort((a, b) => Math.abs(a - c0) - Math.abs(b - c0))[0];
+  if (c1 !== undefined) pop('+' + n, c1 + 0.5, YARD_R + 0.2, 'sale');
 }
 function tut2Next() {
   const t = S.tut2; if (!t) return;
@@ -3991,7 +4019,7 @@ function toolBtn(id) {
   b.append(lab);
   if (id.startsWith('m:')) { const def = MACHINES[id.slice(2)]; const rc = document.createElement('span'); rc.className = 'rec'; rc.textContent = def.bag ? T.bagRule : def.src ? T.aditRule : def.recipes.map(x => `${recIn(x)}→${T.items[x.out]}`).join(' / '); b.append(rc); }
   b.classList.toggle('active', toolId() === id);
-  b.dataset.tool = id; b.classList.toggle('tutPulse', !!((S.tut && S.tut.step === 'buy' && id === 'drill') || (S.tut2 && S.tut2.step === 'kiln' && id === 'm:kiln')));   // はじめの手順：「ドリル50」も光らせる
+  b.dataset.tool = id; b.classList.toggle('tutPulse', tutSubPulse(id, null));   // はじめの手順：「ドリル50」も光らせる
   b.addEventListener('click', () => {
     if (toolId() === id) tool = 'none'; else setTool(id);   // もう一度押すと解除
     openCat = null; renderSub(); closePop(); updateUI();
@@ -4010,11 +4038,11 @@ function renderSub() {
       const lb = document.createElement('button'); lb.className = 'grp'; lb.textContent = T.grpName[g];
       lb.classList.toggle('active', grpOfTool() === g);
       lb.classList.toggle('hasNew', grpList(g).some(isNewTool));   // 中に使ったことの無い物があれば●
-      lb.dataset.grp = g; lb.classList.toggle('tutPulse', !!((S.tut && S.tut.step === 'buy' && g === 'drill') || (S.tut2 && S.tut2.step === 'kiln' && g === 'machine')));   // はじめの手順：「ドリル」を光らせる
+      lb.dataset.grp = g; lb.classList.toggle('tutPulse', tutSubPulse(null, g));   // はじめの手順：「ドリル」を光らせる
       lb.classList.toggle('open', openGrp === g);
       lb.addEventListener('click', () => { openGrp = openGrp === g ? null : g; renderSub(); updateUI(); });
       rowD.append(lb);
-      if (openGrp === g) { const list = document.createElement('div'); list.className = 'types'; for (const id of grpList(g)) list.append(toolBtn(id)); rowD.append(list); }
+      if (openGrp === g) { const list = document.createElement('div'); list.className = 'types'; for (const id of grpList(g)) list.append(toolBtn(id)); rowD.append(list); if (S.seen) for (const id of grpList(g)) S.seen[id] = 1; }   // v1.92：見たら「new」は消える
       box.append(rowD);
     }
   } else if (openCat === 'infoCat') {
@@ -6604,7 +6632,7 @@ function xAvoidMsg() {
 // ---- 111 コレクション：画面で見た物が格子に並ぶ（まだの物は灰色の影絵・タップでぶるぶる） ----
 const colIds = () => [
   'p:boss', 'p:worker', 'p:sec', 'p:hr', 'p:tech', 'p:sales', 'p:guest', 'v:fork', 'v:bossFork', 'v:truck', 'v:sedan', 'v:kei', 'v:guestCar', 'x:plane', 'x:birds', 'x:stake', 'x:rocket', 'w:hot', 'w:oil', 'b:office', 'lab', ...FAC_IDS,
-  'drill', 'fdrill', 'adrill', 'conv', 'sort', 'tee', 'branch', 'tri', 'cross', 'pipe', 'pipex', 'elev', 'lamp', 'vend',
+  'drill', 'fdrill', 'adrill', 'conv', 'sort', 'tee', 'branch', 'tri', 'cross', 'pipe', 'pipex', 'elev', 'lamp', 'vend', ...DECO_IDS,
   ...MACHINE_ORDER.map(m => 'm:' + m), ...ITEM_ORDER.filter(k => k !== 'bag').map(k => 'i:' + k)];
 function colScan() {   // 見た物を覚える（なくなっても数える）
   const c = S.col || (S.col = {}), on = id => { c[id] = 1; };
@@ -6628,13 +6656,14 @@ function colScan() {   // 見た物を覚える（なくなっても数える）
   if (Object.keys(S.elev || {}).length) on('elev');
   if (Object.keys(S.lamps || {}).length) on('lamp');
   if (Object.keys(S.vends || {}).length) on('vend');
+  for (const d of Object.values(S.decos || {})) on(d);   // v1.92：飾り
 }
 const colCache = new Map();
 function colPic(id) {   // 48×48 の絵（ゲームの絵をそのまま使う。大きい物だけ小さく描き直す）
   if (colCache.has(id)) return colCache.get(id);
   let c2;
   if (id.startsWith('i:')) { c2 = document.createElement('canvas'); c2.width = c2.height = 48; const g = c2.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(itemSprite(id.slice(2)), 4, 4, 40, 40); }
-  else if (id.startsWith('m:') || isDrillTool(id) || ['conv', 'sort', 'tee', 'cross', 'tri', 'branch', 'pipe', 'pipex', 'elev', 'lamp', 'vend', 'lab'].includes(id) || isFacTool(id)) { const t = thumb(id); c2 = document.createElement('canvas'); c2.width = c2.height = 48; c2.getContext('2d').drawImage(t, 0, 0); }
+  else if (id.startsWith('m:') || isDrillTool(id) || ['conv', 'sort', 'tee', 'cross', 'tri', 'branch', 'pipe', 'pipex', 'elev', 'lamp', 'vend', 'lab'].includes(id) || DECO_IDS.includes(id) || isFacTool(id)) { const t = thumb(id); c2 = document.createElement('canvas'); c2.width = c2.height = 48; c2.getContext('2d').drawImage(t, 0, 0); }
   else {
     c2 = document.createElement('canvas'); c2.width = c2.height = 48;
     const saved = [ctx, cp]; ctx = c2.getContext('2d'); ctx.imageSmoothingEnabled = false;
@@ -6672,10 +6701,24 @@ function renderCol() {
     box.append(cell);
   }
 }
+// v1.92：資金の数字は、すばやく数えて動く（点滅はしない）
+let monD = null, monFrom = 0, monTo = 0, monT0 = 0, monRaf = 0, monS = null;
+function moneyShow(m) {
+  const v = S.money;
+  if (monD === null || monS !== S || inTitle || document.hidden) { monS = S; monD = monTo = monFrom = v; }
+  else if (v !== monTo) { monFrom = monD; monTo = v; monT0 = performance.now(); if (!monRaf) monRaf = requestAnimationFrame(monStep); }
+  m.textContent = fmt(Math.round(monD)); m.classList.toggle('neg', monD < 0);
+}
+function monStep(now) {
+  const k = Math.min(1, (now - monT0) / 300); monD = monFrom + (monTo - monFrom) * (1 - Math.pow(1 - k, 3));
+  if (k >= 1) monD = monTo;
+  const m = $('money'); m.textContent = fmt(Math.round(monD)); m.classList.toggle('neg', monD < 0);
+  monRaf = k < 1 ? requestAnimationFrame(monStep) : 0;
+}
 function updateUI() {
   advTick(); xAvoidMsg(); tutGoalShow();
   const T = tx(), m = $('money');
-  m.textContent = fmt(S.money); m.classList.toggle('neg', S.money < 0);
+  moneyShow(m);
   $('goalHud').textContent = S && !inTitle ? tx().coHud(S.office.lv) : '';
   { let open = false; try { open = localStorage.getItem('dfMoneyOpen') === '1'; } catch (e) { } document.body.classList.toggle('moneyFold', !open); }   // 会社レベル（主な目標）
   const mn = S.stats.cur.sale - S.stats.cur.cost, mh = $('monthHud');   // 今月の収支（リアルタイム）
