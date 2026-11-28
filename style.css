@@ -1,6 +1,6 @@
 /* ほりほり工場：見た目（デザイン）はこのファイルの変数で決める。ゲームの機能（main.js）とは分けてある */
 :root {
-  --hdr: 80px; --edge: 26px; --dash: 0px;
+  --hdr: 68px; --edge: 26px; --dash: 0px;   /* v2.06：80→68（2段のボタンの高さ＋上下2px）*/
   /* 明るい配色：白とグレーが基本。色は「お金（アクセント）」と「選択」だけ */
   --bg: #e6e6e3;
   --glass: rgba(250, 250, 248, .84);     /* ヘッダー・メニューの背景（半透明） */
@@ -733,3 +733,7 @@ body.tutSkipOn .panel:not(.bottom) { top: calc(var(--hdr) + var(--edge) + 34px);
 #tutMsg { flex-wrap: wrap; box-sizing: border-box; }
 #tutText { flex: 1 1 auto; min-width: 0; }
 #tutOk { margin-left: auto; }
+/* v2.06：ヘッダーのタイトルと年月の下の線をそろえる（同じ行の中で、字の並ぶ線＝ベースラインでそろえる） */
+#hdr .hrow:first-child { align-items: baseline; }
+#hdr .hrow:first-child > button, #hdr .hrow:first-child > .grow { align-self: center; }
+#hdr .brand, #hdr #date { line-height: 1; padding-top: 8px; }   /* 線をそろえたまま、ボタンの高さの真ん中あたりへ下げる */
