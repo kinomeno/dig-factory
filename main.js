@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v2.00（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v2.01（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '2.00';
+const VERSION = '2.01';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -1888,8 +1888,8 @@ function tutShow() {
   const T = tx(), st = S.tut ? S.tut.step : null, st2 = S.tut2 && S.tut2.step !== 'wait' ? S.tut2.step : null;
   if (!st && st2) {   // はじめの手順のあとの案内（メニューは隠さない。▼で閉じる）
     document.body.classList.remove('tut');
-    const pages = String(st2 === 'kiln' && tutKilnPhase() === 'mach' ? T.tut2.kiln2 : T.tut2[st2]).split('\n'), pg = Math.min(S.tut2.pg || 0, pages.length - 1), last = pg >= pages.length - 1;   // v1.99：長い文は1文ずつ（▼で次へ）
-    $('tutMsg').hidden = false; $('tutText').textContent = pages[pg]; $('tutNext').hidden = last; $('tutOk').hidden = !(last && TUT2_MSG.includes(st2)); $('tutX').hidden = false; $('tutSkip').hidden = false;
+    const pages = String(st2 === 'kiln' && tutKilnPhase() === 'mach' ? T.tut2.kiln2 : T.tut2[st2]).split('\n'), pg = (S.tut2.pg || 0) % pages.length, last = pg >= pages.length - 1;   // v2.01：▼ で最後まで行ったら、また最初の文へ（ループ）   // v1.99：長い文は1文ずつ（▼で次へ）
+    $('tutMsg').hidden = false; $('tutText').textContent = pages[pg]; $('tutNext').hidden = pages.length < 2; $('tutOk').hidden = !(last && TUT2_MSG.includes(st2)); $('tutX').hidden = false; $('tutSkip').hidden = false;
     document.querySelectorAll('[data-open="build"], #catBar [data-cat="build"]').forEach(el => el.classList.toggle('tutPulse', st2 === 'kiln'));
     return;
   }
@@ -6583,7 +6583,7 @@ function jumpTo(at) {
 }
 // v1.99：メッセージを押しても消えない。▼＝次の文へ、OK＝この段の終わり、×＝この案内を断る（終わり扱い）
 function tutInTarget(c, r) { const tg = tutTarget(), q = tg && tg.cell; return !!q && c >= q.c && c < q.c + q.w && r >= q.r && r < q.r + q.h; }   // 光っているマスを押したか
-function tutPageNext() { if ($('tutNext').hidden) return false; S.tut2.pg = (S.tut2.pg || 0) + 1; tutShow(); updateUI(); return true; }   // v2.00：▼ が出ている時だけ（最後の文で止まる）
+function tutPageNext() { if ($('tutNext').hidden) return false; S.tut2.pg = (S.tut2.pg || 0) + 1; tutShow(); updateUI(); return true; }   // ▼ が出ている時だけ（v2.01：最後の文の次は最初の文へ）
 $('tutNext').addEventListener('click', e => { e.stopPropagation(); if (!S.tut && S.tut2 && S.tut2.step !== 'wait') { tutPageNext(); return; } if (tutWait()) { tutNext(); updateUI(); } });
 $('tutOk').addEventListener('click', e => { e.stopPropagation(); if (!S.tut && S.tut2 && S.tut2.step !== 'wait') { tut2Next(); updateUI(); } });
 $('tutX').addEventListener('click', e => { e.stopPropagation(); if (!S.tut && S.tut2 && S.tut2.step !== 'wait') { closePanels(); closePop(); if (openCat) { openCat = null; renderSub(); } if (tool !== 'none') tool = 'none'; tut2Next(); updateUI(); } });
