@@ -737,3 +737,8 @@ body.tutSkipOn .panel:not(.bottom) { top: calc(var(--hdr) + var(--edge) + 34px);
 #hdr .hrow:first-child { align-items: baseline; }
 #hdr .hrow:first-child > button, #hdr .hrow:first-child > .grow { align-self: center; }
 #hdr .brand, #hdr #date { line-height: 1; padding-top: 8px; }   /* 線をそろえたまま、ボタンの高さの真ん中あたりへ下げる */
+/* v2.10：ヘッダーのアイコンボタンは同じ大きさ（30×30）。中の絵・字はまん中 */
+#hdr .icon, #hdr.c2 #infoBtn, #hdr.c2 #helpBtn, #hdr.c2 #adminBtn { width: 30px; height: 30px; padding: 0 !important; display: inline-flex; align-items: center; justify-content: center; flex: none; line-height: 1; }
+#hdr.c2 #infoBtn .sm, #hdr.c2 #helpBtn .sm, #hdr.c2 #adminBtn .sm { font-size: 14px; line-height: 1; display: block; }
+#hdr .icon svg { display: block; }
+#hdr .hrow:first-child > button { height: 30px; }   /* 字のボタン（広い画面の「遊び方」など）も同じ高さ */
