@@ -312,7 +312,8 @@
 <script>/* 共通のアクセス計測（開いた数・どこから来たか・案内を終えた数）。本番のアドレスで、管理モードでない時だけ */
 (function () { try { if (location.hostname !== 'horihori.kinomeno.com' || localStorage.getItem('dfAdminMode') === '1' || /[?&]dev/.test(location.search)) return; var e = document.createElement('script'); e.src = 'js/kn-track.js?v=1'; e.setAttribute('data-kn-app', 'horihori'); document.head.appendChild(e); } catch (e) { } })();</script>
 <script src="sprites.js?v=1.91"></script>
-<script src="main.js?v=2.13"></script>
+<script src="main.js?v=2.14"></script>
 <noscript><p>ほりほり工場（Dig Factory Tycoon）は、ドリルで掘って、コンベアで運び、機械で加工して売る、無料のブラウザ採掘・工場経営ゲームです。遊ぶには JavaScript を有効にしてください。<a href="guide/">遊び方ガイド</a> / <a href="en/guide/">English guide</a></p></noscript>
+<script src="js/pv.js?v=1" defer></script>
 </body>
 </html>

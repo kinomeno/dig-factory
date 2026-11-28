@@ -112,6 +112,7 @@ ${body}
 <p>${esc(t.foot)} <a href="https://www.kinomeno.com/">${esc(t.more)}</a><a href="/diary/">${esc(t.diary)}</a><a href="/privacy/">${esc(t.privacy)}</a></p>
 <p>v${VERSION}</p>
 </footer>
+<script src="/js/pv.js?v=1" defer></script>
 </body>
 </html>
 `;
