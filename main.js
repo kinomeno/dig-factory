@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v2.03（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v2.04（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '2.03';
+const VERSION = '2.04';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -1591,11 +1591,19 @@ function spawnItem(k, x, y, cc, cr) {
 }
 function toYard(it) { S.yard.push({ k: it.k, v: it.v, of: it.of, rx: Math.random(), ry: Math.random() }); }
 const PARK_X = OFFICE_C - 0.35;   // フォークリフトの待機場所（事務所の左横）
+function dockCol(c) {   // v2.04：荷おろし場に使える列（自分の土地で、ヤード・事務所・研究所の列でない）のうち、c にいちばん近い列（同じ近さなら左）
+  const ok = x => x >= S.landL && x <= S.landR && x !== YARD_C && x !== OFFICE_C && x !== OFFICE_C + 1 && !(S.lab.built && S.lab.c === x);
+  for (let d = 1; d < COLS; d++) for (const x of [c - d, c + d]) if (ok(x)) return x;
+  return clamp(c, S.landL, S.landR);
+}
+function dockFix() {   // v2.04：前の版で自分の土地の外に積まれた山は、近くの荷おろし場へ移す
+  for (const k of Object.keys(S.dock)) { const c = +k; if (owned(c) && c !== YARD_C) continue; const c2 = dockCol(c); if (c2 === c) continue; (S.dock[c2] || (S.dock[c2] = [])).push(...S.dock[c]); delete S.dock[c]; }
+}
 function toSurface(it) {
   const c = clamp(Math.floor(it.x), 0, COLS - 1);
   if ((c === OFFICE_C || c === OFFICE_C + 1) && S.trip && tripAdd(it.k === 'bag' ? it.of : it.k, it.k === 'bag' ? 5 : 1)) return;   // 事務所の真下：足りない材料は倉庫へ
-  if (c === YARD_C) {   // ヤードには直接上げられない：隣の荷おろし場へ（事務所の列はさける）
-    const c2 = [c - 1, c + 1].find(x => x >= 0 && x < COLS && x !== OFFICE_C && x !== OFFICE_C + 1 && !(S.lab.built && S.lab.c === x)) ?? (c > 0 ? c - 1 : c + 1);
+  if (c === YARD_C || !owned(c)) {   // ヤードには直接上げられない：近くの荷おろし場へ（事務所・研究所の列はさける）。v2.04：自分の土地の外には積まない（作業員が行けず、リフトに乗れなくて詰む）
+    const c2 = dockCol(c);
     (S.dock[c2] || (S.dock[c2] = [])).push({ k: it.k, v: it.v, of: it.of, rx: Math.random(), ry: Math.random() }); return;
   }
   (S.dock[c] || (S.dock[c] = [])).push({ k: it.k, v: it.v, of: it.of, rx: Math.random(), ry: Math.random() });
@@ -1612,6 +1620,7 @@ function pickDock(f) {
   return best;
 }
 function updateForks(dt) {
+  dockFix();   // v2.04：土地の外の山を、近くの荷おろし場へ
   for (const f of S.forks) {
     const move = tx => {
       const d = tx - f.x;
@@ -2462,7 +2471,7 @@ function makeWell(c, r, kind) {
 }
 // 49：岩盤を突破したご褒美：その深さの資源が、地上にどっと出る（岩盤のレベルが高いほど多い）
 function bonusPile(c, kinds) {   // ご褒美を地上に積む（放置の計算中・出せない時）
-  let c2 = c; for (let i = 0; i < COLS && (c2 === YARD_C || c2 === OFFICE_C || c2 === OFFICE_C + 1 || (S.lab.built && c2 === S.lab.c)); i++) c2 = (c2 + 1) % COLS;
+  const c2 = owned(c) && c !== YARD_C && c !== OFFICE_C && c !== OFFICE_C + 1 && !(S.lab.built && c === S.lab.c) ? c : dockCol(c);   // v2.04：自分の土地の中へ
   const pile = S.dock[c2] || (S.dock[c2] = []);
   for (const k of kinds) { pile.push({ k, rx: Math.random(), ry: Math.random() }); if (S.seenIt) S.seenIt[k] = 1; }
   return c2;
