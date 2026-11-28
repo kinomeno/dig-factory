@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.81（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.82（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.81';
+const VERSION = '1.82';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -4437,7 +4437,6 @@ function renderPanel(id) {
     const H = T.helpTopics;
     const topics = [[T.greetT, T.greet, 'greet'], [T.hBasic, H[0][1], 0], [T.hDig, H[1][1] + '\n' + H[2][1], 1], [T.hMake, H[3][1] + '\n' + H[6][1], 3],
       [H[4][0], H[4][1], 4], [T.hLevel, T.levelHelp + '\n' + H[5][1], 5]];
-    if (S.stage >= 2 && T.aditHelp) topics.push([T.aditHelp[0], T.aditHelp[1], 'adit']);   // 横穴掘削口（段階2から）
     if (S.stage >= 5 || S.deepest - SKY > BR(4)) topics.push([H[7][0], H[7][1], 7]);                                  // 石油と温泉（段階5から）
     topics.push([T.hDepth, depthTable(), 'depth']);   // 81：資源の出る深さ（まだ見ていない物は？）
     if (H[8]) topics.push([H[8][0], H[8][1], 'home']);   // v1.69：ホーム画面に追加（v1.66 で文だけ足して、目次に入れ忘れていた）

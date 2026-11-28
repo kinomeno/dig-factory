@@ -692,3 +692,7 @@ body.moneyFold #goalHud, body.moneyFold #monthHud, body.moneyFold #aiHud, body.m
 .saveIO { margin-top: 10px; }
 .saveIOrow { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
 .saveText { width: 100%; box-sizing: border-box; font-size: 11px; margin: 4px 0; }
+
+/* v1.82：遊び方の目次は上に固定（説明を縦にスクロールしても動かない） */
+#helpNav { position: sticky; top: -10px; z-index: 3; align-self: start; background: rgb(252, 252, 250); padding-top: 10px; margin-top: -10px; }
+@media (max-width: 560px) { #helpNav { box-shadow: 0 6px 6px -6px rgba(0,0,0,.12); } }
