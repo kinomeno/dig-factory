@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.72（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.73（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.72';
+const VERSION = '1.73';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -1961,7 +1961,7 @@ function tut2Update(dt) {
   if (t.step === 'wait') {
     while (t.next && tut2Done(t.next)) t.next = TUT2[TUT2.indexOf(t.next) + 1];   // もう自分でやった案内はとばす
     if (!t.next) { S.tut2 = null; tutShow(); return; }
-    const ready = t.next === 'office' ? S.money >= offCost(S.office.lv) : t.next === 'lab' ? S.office.lv >= 1 : true;   // v1.40：お金がたまる・解放されるまで待つ
+    const ready = t.next === 'office' ? S.money >= offCost(S.office.lv) : t.next === 'lab' ? S.office.lv >= 1 : t.next === 'kiln' ? [...S.st.values()].some(x => isBelt(x)) : true;   // v1.73：レンガ焼成機の案内は、コンベアを1つ以上置いてから   // v1.40：お金がたまる・解放されるまで待つ
     if (t.t >= TUT2_WAIT && ready) { t.step = t.next; t.t = 0; tutShow(); }
     return;
   }
