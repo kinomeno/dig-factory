@@ -1,0 +1,23 @@
+# ほりほり工場 / Dig Factory Tycoon
+
+> A free browser game (no install) where you dig down with drills, carry resources up with conveyors, process them in machines and sell them by truck. Vertical mining + factory building + management simulation with idle progress. Works on phones and PCs. Languages: English, Japanese (kanji) and a simple hiragana mode for kids. Made by Kinomeno (キノメノ).
+> ドリルで地面を掘り、コンベアで運び、機械で加工して、トラックで売る。縦に掘り進む、無料のブラウザ採掘・工場経営ゲーム（インストール不要・スマホ／PC）。ひらがな・漢字・英語に対応。作者：キノメノ。
+
+## Play
+- [Play the game](https://horihori.kinomeno.com/): opens in the browser, free
+
+## Guides (English)
+- [Guide](https://horihori.kinomeno.com/en/guide/): what the game is and how to play
+- [Resources & products](https://horihori.kinomeno.com/en/guide/items.html): every resource and product with recipes, prices and uses
+- [Machines](https://horihori.kinomeno.com/en/guide/machines.html): every machine with recipes and costs, plus surface facilities
+- [FAQ](https://horihori.kinomeno.com/en/guide/faq.html): free? mobile? saving? idle progress?
+
+## ガイド（日本語）
+- [ガイド](https://horihori.kinomeno.com/guide/): どんなゲームか・遊び方
+- [資源と製品の一覧](https://horihori.kinomeno.com/guide/items.html): 作り方・売値・使い道
+- [機械の一覧](https://horihori.kinomeno.com/guide/machines.html): レシピ・値段・地上の施設
+- [よくある質問](https://horihori.kinomeno.com/guide/faq.html): 無料？スマホ？セーブは？放置は？
+
+## Optional
+- [Dev diary (Japanese)](https://horihori.kinomeno.com/diary/): development diary written from the AI's point of view
+- [Kinomeno](https://www.kinomeno.com/): the author's site with more games and tools

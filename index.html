@@ -18,6 +18,8 @@
 <!-- OGP -->
 <meta property="og:url" content="https://horihori.kinomeno.com/">
 <link rel="canonical" href="https://horihori.kinomeno.com/">
+<link rel="alternate" type="text/plain" href="https://horihori.kinomeno.com/llms.txt" title="llms.txt">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "VideoGame", "name": "ほりほり工場", "alternateName": "Dig Factory Tycoon", "url": "https://horihori.kinomeno.com/", "image": "https://horihori.kinomeno.com/icons/og.png", "description": "ドリルで地面を掘り、コンベアと機械で資源を運んで加工し、トラックで売る。縦に掘り進む採掘経営ゲーム。無料・ブラウザで遊べます（スマホ・PC）。/ A free browser mining & factory management game.", "inLanguage": ["ja", "en"], "genre": ["経営シミュレーション", "採掘ゲーム", "放置ゲーム", "Management simulation", "Idle game"], "gamePlatform": ["Web browser", "iOS (Safari)", "Android (Chrome)", "PC"], "applicationCategory": "Game", "operatingSystem": "Any (web browser)", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "JPY"}, "author": {"@type": "Person", "name": "キノメノ / Kinomeno", "url": "https://www.kinomeno.com/"}, "sameAs": ["https://horihori.kinomeno.com/guide/", "https://horihori.kinomeno.com/en/guide/"]}</script>
 <meta property="og:image" content="https://horihori.kinomeno.com/icons/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -257,7 +259,7 @@
       <button id="tHelp" data-t="help">遊び方</button>
     </div>
     <div class="tlang"><button data-lang="hira">ひらがな</button><button data-lang="kanji">漢字</button><button data-lang="en">English</button></div>
-    <div class="tlinks"><a href="diary/" target="_blank" rel="noopener" data-t="diaryLink">制作日誌</a><button id="tHome" data-t="homeAdd">ホーム画面に追加</button></div>
+    <div class="tlinks"><a href="guide/" id="tGuide" target="_blank" rel="noopener" data-t="guideLink">ガイド</a><a href="diary/" target="_blank" rel="noopener" data-t="diaryLink">制作日誌</a><button id="tHome" data-t="homeAdd">ホーム画面に追加</button></div>
     <div class="tfoot"><span id="tVer"></span>　© 2026 キノメノ / Kinomeno</div>
   </div>
 </div>
@@ -310,6 +312,7 @@
 <script>/* 共通のアクセス計測（開いた数・どこから来たか・案内を終えた数）。本番のアドレスで、管理モードでない時だけ */
 (function () { try { if (location.hostname !== 'horihori.kinomeno.com' || localStorage.getItem('dfAdminMode') === '1' || /[?&]dev/.test(location.search)) return; var e = document.createElement('script'); e.src = 'js/kn-track.js?v=1'; e.setAttribute('data-kn-app', 'horihori'); document.head.appendChild(e); } catch (e) { } })();</script>
 <script src="sprites.js?v=1.91"></script>
-<script src="main.js?v=2.11"></script>
+<script src="main.js?v=2.13"></script>
+<noscript><p>ほりほり工場（Dig Factory Tycoon）は、ドリルで掘って、コンベアで運び、機械で加工して売る、無料のブラウザ採掘・工場経営ゲームです。遊ぶには JavaScript を有効にしてください。<a href="guide/">遊び方ガイド</a> / <a href="en/guide/">English guide</a></p></noscript>
 </body>
 </html>

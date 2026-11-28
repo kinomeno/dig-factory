@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://horihori.kinomeno.com/sitemap.xml
