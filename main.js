@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.87（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.88（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.87';
+const VERSION = '1.88';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -33,7 +33,7 @@ const BAL = {
   ironP5: 0.17, ironP10: 0.33, goldP10: 0.07, goldP30: 0.18, diaP30: 0.045, diaP50: 0.11, oilP: 0.012, hotP: 0.03,   // v0.72：鉄・金・ダイヤを出やすく（×1.4）
   offCostG: 3, offCapG: 1.18, capMax: 200, brandMul: 1.1, labAlone: 0.25, beltManned: 1.5, elevSpeed: 6, rareP: 0.006, museumFee: 60, truckAdd0: 8000, truckAddG: 2.5,
   resGrow: 1.07, conneP: 0.1, lampMul: 1.15, awayExact: 120, awayStep: 0.05, awayRatio: 0.02, awayMax: 300, itemHp: 2, itemMax: 110, zoneHard: 0.35, restMin: 3, clayP: 0.14, copperP: 0.1, coalP: 0.09, quartzP: 0.05, silverP: 0.06,
-  bossFatPer: 0.13, bossFatRate: 0.0001, beltSlowPow: 3, beltSlowMin: 0.02, truckWait: 15, gift: 1000,
+  bossFatPer: 0.13, bossFatRate: 0.0001, beltSlowPow: 3, beltSlowMin: 0.02, truckWait: 180, gift: 1000,
 };
 const COST = { lamp: 200, drill: 50, fdrill: 120, adrill: 150, conv: 5, sort: 20, tee: 15, cross: 15, tri: 25, branch: 20, vend: 600, hc: 30000, lab: 200, pipe: 8, pipex: 15, dc_flag: 100, dc_sign: 150, dc_plant: 120, dc_bench: 200, dc_photo: 250, dc_ore: 400, dc_cart: 300, dc_elight: 150, dc_ladder: 100, dc_fence: 80, spa: 800, power: 1000, refinery: 1500, museum: 20000, elev: 30, yard: 500 };
 // 地上の施設（研究で増える。作業員がいないととても遅い）と、液体（石油・お湯）
@@ -2372,7 +2372,7 @@ function updateTruck(dt) {
         t.wait = 0;
       } else { t.acc = 0; t.wait = (t.wait || 0) + dt; }
       // 満杯で出発。積みかけでも、積む物が15秒来なければ、積んだ分で出発（売上が止まったままにならない）
-      if ((t.load >= cap || (t.load > 0 && t.wait >= BAL.truckWait)) && (opOf(t) || sk('auto') || S.tut)) { t.phase = 'leaving'; t.t = 0; t.wait = 0; }   // v1.39：運転手がいないと出発しない
+      if (truckReady(t) && (opOf(t) || sk('auto') || S.tut)) { t.phase = 'leaving'; t.t = 0; t.wait = 0; }   // v1.88：基本は満タンで出発   // v1.39：運転手がいないと出発しない
       continue;
     }
     if (t.phase === 'standby') { if (!bayFull()) { t.phase = 'returning'; t.t = 0; } continue; }   // 空きがあれば入る
@@ -2386,6 +2386,11 @@ function updateTruck(dt) {
       t.phase = 'here'; t.t = 0;
     }
   }
+}
+// v1.88：出発できるトラック（満タン。積む物が truckWait 秒来なければ、積んだ分でも）。運転手はこの時だけ乗りに行く
+function truckReady(t) {
+  if (!t || t.phase !== 'here' || !t.load) return false;
+  return t.load >= valOf('truck') || (t.wait || 0) >= (S.tut ? 15 : BAL.truckWait);
 }
 function departNow() { const t = S.fleet.find(x => x.phase === 'here'); if (t && t.load > 0) { t.phase = 'leaving'; t.t = 0; } }
 
@@ -2993,12 +2998,12 @@ function updateWorkers(dt) {
           const adv = [];
           if (S.lab.built && labN < labSeats()) adv.push(S.lab);   // 研究所：研究の数だけ席
           for (const f of S.forks) adv.push(f);
-          for (const t of S.fleet) if (t.phase === 'here' && (t.load || S.yard.length)) adv.push(t);   // v1.78：空で積む物も無いトラックには乗りに行かない
+          for (const t of S.fleet) if (truckReady(t)) adv.push(t);   // v1.88：出発できるトラックにだけ乗りに行く（荷待ちは暇）
           for (const p of adv) { if (p !== S.lab && taken.has(p) || p.type === 'fork' && p.state === 'idle' && !p.load.length && pickDock(p) === null) continue; const d = dist.get(postKey(p)); if (d !== undefined && d < bd) { bd = d; best = p; } }
         }
         if (!best && w.lv < BAL.advLv) {   // v1.05：フォークリフトは運転手がいないと止まるので、Lv1の人も、運ぶ物がある時は乗る
           for (const f of S.forks) { if (taken.has(f) || opOf(f) || !(f.load.length || pickDock(f) !== null)) continue; const d = dist.get(postKey(f)); if (d !== undefined && d - 60 < bd) { bd = d - 60; best = f; } }
-          for (const t of S.fleet) { if (t.phase !== 'here' || taken.has(t) || opOf(t) || !t.load) continue; const d = dist.get(postKey(t)); if (d !== undefined && d - 70 < bd) { bd = d - 70; best = t; } }   // v1.39：トラックも運転手が要る
+          for (const t of S.fleet) { if (!truckReady(t) || taken.has(t) || opOf(t)) continue; const d = dist.get(postKey(t)); if (d !== undefined && d - 70 < bd) { bd = d - 70; best = t; } }   // v1.39：トラックも運転手が要る
         }
         const advBest = best;
         if (!best) for (const [k, st] of S.st) {
@@ -3074,9 +3079,8 @@ function updateWorkers(dt) {
           w.x = BED + 0.5; w.y = YARD_R + 0.5;
           if (v.phase === 'here') {   // v1.74：前は、出荷から戻った空のトラックに乗ったままだった
             const solo = staffN() === 0;
-            v.idleT = !v.load && !S.yard.length ? (v.idleT || 0) + dt : 0;
-            if (v.idleT > (solo ? 1.5 : 8)) { v.idleT = 0; leavePost(w); break; }   // 空で積む物も無い → 降りて、ほかの仕事へ
-            if (solo && v.load > 0 && !S.yard.length && (v.wait || 0) > 1.5) { v.phase = 'leaving'; v.t = 0; v.wait = 0; }   // 社長ひとり：ヤードが空になったら、積んだ分ですぐ出荷（また運びに戻れるように）
+            v.idleT = !truckReady(v) ? (v.idleT || 0) + dt : 0;   // v1.88：満タンを待っている間は暇
+            if (v.idleT > (solo ? 1.5 : 3)) { v.idleT = 0; leavePost(w); break; }   // 降りて、ほかの仕事へ（満タンになったら、また乗りに来る）
           }
         }
         w.stamina = Math.max(0, w.stamina - dt * drainMul());
@@ -3113,7 +3117,7 @@ function progSig(st) {
 function betterPost(w) {
   const { dist } = officeMap();
   for (const f of S.forks) if (f !== w.target && !opOf(f) && (f.load.length || pickDock(f) !== null) && !S.workers.some(o => o.target === f)) return true;   // 23：運ぶ物があるのに運転手のいないフォークリフト
-  for (const t of S.fleet) if (t !== w.target && t.phase === 'here' && !opOf(t) && t.load && !S.workers.some(o => o.target === t)) return true;   // 積んだのに運転手のいないトラック
+  for (const t of S.fleet) if (t !== w.target && truckReady(t) && !opOf(t) && !S.workers.some(o => o.target === t)) return true;   // 積んだのに運転手のいないトラック
   for (const [k, st] of S.st) if (isStation(st) && st !== w.target && !opOf(st) && dist.has(k) && workNeed(st) > 0 && !S.workers.some(o => o.target === st)) return true;
   for (const f of S.fac) if (f !== w.target && workNeed(f) > 0 && S.workers.filter(o => o.target === f).length < BAL.facSlots) return true;
   return false;
@@ -3123,7 +3127,7 @@ function bestFreeNeed(w) {
   const { dist } = officeMap(); let best = -99;
   const dockN = Object.values(S.dock).reduce((a2, p2) => a2 + p2.length, 0);
   for (const f of S.forks) if (f !== w.target && !opOf(f) && (f.load.length || dockN >= 6) && !S.workers.some(o => o.target === f)) best = Math.max(best, 9);   // 地上に6個以上たまった時だけ急ぐ
-  for (const t of S.fleet) if (t !== w.target && t.phase === 'here' && !opOf(t) && t.load && !S.workers.some(o => o.target === t)) best = Math.max(best, 10);
+  for (const t of S.fleet) if (t !== w.target && truckReady(t) && !opOf(t) && !S.workers.some(o => o.target === t)) best = Math.max(best, 10);
   for (const [k, st] of S.st) if (isStation(st) && st !== w.target && !opOf(st) && dist.has(k) && !S.workers.some(o => o.target === st)) best = Math.max(best, workNeed(st));
   for (const f of S.fac) if (f !== w.target && S.workers.filter(o => o.target === f).length < BAL.facSlots) best = Math.max(best, workNeed(f));
   return best;
@@ -6412,7 +6416,7 @@ function advList() {   // 今の提案（大事な順）。sig が変わるま�
   let jam = null;
   for (const st of S.st.values()) { if (!isBelt(st)) continue; const k = stationKey(st); if (k < 0) continue; if ((beltN.get(k) || 0) >= BELT_CAP[st.lv || 0] && (!jam || rOf(k) < rOf(jam))) jam = k; }
   if (jam !== null) add('jam', A.jam, { ...stOf(jam), open: () => { const s2 = S.st.get(jam); if (s2) openPop(s2); } }, jam);
-  const trNo = S.fleet.find(t => t.phase === 'here' && t.load > 0 && !opOf(t) && !sk('auto'));
+  const trNo = S.fleet.find(t => truckReady(t) && !opOf(t) && !sk('auto'));   // v1.88：出発できるのに運転手がいない時だけ
   if (trNo && S.yard.length > 10) add('truckDrv', A.truckDrv, { c: YARD_C, r: YARD_R, open: () => openPop('truck') });
   const dockN = Object.values(S.dock).reduce((a2, q) => a2 + q.length, 0);
   const fNo = S.forks.filter(f => !opOf(f)).length;
@@ -7758,7 +7762,7 @@ const BAL_WORD = { v: '売値', cost: '値段', time: '加工の時間（秒）'
   priceUpMul: '売値アップ1回の倍率', priceCostG: '売値アップの値段の伸び（倍）', ironP5: '鉄の出やすさ（5〜10m）', ironP10: '鉄の出やすさ（10m〜）',
   goldP10: '金の出やすさ（10〜30m）', goldP30: '金の出やすさ（30m〜）', diaP30: 'ダイヤの出やすさ（30〜50m）', diaP50: 'ダイヤの出やすさ（50m〜）',
   oilP: '石油が湧く確率（50m〜）', hotP: '温泉が湧く確率（30m〜）', bossFatPer: '社長の太り方（会社レベルごと）', bossFatRate: '社長の太る速さ（1秒あたり）',
-  beltSlowPow: 'あふれた時の遅くなり方（乗数）', beltSlowMin: 'あふれた時のいちばん遅い速さ（倍）', truckWait: 'トラックが待ってから出る秒', gift: '最初の資金ショートのプレゼント',
+  beltSlowPow: 'あふれた時の遅くなり方（乗数）', beltSlowMin: 'あふれた時のいちばん遅い速さ（倍）', truckWait: 'トラックが満タンを待つ最長の秒（これを過ぎたら積んだ分で出る）', gift: '最初の資金ショートのプレゼント',
   oil: '石油', hot: 'お湯', 0: '値段', 1: 'か月' };
 function balLabel(path) {
   const T = tx(), ks = path.split('.'), g = ks[0], rest = ks.slice(1);
