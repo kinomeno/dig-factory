@@ -4450,6 +4450,10 @@ function renderPanel(id) {
     for (let i = 0; i < topics.length; i++) { if (topics[i][2] === 'items') continue; fill(i); tall = Math.max(tall, body.offsetHeight); }   // 一覧は長いので、高さの計算に入れない（縦にスクロール）
     body.style.minHeight = tall + 'px';
     show(Math.min(helpIdx, topics.length - 1), false);
+    // v1.81：目次の幅が変わって折り返しがずれても、黒い印を選んでいる項目に置き直す（前は作った時の位置に残り、となりの項目の上にずれた）
+    const reMark = () => { const b = nav.querySelector('button.active'); if (b) moveMark(b, false); };
+    requestAnimationFrame(reMark);
+    if (window.ResizeObserver) { if (nav._ro) nav._ro.disconnect(); nav._ro = new ResizeObserver(reMark); nav._ro.observe(nav); }
   } else if (id === 'settings') {
     document.querySelectorAll('[data-lang]').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
     const box = $('setExtra'); box.innerHTML = '';
