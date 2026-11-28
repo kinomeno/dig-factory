@@ -7,9 +7,9 @@
 <meta name="theme-color" content="#22252c">
 <meta name="description" content="ドリルで地面を掘り、コンベアと機械で資源を運んで加工し、トラックで売る。作業員を雇って広げていく、縦に掘り進む採掘経営ゲーム。">
 <meta name="author" content="キノメノ / Kinomeno">
-<link rel="icon" type="image/svg+xml" href="favicon.svg">
-<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=199">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png?v=199">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=199">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#7fb8e6">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -31,7 +31,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;600&display=swap">
-<link rel="stylesheet" href="style.css?v=1.98">
+<link rel="stylesheet" href="style.css?v=1.99">
 <!-- 広告（準備だけ。まだ動かしていない）：Google の H5 ゲーム広告を使う時に、下のコメントを外し、ca-pub-XXXX を自分の番号にする。main.js の AD_ON も true に
 <script async data-ad-client="ca-pub-8328461906614341" data-adbreak-test="on" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js" crossorigin="anonymous"></script>
 <script>window.adsbygoogle = window.adsbygoogle || []; var adBreak = adConfig = function (o) { adsbygoogle.push(o); }; adConfig({ preloadAdBreaks: 'on', sound: 'on' });</script>
@@ -133,7 +133,7 @@
 <div id="moneyHud"><i class="mfold">▽</i><span data-t="money">資金</span><b id="money">0</b><small id="goalHud"></small><small id="monthHud"></small><small id="boostHud"></small><small id="aiTime"></small><small id="aiHud"></small></div>
 
 <p id="msg" class="msg"></p>
-<div id="tutMsg" hidden><span id="tutText"></span><span id="tutNext" hidden>▼</span></div>
+<div id="tutMsg" hidden><span id="tutText"></span><button id="tutNext" type="button" hidden aria-label="next">▼</button><button id="tutOk" type="button" hidden>OK</button><button id="tutX" type="button" hidden aria-label="close">✕</button></div>
 <span id="tutDots" hidden></span><button id="tutSkip" data-t="tutSkipB" hidden>スキップ</button>
 <svg id="tutArrow" hidden></svg>
 <!-- 選択中の道具（左下） -->
@@ -310,6 +310,6 @@
 <script>/* 共通のアクセス計測（開いた数・どこから来たか・案内を終えた数）。本番のアドレスで、管理モードでない時だけ */
 (function () { try { if (location.hostname !== 'horihori.kinomeno.com' || localStorage.getItem('dfAdminMode') === '1' || /[?&]dev/.test(location.search)) return; var e = document.createElement('script'); e.src = 'js/kn-track.js?v=1'; e.setAttribute('data-kn-app', 'horihori'); document.head.appendChild(e); } catch (e) { } })();</script>
 <script src="sprites.js?v=1.91"></script>
-<script src="main.js?v=1.98"></script>
+<script src="main.js?v=1.99"></script>
 </body>
 </html>

@@ -720,3 +720,12 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 #money .reel i { display: block; font-style: normal; line-height: 1em; text-align: center; transition: transform .09s linear; }
 /* v1.98：飾りの「重ねて置けます」 */
 #subMenu .grpNote { flex-basis: 100%; font-size: 10px; color: #77767c; }
+/* v1.99：案内のメッセージ：右上に少しはみ出した ×（丸で囲う）・▼（文を送る）・OK */
+#tutMsg { position: fixed; }
+#tutX { position: absolute; top: -11px; right: -11px; width: 26px; height: 26px; padding: 0; border-radius: 50%; border: 1.5px solid #6b6a70; background: #fff; color: #4a4a50; font: inherit; font-size: 12px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+#tutX[hidden], #tutOk[hidden] { display: none !important; }
+#tutNext { border: 0; background: none; padding: 4px 6px; cursor: pointer; font: inherit; font-size: 12px; color: #d0661f; }
+#tutOk { flex: none; font: inherit; font-size: 13px; padding: 4px 14px; border: 1px solid #d0661f; border-radius: 4px; background: #d0661f; color: #fff; cursor: pointer; }
+/* v1.99：案内の間は、スキップを窓より上に。右上の窓はスキップの下から */
+#tutSkip, #tutDots { z-index: 49 !important; }
+body.tutSkipOn .panel:not(.bottom) { top: calc(var(--hdr) + var(--edge) + 34px); max-height: calc(100% - var(--hdr) - 110px); }

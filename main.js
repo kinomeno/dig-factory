@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.98（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.99（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.98';
+const VERSION = '1.99';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -1841,6 +1841,7 @@ function tutSet(step) { S.tut.step = step; S.tut.t = 0; tutShow(); try { ura.tu(
 // 画面：吹き出し（社長）・メッセージ（秘書ではない）・メニューの隠しと光らせ
 function tutDotsShow() {   // v1.94：スキップの横に、残りの案内の数だけ灰色の小さな●（1つ終わるごとに1つ消える）
   const el = $('tutDots'), sk2 = $('tutSkip'); if (!el) return;
+  document.body.classList.toggle('tutSkipOn', !sk2.hidden);   // v1.99：スキップが出ている間は、右上の窓を下げる
   if (!S || inTitle || S.tutDone || sk2.hidden) { el.hidden = true; return; }
   const E = (S.tut2 && S.tut2.end) || {}, n = (S.tut ? 1 : 0) + TUT2.filter(k => E[k] === undefined).length;
   const tx2 = '●'.repeat(Math.max(0, n)); if (el.textContent !== tx2) el.textContent = tx2;
@@ -1887,7 +1888,8 @@ function tutShow() {
   const T = tx(), st = S.tut ? S.tut.step : null, st2 = S.tut2 && S.tut2.step !== 'wait' ? S.tut2.step : null;
   if (!st && st2) {   // はじめの手順のあとの案内（メニューは隠さない。▼で閉じる）
     document.body.classList.remove('tut');
-    $('tutMsg').hidden = false; $('tutText').textContent = st2 === 'kiln' && tutKilnPhase() === 'mach' ? T.tut2.kiln2 : T.tut2[st2]; $('tutNext').hidden = ['kiln', 'lab', 'resAuto'].includes(st2) && tutGuided(); $('tutSkip').hidden = false;
+    const pages = String(st2 === 'kiln' && tutKilnPhase() === 'mach' ? T.tut2.kiln2 : T.tut2[st2]).split('\n'), pg = Math.min(S.tut2.pg || 0, pages.length - 1), last = pg >= pages.length - 1;   // v1.99：長い文は1文ずつ（▼で次へ）
+    $('tutMsg').hidden = false; $('tutText').textContent = pages[pg]; $('tutNext').hidden = last; $('tutOk').hidden = !(last && TUT2_MSG.includes(st2)); $('tutX').hidden = false; $('tutSkip').hidden = false;
     document.querySelectorAll('[data-open="build"], #catBar [data-cat="build"]').forEach(el => el.classList.toggle('tutPulse', st2 === 'kiln'));
     return;
   }
@@ -1895,7 +1897,7 @@ function tutShow() {
   document.querySelectorAll('[data-open="build"], #catBar [data-cat="build"]').forEach(el => el.classList.toggle('tutPulse', st === 'buy'));
   tutBubble = st === 'hello' ? T.tutHello : st === 'tired' ? T.tutTired : st === 'ganbaru' ? T.tutGanbaru : null; tutBubbleT = 0;
   const msg = st === 'pick' ? T.tutPick : st === 'yes' ? T.tutYes : st === 'buy' ? T.tutBuy : st === 'easy' ? T.tutEasy : '';
-  $('tutMsg').hidden = !msg; $('tutText').textContent = msg;
+  $('tutMsg').hidden = !msg; $('tutText').textContent = msg; $('tutX').hidden = true; $('tutOk').hidden = true;   // はじめの手順：× と OK は出さない（スキップはある）
   $('tutNext').hidden = st !== 'easy' && st !== 'yes';   // タップ待ちのメッセージは、端に小さな▼
   $('tutSkip').hidden = !!S.tutDone || inTitle;   // v1.90：案内が終わるまで、ずっと出す
   if (!st) $('tutArrow').setAttribute('hidden', '');
@@ -2009,7 +2011,8 @@ function tutEnd() {
 }
 // はじめの手順のあとの案内：待つ（wait）→ 案内を出す → できたら（または▼を押したら）少し待って次へ
 const TUT2 = ['kiln', 'kilnDone', 'hire', 'lvup', 'office', 'lab', 'resAuto', 'final'];   // v1.90：順番待ち。kilnDone・final はメッセージだけ   // v1.46：掘る向きの段は外す・レベルアップはフォークリフト   // v1.30：研究所の段
-const TUT2_WAIT = 25;   // 次の案内までの秒数（ゲームの時間）
+const TUT2_WAIT = 25;
+const TUT2_MSG = ['kilnDone', 'final', 'bedrock'];   // v1.99：メッセージだけの段（最後のページに OK）   // 次の案内までの秒数（ゲームの時間）
 function tut2Done(st) {
   if (st === 'kiln') return [...S.st.values()].some(x => x.type === 'machine' && x.m === 'kiln');
   if (st === 'resAuto') return sk('drillAuto') > 0;
@@ -2041,7 +2044,7 @@ function tut2Update(dt) {
   if (!t.end) { t.end = {}; const i0 = t.next ? TUT2.indexOf(t.next) : TUT2.length; TUT2.forEach((k, i) => { if (i < i0 && k !== t.step) t.end[k] = 0; }); }   // 前のセーブ（順番待ちの形）から
   if (t.step === 'wait') {
     for (const k of TUT2) if (t.end[k] === undefined && tut2Done(k)) t.end[k] = t.clk;   // もう自分でやった案内は終わり
-    if (S.tutRockPend) { S.tutRockPend = 0; t.step = 'bedrock'; t.t = 0; tutShow(); return; }   // 岩盤の説明も、割り込まずに順番待ち
+    if (S.tutRockPend) { S.tutRockPend = 0; t.step = 'bedrock'; t.t = 0; t.pg = 0; tutShow(); return; }   // 岩盤の説明も、割り込まずに順番待ち
     if (TUT2.every(k => t.end[k] !== undefined)) { tutFinish(); return; }
     for (const k of TUT2) {
       if (t.end[k] !== undefined || !tut2Ready(k, t)) continue;
@@ -2049,7 +2052,7 @@ function tut2Update(dt) {
       if (t.t < gap) break;
       if (k === 'kiln') { S.tutKilnGo = true; tutKilnPlan(); }
       if (k === 'lvup' && dockTotal() < 5) tutPileUp(5 - dockTotal());   // 地上の荷が5個より少なければ、山に足す
-      t.step = k; t.t = 0; t.saw = 0; tutShow(); break;
+      t.step = k; t.t = 0; t.saw = 0; t.pg = 0; tutShow(); break;
     }
     return;
   }
@@ -2057,7 +2060,7 @@ function tut2Update(dt) {
   // 離脱：案内した窓を開いて、しないで閉じた
   const winOpen = t.step === 'hire' || t.step === 'office' ? !$('office').hidden : t.step === 'lvup' ? !!(popTarget && popTarget.type === 'fork') : null;
   if (winOpen !== null) { if (winOpen) t.saw = 1; else if (t.saw) { tut2Next(); return; } }
-  if (t.step === 'kiln') { const ph = tutKilnPhase(); if (ph !== t.ph) { t.ph = ph; tutShow(); } }   // 仕分け → 焼成機 で、文を替える
+  if (t.step === 'kiln') { const ph = tutKilnPhase(); if (ph !== t.ph) { t.ph = ph; t.pg = 0; tutShow(); } }   // 仕分け → 焼成機 で、文を替える
 }
 // v1.90：案内の終わり（スキップも）。目標の行・案内の制限も終わり
 function tutFinish() { S.tut2 = null; S.tutDone = true; S.goalOff = true; tutShow(); document.querySelectorAll('.tutPulse2, .tutPulse, .tutShake').forEach(el => el.classList.remove('tutPulse2', 'tutPulse', 'tutShake')); }
@@ -2226,7 +2229,7 @@ function sim(sec) {
 function payBonus(m) {
   const mo = m % 12 + 1; if (mo !== 6 && mo !== 12) return;
   const staff = S.workers.filter(w => !w.boss); if (!staff.length) return;
-  const T = tx(), opt = (S.opts || {}).bonus === undefined ? 1 : S.opts.bonus;
+  const T = tx(), opt = (S.opts || {}).bonus === undefined ? 0 : S.opts.bonus;   // v1.99：はじめは「なし」
   if (opt === 0) { S.bonusFx = { lv: 0, until: m + 6 }; return; }   // v1.79：出さないと決めている時は、ふつう（何も変わらない）
   const total = Math.round(staff.reduce((a, w) => a + wageOf(w), 0) * (sk('black') ? 0.8 : 1) * TUNE.wage * opt);
   if (total <= 0) return;
@@ -4435,7 +4438,7 @@ function renderPanel(id) {
       }
     }
     {   // v1.78：ボーナス（6月・12月）
-      const opt = (S.opts || {}).bonus === undefined ? 1 : S.opts.bonus, grp = document.createElement('span'); grp.className = 'bonusOpt';
+      const opt = (S.opts || {}).bonus === undefined ? 0 : S.opts.bonus, grp = document.createElement('span'); grp.className = 'bonusOpt';
       [[0, T.bonusOpt0], [1, T.bonusOpt1], [2, T.bonusOpt2]].forEach(([v, lb]) => { const b = document.createElement('button'); b.textContent = lb; b.classList.toggle('active', opt === v); b.addEventListener('click', () => { S.opts.bonus = v; renderPanel('office'); }); grp.append(b); });
       const est = Math.round(S.workers.filter(w => !w.boss).reduce((a, w) => a + wageOf(w), 0) * (sk('black') ? 0.8 : 1) * TUNE.wage * opt);
       box.append(rowEl(T.bonusName, `${T.bonusEst(fmt(est))}\n${T.bonusNow[bonusLv() + 1]}`, grp));
@@ -6574,7 +6577,10 @@ function jumpTo(at) {
   cam.x = at.c + 0.5 - cw / cp / 2; cam.y = at.r + 0.5 - ch / cp / 2; metrics();
   if (at.open) at.open();
 }
-$('tutMsg').addEventListener('pointerup', () => { if (!S.tut && S.tut2 && S.tut2.step !== 'wait') { tut2Next(); updateUI(); return; } if (tutWait()) { tutNext(); updateUI(); } });
+// v1.99：メッセージを押しても消えない。▼＝次の文へ、OK＝この段の終わり、×＝この案内を断る（終わり扱い）
+$('tutNext').addEventListener('click', e => { e.stopPropagation(); if (!S.tut && S.tut2 && S.tut2.step !== 'wait') { S.tut2.pg = (S.tut2.pg || 0) + 1; tutShow(); updateUI(); return; } if (tutWait()) { tutNext(); updateUI(); } });
+$('tutOk').addEventListener('click', e => { e.stopPropagation(); if (!S.tut && S.tut2 && S.tut2.step !== 'wait') { tut2Next(); updateUI(); } });
+$('tutX').addEventListener('click', e => { e.stopPropagation(); if (!S.tut && S.tut2 && S.tut2.step !== 'wait') { closePanels(); closePop(); if (openCat) { openCat = null; renderSub(); } if (tool !== 'none') tool = 'none'; tut2Next(); updateUI(); } });
 $('tutSkip').addEventListener('click', () => {   // はじめの手順をとばす（ドリルを1台もらって、ふつうに始める）。そのあとの案内も出さない
   if (!S.tut) { tutFinish(); document.querySelectorAll('.tutPulse2, .tutPulse').forEach(el => el.classList.remove('tutPulse2', 'tutPulse')); updateUI(); return; }
   tutSkipped = true; S.goalOff = true; ura.add('tu', 'skip');   // v1.70：スキップしたら目標の行も消す
