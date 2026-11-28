@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v2.14（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v2.15（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '2.14';
+const VERSION = '2.15';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -992,7 +992,7 @@ for (const l of Object.keys(TXT_ADD)) {
 const HELP_V2 = {
   kanji: {
     topics: [
-      ['操作', '画面は、指（マウス）でなぞると動きます。2本指・Ctrl＋ホイール・虫眼鏡のボタンで拡大縮小、地図のボタンで全体を見られます。\n下のタブ（設置・研究・強化・情報・取引）を押すと引き出しが開きます。選んだ道具は、もう一度押すと解除できます。置いた物をタップすると、向き・レベルアップ・撤去ができます。右上のボタンで、ヘッダーと下のメニューを隠せます。'],
+      ['操作', '画面は、指（マウス）でなぞると動きます。2本指・Ctrl＋ホイール・虫眼鏡のボタンで拡大縮小、地図のボタンで全体を見られます。\n下のタブ（設置・研究・強化・情報）を押すと引き出しが開きます。選んだ道具は、もう一度押すと解除できます。置いた物をタップすると、向き・レベルアップ・撤去ができます。右上のボタンで、ヘッダーと下のメニューを隠せます。'],
       ['掘る', 'ドリルは地下に置きます（坑道の隣の土なら、上書きして置けます）。掘った資源は、ドリルの後ろの出口から出ます。地面は1マス3mです。\n普通の層が5つ続くと、硬い岩盤があります（岩盤0は15m、そのあとは18mごと）。岩盤はドリルを強化すると破れます。強化の上限は会社レベルで上がります。岩盤を20秒で破れるドリルでも、次の岩盤には約24時間かかるほど硬くなります。破るまでの間も資源は出続け、破るとご褒美が地上に出ます。\n資源は岩盤1より下から増えていきます（「資源の出る深さ」）。1マスから出る資源の数は決まっているので、深く掘るほど新しい資源に出会えます。'],
       ['運ぶ', 'コンベアで資源を運びます。仕分けコンベアは選んだ資源を横へ（改良すると「以外」も選べます）、T字路は左右へ、三叉路・ト字路は順番に均等に分けます。交差は2つの流れを交差させます。\n地上に出た資源はその場に積もり、フォークリフト（運転手が必要）がヤードへ運びます。トラックはヤードに並んで積み、出発して帰ってくると売上になります。'],
       ['加工', '機械は、前以外の方向から材料を入れると、前に製品を出します。作り方がいくつもある機械は、材料のそろった物から並行して作ります。材料は種類ごとに500個まで中で待ち、いっぱいの材料は通り抜けます。メニューの「材料を排出」で中の材料を出せます。\n加工の段が増えるほど高く売れます（最後の段は組立機）。'],
@@ -1020,7 +1020,7 @@ const HELP_V2 = {
   },
   en: {
     topics: [
-      ['Controls', 'Drag with the hand tool (or swipe) to move. Pinch, Ctrl+wheel or +/− to zoom; Map shows everything.\nThe bottom tabs (Build, Research, Upgrade, Info, Deals) open drawers. Tap a selected tool again to put it down. Tap a placed thing to turn, upgrade or remove it. The top-right button hides the header and menu.'],
+      ['Controls', 'Drag with the hand tool (or swipe) to move. Pinch, Ctrl+wheel or +/− to zoom; Map shows everything.\nThe bottom tabs (Build, Research, Upgrade, Info) open drawers. Tap a selected tool again to put it down. Tap a placed thing to turn, upgrade or remove it. The top-right button hides the header and menu.'],
       ['Digging', 'Place drills underground (they can replace soil next to a tunnel). Mined items come out of the opening at the back. One cell is 3m.\nEvery five normal layers there is hard bedrock (bedrock 0 at 15m, then every 18m). Upgrade the drill to break it; the upgrade limit rises with company level. Even a drill that breaks one bedrock in 20s needs about a day for the next. Resources keep coming meanwhile, and breaking through gives a bonus.\nNew resources appear below bedrock 1 (see "Where resources appear"). Each cell holds a fixed number of items, so dig deeper to find more.'],
       ['Moving', 'Conveyors carry items. Sorters send picked items sideways (or everything else, after research); T-junctions split left/right; 3-way and side splitters share evenly in turn; crossings let flows cross.\nItems reaching the surface pile up; forklifts (they need a driver) bring them to the yard. Trucks load side by side, leave, and you get paid when they return.'],
       ['Processing', 'Machines take materials from any side but the front and output products to the front. Machines with several recipes work on them in parallel. Up to 500 of each material wait inside; extra ones pass through. "Eject materials" empties a machine.\nThe more steps of processing, the higher the price (the Assembler is the last step).'],
@@ -6880,6 +6880,7 @@ function moneyReel(m, vf) {   // 桁ごとに 0〜9 と 0 を縦に並べた帯�
   }
 }
 function updateUI() {
+  document.body.classList.toggle('noTrade', !adminMode());   // v2.15：取引メニューは管理モードの時だけ（報酬つき広告が使えるまで）
   if (S && !S.tut) tut2Poll();
   advTick(); xAvoidMsg(); tutGoalShow();
   const T = tx(), m = $('money');

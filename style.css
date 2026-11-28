@@ -746,3 +746,5 @@ body.tutSkipOn .panel:not(.bottom) { top: calc(var(--hdr) + var(--edge) + 34px);
 #hdr #infoBtn, #hdr #panBtn, #hdr #topBtn, #timeGroup .zl, #panBtn + .sep { display: none !important; }
 #timeGroup .icon { width: 30px; height: 30px; padding: 0 !important; display: inline-flex; align-items: center; justify-content: center; flex: none; }
 #timeGroup .icon svg { display: block; }
+/* v2.15：取引メニューは管理モードの時だけ */
+body.noTrade [data-open="tradePanel"], body.noTrade #tradeBtn, body.noTrade #tradePanel { display: none !important; }
