@@ -66,18 +66,32 @@ for y in range(0, 4):
 pad.resize((512, 512), Image.NEAREST).save(os.path.join(out, 'icon-maskable-512.png'))
 
 # SNS用（1200×630）：横長の場面（20倍）。空に題名、土に説明
+# v1.85：題名はエレガントな明朝（游明朝・字間を詰める）。影はやわらかくぼかす（ゲームのタイトルと合わせる）
+from PIL import ImageFilter
 W, H = 1200, 630
-og = scene(32, 60, 2).resize((1200, 640), Image.NEAREST).crop((0, 0, W, H))
-d = ImageDraw.Draw(og)
+og = scene(32, 60, 2).resize((1200, 640), Image.NEAREST).crop((0, 0, W, H)).convert('RGBA')
 font_dir = 'C:/Windows/Fonts'
 def font(name, size):
     try: return ImageFont.truetype(os.path.join(font_dir, name), size)
     except Exception: return ImageFont.load_default()
-f1, f2, f3 = font('meiryob.ttc', 96), font('meiryob.ttc', 38), font('meiryob.ttc', 34)
+f1, f2, f3 = font('yumindb.ttf', 104), font('yumin.ttf', 30), font('yumindb.ttf', 36)
+def text_w(t, f, track): return sum(f.getlength(ch) for ch in t) + track * (len(t) - 1)
+def draw_tracked(dr, xy, t, f, fill, track):   # 1字ずつ置いて字間を変える（マイナスで詰める）
+    x, y = xy
+    for ch in t:
+        dr.text((x, y), ch, font=f, fill=fill); x += f.getlength(ch) + track
+def soft(t_items):   # やわらかい影（ぼかした層）→ 白い字
+    sh = Image.new('RGBA', og.size, (0, 0, 0, 0)); ds = ImageDraw.Draw(sh)
+    for (xy, t, f, track, col, scol) in t_items: draw_tracked(ds, (xy[0], xy[1] + 3), t, f, scol, track)
+    og.alpha_composite(sh.filter(ImageFilter.GaussianBlur(5)))
+    d = ImageDraw.Draw(og)
+    for (xy, t, f, track, col, scol) in t_items: draw_tracked(d, xy, t, f, col, track)
 x0 = 470
-d.text((x0 + 4, 34 + 4), 'ほりほり工場', font=f1, fill=(60, 90, 130)); d.text((x0, 34), 'ほりほり工場', font=f1, fill=(255, 255, 255))
-d.text((x0 + 4, 168), 'DIG FACTORY TYCOON', font=f2, fill=(40, 60, 90))
-for t, y in [('掘って、運んで、加工して、売る。', 330), ('縦に掘り進む採掘経営ゲーム', 390), ('horihori.kinomeno.com', 540)]:
-    d.text((x0 + 3, y + 3), t, font=f3, fill=(80, 50, 20)); d.text((x0, y), t, font=f3, fill=(255, 248, 230))
+soft([((x0, 40), 'ほりほり工場', f1, -6, (255, 255, 255, 255), (20, 40, 70, 150)),
+      ((x0 + 6, 176), 'DIG FACTORY TYCOON', f2, 12, (255, 255, 255, 235), (20, 40, 70, 110))])
+soft([((x0, 330), '掘って、運んで、加工して、売る。', f3, -1, (255, 248, 230, 255), (60, 35, 10, 170)),
+      ((x0, 392), '縦に掘り進む採掘経営ゲーム', f3, -1, (255, 248, 230, 255), (60, 35, 10, 170)),
+      ((x0, 540), 'horihori.kinomeno.com', font('yumin.ttf', 32), 1, (255, 248, 230, 255), (60, 35, 10, 170))])
+og = og.convert('RGB')
 og.save(os.path.join(out, 'og.png'))
 print('ok')

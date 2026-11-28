@@ -59,7 +59,7 @@ body {
 #hdr.c1 .hrow { gap: 6px; }
 #hdr.c2 .lg { display: none; } #hdr.c2 .sm { display: inline; }
 #hdr.c3 { padding: 2px 6px; }
-#hdr.c3 .title { font-size: 13px; letter-spacing: .04em; }
+#hdr.c3 .title { font-size: 13px; }   /* v1.85：字間は詰めたまま（下の明朝の規則） */
 #hdr.c3 .stat { font-size: 11px; } #hdr.c3 .stat b { font-size: 13px; }
 #hdr.c3 .hrow { gap: 5px; } #hdr.c3 #timeGroup { gap: 3px; }
 #hdr.c3 button { padding: 5px 6px; font-size: 12px; } #hdr.c3 button.sq { width: 26px; }
@@ -645,7 +645,7 @@ body.hideUI #hdr, body.hideUI #dash, body.hideUI #catBar, body.hideUI #menuBtn, 
 #moneyHud .mfold { font-style: normal; font-size: 9px; color: #8a8a90; margin-right: -2px; transition: transform .15s; }
 body:not(.moneyFold) #moneyHud .mfold { transform: rotate(180deg); }
 body.moneyFold #goalHud, body.moneyFold #monthHud, body.moneyFold #aiHud, body.moneyFold #aiTime { display: none !important; }
-#hdr .title { font-family: 'Shippori Mincho B1', serif; font-weight: 600; letter-spacing: .02em; }   /* v1.84：タイトルに合わせる */
+#hdr .title, #hdr.c3 .title { font-family: 'Shippori Mincho B1', serif; font-weight: 600; letter-spacing: -.03em; color: #5d6470; }   /* v1.84：タイトルに合わせる・v1.85：字間を詰めて、色を少し薄く */
 #tutGoal { top: calc(var(--hdr) + 36px) !important; }   /* 資金の行の下（重ならない） */
 .modal.space { transition: opacity 3s ease !important; }   /* 26：最後の絵はもっとゆっくり出てくる */
 /* v1.53 断面図の吹き出し（▽は話す人の頭へ） */
