@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v2.01（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v2.02（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '2.01';
+const VERSION = '2.02';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -6795,14 +6795,14 @@ function renderCol() {
 // v1.98：資金の数字は、1ずつ数えて（だーっと）、桁がドラムのように上下に回る（点滅はしない）
 let monD = null, monRaf = 0, monS = null, monLast = 0, monTo = 0, monSp = 60;
 function moneyShow(m) {
-  const v = S.money;
+  const v = Math.round(S.money);   // v2.02：お金に端数があっても、数字は整数の位置で止める（一の桁が半分ずれたまま、にならない）
   if (monD === null || monS !== S || inTitle || document.hidden) { monS = S; monD = monTo = v; }
   else if (v !== monTo) { monTo = v; monSp = Math.max(Math.abs(v - monD) / 0.6, 60); if (!monRaf) { monLast = performance.now(); monRaf = requestAnimationFrame(monStep); } }   // v2.00：同じ速さで数える（0.6秒で着く。最低でも1秒に60）
   moneyReel(m, monD);
 }
 function monStep(now) {
   const dt = Math.min(0.1, (now - monLast) / 1000); monLast = now;
-  if (S.money !== monTo) { monTo = S.money; monSp = Math.max(Math.abs(monTo - monD) / 0.6, 60); }
+  if (Math.round(S.money) !== monTo) { monTo = Math.round(S.money); monSp = Math.max(Math.abs(monTo - monD) / 0.6, 60); }
   const rem = monTo - monD, sp = monSp * dt;
   monD = Math.abs(rem) <= sp ? monTo : monD + Math.sign(rem) * sp;
   moneyReel($('money'), monD);
