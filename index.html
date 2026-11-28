@@ -50,8 +50,8 @@
     <button id="colBtn" class="icon" aria-label="collection"><svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1" opacity=".35"/></svg></button>
     <button id="helpBtn"><span class="lg" data-t="help">遊び方</span><span class="sm">?</span></button>
     <button id="adminBtn" class="test"><span class="lg" data-t="admin">管理</span><span class="sm">管</span></button>
+    <button id="setBtn" class="icon" aria-label="settings"><svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" fill-rule="evenodd" aria-hidden="true"><path d="M13.05 6.76 L14.90 6.82 L14.90 9.18 L13.05 9.24 L12.45 10.70 L13.72 12.04 L12.04 13.72 L10.70 12.45 L9.24 13.05 L9.18 14.90 L6.82 14.90 L6.76 13.05 L5.30 12.45 L3.96 13.72 L2.28 12.04 L3.55 10.70 L2.95 9.24 L1.10 9.18 L1.10 6.82 L2.95 6.76 L3.55 5.30 L2.28 3.96 L3.96 2.28 L5.30 3.55 L6.76 2.95 L6.82 1.10 L9.18 1.10 L9.24 2.95 L10.70 3.55 L12.04 2.28 L13.72 3.96 L12.45 5.30 Z M10.3 8 A2.3 2.3 0 1 0 5.7 8 A2.3 2.3 0 1 0 10.3 8 Z"/></svg></button>
     <button id="hideBtn" class="icon" aria-label="hide"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 2H14v4.5M14 2L9 7M6.5 14H2V9.5M2 14l5-5"/></svg></button>
-    <button id="setBtn" class="icon" aria-label="settings">⚙&#xFE0E;</button>
   </div>
   <!-- 2段目：時間・空間の操作（手のひら・停止・速さ・拡大縮小・地上・地図） -->
   <div class="hrow" id="timeGroup">
@@ -310,6 +310,6 @@
 <script>/* 共通のアクセス計測（開いた数・どこから来たか・案内を終えた数）。本番のアドレスで、管理モードでない時だけ */
 (function () { try { if (location.hostname !== 'horihori.kinomeno.com' || localStorage.getItem('dfAdminMode') === '1' || /[?&]dev/.test(location.search)) return; var e = document.createElement('script'); e.src = 'js/kn-track.js?v=1'; e.setAttribute('data-kn-app', 'horihori'); document.head.appendChild(e); } catch (e) { } })();</script>
 <script src="sprites.js?v=1.91"></script>
-<script src="main.js?v=2.07"></script>
+<script src="main.js?v=2.08"></script>
 </body>
 </html>
