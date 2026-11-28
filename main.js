@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.76（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.77（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.76';
+const VERSION = '1.77';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -1206,7 +1206,7 @@ const digCost = b => Math.round((10 + Math.sqrt(b.h * b.yieldN) * 6) * TUNE.digC
 
 // ---- 作業員 ----
 // 作業員：見た目の個性は出さず「Lv」で管理。内部で少しだけばらつき（体力 vs・腕 vt）
-const maxStamina = w => Math.round((60 + 10 * w.lv) * (w.vs || 1));   // 働ける秒数
+const maxStamina = w => Math.round((60 + 10 * w.lv) * (w.vs || 1) * (w.boss ? 10 : 1));   // 働ける秒数（v1.77：社長は一般の作業員の10倍）
 const techFactor = w => (1 + 0.15 * w.lv) * (w.vt || 1);              // 作業の速さ
 function addWorker(lv) {
   const w = {
@@ -1218,7 +1218,7 @@ function addWorker(lv) {
   return w;
 }
 // 社長：特別な作業員（雇える人数に数えない・辞めない・給料0）。会社が大きくなると、じわじわ太る
-function addBoss() { const w = addWorker(0); w.boss = true; S.bossWork = true; S.bossFat = 0; return w; }
+function addBoss() { const w = addWorker(0); w.boss = true; w.stamina = maxStamina(w); S.bossWork = true; S.bossFat = 0; return w; }
 const bossOf = () => S.workers.find(w => w.boss);
 const bossFatTarget = () => Math.min(1.2, BAL.bossFatPer * S.office.lv);                  // 会社レベルごとに13%ずつ横に（目標）
 function updateBoss(dt) {
