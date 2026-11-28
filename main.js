@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.71（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.72（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.71';
+const VERSION = '1.72';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -25,7 +25,7 @@ let BED = YARD_C, CAB = YARD_C;
 const setYard = c => { YARD_C = BED = CAB = c; if (S) S.yardC = c; };   // ヤードの列（-1＝無い）   // トラックの止まる列（1マス）
 // 釣り合いの数字（その他）：単独の数字や、式の中の数字。管理メニュー「釣り合い調整」で全部変えられる
 const BAL = {
-  tankCap: 300, facSlow: 0.1, drillHit: 0.6, grav: 14, loadRate: 10, walkH: 2.2, walkV: 1.2, restSec: 12,
+  tankCap: 100, facSlow: 0.1, drillHit: 0.6, grav: 14, loadRate: 10, walkH: 2.2, walkV: 1.2, restSec: 12,
   valueUp: 1.5, loan: 300, loanMax: 1500, advLv: 2, facSlots: 3, aditMax: 3, aditMaxSpeed: 0.5,
   hireFee0: 40, hireFeeLv: 30, wage0: 10, wageLv: 6, forkSpd0: 1.5, forkSpdG: 1.2, forkSpdMax: 3, forkBuy0: 300, forkBuyStep: 150,
   digCost0: 250, digCostG: 2.8, digMon0: 10, digMonG: 3, landCost0: 150000, landCostG: 4, awayCost0: 300, awayCostG: 1.25,
@@ -35,7 +35,7 @@ const BAL = {
   resGrow: 1.07, conneP: 0.1, lampMul: 1.15, awayExact: 120, awayStep: 0.05, awayRatio: 0.02, awayMax: 300, itemHp: 2, itemMax: 110, zoneHard: 0.35, restMin: 3, clayP: 0.14, copperP: 0.1, coalP: 0.09, quartzP: 0.05, silverP: 0.06,
   bossFatPer: 0.13, bossFatRate: 0.0001, beltSlowPow: 3, beltSlowMin: 0.02, truckWait: 15, gift: 1000,
 };
-const COST = { lamp: 200, drill: 50, fdrill: 120, adrill: 150, conv: 5, sort: 20, tee: 15, cross: 15, tri: 25, branch: 20, vend: 600, hc: 30000, lab: 200, pipe: 8, spa: 800, power: 1000, refinery: 1500, museum: 20000, elev: 30, yard: 500 };
+const COST = { lamp: 200, drill: 50, fdrill: 120, adrill: 150, conv: 5, sort: 20, tee: 15, cross: 15, tri: 25, branch: 20, vend: 600, hc: 30000, lab: 200, pipe: 8, pipex: 15, spa: 800, power: 1000, refinery: 1500, museum: 20000, elev: 30, yard: 500 };
 // 地上の施設（研究で増える。作業員がいないととても遅い）と、液体（石油・お湯）
 const FAC_IDS = ['spa', 'power', 'refinery', 'museum', 'hc'];   // v1.35：自販機は地下の設備へ   // v1.28：ホームセンター   // v1.27：自販機コーナー
 const isFacTool = t => FAC_IDS.includes(t);
@@ -372,9 +372,9 @@ const TXT = {
     fac: { spa: '温泉', power: '発電所', refinery: '製油所', vend: '自販機コーナー', hc: 'ホームセンター' }, facRes: 'この施設を地上に建てられるようになります。', resFac: '地上の施設',
     facDesc: { hc: 'ヤードの製品を棚に並べます（種類ごとに10個まで）。お客さんが車で来て、出荷の1.5倍で買っていきます。', vend: '作業員の休憩が少し速くなります（1台ごとに+10%・3台まで）。休み明けの人が1本買います（100）。', spa: 'お湯を使って、お客さんが車で来ます。帰る時にその場で料金。', power: 'お湯（地熱）か石油で発電して、その場で売電。', refinery: '石油2つから燃料1つ。燃料はヤードからトラックで売ります。' },
     facNoOp: '作業員なし（とても遅い）', facBuilt: n => `${n}を建設`, guests: n => `お客さん ${n}組`, tankOil: '石油', tankHot: 'お湯',
-    pipe: 'パイプライン', pipeDesc: '湧き口から地上まで、管でつなぎます。地下1段目まで届くと、地上のタンクにたまります。',
+    pipe: 'パイプライン', pipeDesc: '湧き口から地上の施設まで、管でつなぎます。掘ってあるマスなら、コンベアや機械の上にも重ねて置けます。施設の真下（地下1段目）まで届くとつながります。1本の管には、お湯か石油の片方だけ流せます。', pipex: 'パイプの交差', pipexDesc: '縦の管と横の管を、つながずに交差させます（お湯と石油の管を横切らせる時に）。', pipeMix: 'お湯と石油が混ざるので、つなげません', pipeDug: 'パイプは掘ってあるマスにだけ置けます', pipeFlow: '流れています', pipeIdle: '流れていません', pipeRm: 'パイプを撤去', facLiqNone: 'パイプがつながっていません（湧き口から施設の真下までつなぐ）',
     wellName: { oil: '油井', hot: '温泉の湧き口' }, wellDesc: { oil: '石油が湧き続けます（1秒に0.5）。', hot: 'お湯が湧き続けます（1秒に1）。' },
-    wellOn: '地上につながっています', wellOff: 'まだ地上につながっていません（パイプラインで地下1段目までつなぐ）',
+    wellOn: '施設につながっています', wellOff: 'まだ施設につながっていません（パイプで施設の真下までつなぐ）',
     found: { oil: '石油が出た！パイプラインで地上につなごう', hot: '温泉が湧いた！パイプラインで地上につなごう' }, foundPop: { oil: '石油！', hot: '温泉！' },
     land: '土地を買う', forSale: '売地', landBought: '土地を買い足した', landHint: '売地です。施設の「土地を買う」で買えます',
     skill: '研究', researching: '研究中', researchDone: n => `研究完了：${n}`, busy: 'ほかの研究中です', months: 'か月',
@@ -491,7 +491,7 @@ const TXT = {
       ['さぎょういん', 'じむしょで「Lv0を ふやす」で やといます。はたらくと レベルが あがり、Lv2いじょうは ちじょうの しごとも します。いない ところは「z」で とても おそく なります。'],
       ['じむしょと けんきゅうじょ', 'じむしょを レベルアップすると ひとや フォークリフトが ふえ、レベル2で けんきゅうじょが たちます。けんきゅうじょで きかい・まとめて つよく・スキルを けんきゅう できます。'],
       ['おかね', 'トラックが かえってきたら おかねが はいります。こまったら ぎんこうが かしてくれます。タイトルを おすと さいしょから。'],
-      ['せきゆと おんせん', 'がんばん3より ふかい ところでは、ほりぬくと おんせんが わくことが あります（がんばん4より ふかいと せきゆも）。わきぐちは パイプで つなぎ、ちか1だんめまで とどくと ちじょうの タンクに たまります。\nちじょうには おんせん・はつでんしょ・せいゆじょを たてられます。さぎょういんが いないと とても おそく なります。とちが たりなければ「しせつ」の「とちを かう」で ひろげられます。'],
+      ['せきゆと おんせん', 'がんばん3より ふかい ところでは、ほりぬくと おんせんが わくことが あります（がんばん4より ふかいと せきゆも）。わきぐちから パイプを、つかう しせつの まっした（ちか1だんめ）まで つなぐと、しせつに ながれます。パイプは ほってある ますなら、コンベアや きかいの うえにも おけます。1ぽんの くだには、おゆか せきゆの どちらかだけ。\nちじょうには おんせん・はつでんしょ・せいゆじょを たてられます。さぎょういんが いないと とても おそく なります。とちが たりなければ「しせつ」の「とちを かう」で ひろげられます。'],
     ],
     helpList: [
       'てのひら（みぎうえ）で ひっぱるか、がめんの はしの ▲▼◀▶で がめんが うごきます。「ちず」で ぜんたいを みられます。',
@@ -524,9 +524,9 @@ const TXT = {
     fac: { spa: 'おんせん', power: 'はつでんしょ', refinery: 'せいゆじょ', vend: 'じはんき', hc: 'ホームセンター' }, facRes: 'この しせつを ちじょうに たてられるように なります。', resFac: 'ちじょうの しせつ',
     facDesc: { hc: 'ヤードの せいひんを たなに ならべます（しゅるいごとに 10こまで）。おきゃくさんが 1.5ばいで かって いきます。', vend: 'さぎょういんの きゅうけいが すこし はやく なります。やすみあけの ひとが 1ぽん かいます（100）。', spa: 'おゆを つかって、おきゃくさんが くるまで きます。かえる ときに りょうきん。', power: 'おゆ か せきゆで はつでんして、うります。', refinery: 'せきゆ 2つから ねんりょう 1つ。トラックで うります。' },
     facNoOp: 'さぎょういん なし（とても おそい）', facBuilt: n => `${n}を たてた`, guests: n => `おきゃくさん ${n}くみ`, tankOil: 'せきゆ', tankHot: 'おゆ',
-    pipe: 'パイプ', pipeDesc: 'わきぐちから ちじょうまで、くだで つなぎます。ちか1だんめまで とどくと、ちじょうの タンクに たまります。',
+    pipe: 'パイプ', pipeDesc: 'わきぐちから ちじょうの しせつまで、くだで つなぎます。ほってある ますなら、コンベアや きかいの うえにも おけます。しせつの まっした（ちか1だんめ）まで とどくと つながります。1ぽんの くだには、おゆか せきゆの どちらかだけ。', pipex: 'パイプの こうさ', pipexDesc: 'たての くだと よこの くだを、つながずに こうさ させます。', pipeMix: 'おゆと せきゆが まざるので、つなげません', pipeDug: 'パイプは ほってある ますにだけ おけます', pipeFlow: 'ながれています', pipeIdle: 'ながれていません', pipeRm: 'パイプを てっきょ', facLiqNone: 'パイプが つながっていません（わきぐちから しせつの まっしたまで）',
     wellName: { oil: 'ゆせい', hot: 'おんせんの わきぐち' }, wellDesc: { oil: 'せきゆが わきつづけます。', hot: 'おゆが わきつづけます。' },
-    wellOn: 'ちじょうに つながっています', wellOff: 'まだ ちじょうに つながっていません（パイプで ちか1だんめまで）',
+    wellOn: 'しせつに つながっています', wellOff: 'まだ しせつに つながっていません（パイプで しせつの まっしたまで）',
     found: { oil: 'せきゆが でた！パイプで ちじょうに つなごう', hot: 'おんせんが わいた！パイプで ちじょうに つなごう' }, foundPop: { oil: 'せきゆ！', hot: 'おんせん！' },
     land: 'とちを かう', forSale: '売地', landBought: 'とちを かいたした', landHint: 'うりちです。しせつの「とちを かう」で かえます',
     skill: 'けんきゅう', researching: 'けんきゅうちゅう', researchDone: n => `けんきゅう おわり：${n}`, busy: 'ほかの けんきゅうちゅう です', months: 'かげつ',
@@ -669,9 +669,9 @@ const TXT = {
     fac: { spa: 'Hot spring', power: 'Power plant', refinery: 'Refinery', vend: 'Vending corner', hc: 'Home center' }, facRes: 'Lets you build this facility on the surface.', resFac: 'Surface facilities',
     facDesc: { hc: 'Shelves products from the yard (up to 10 of each). Customers drive in and pay 1.5x the shipping price.', vend: 'Workers rest a little faster (+10% each, up to 3). A worker buys a drink after each break (100).', spa: 'Uses hot water. Guests come by car and pay when they leave.', power: 'Burns hot water (geothermal) or oil and sells the power on the spot.', refinery: '2 oil make 1 fuel. Fuel goes to the yard and sells by truck.' },
     facNoOp: 'No worker (very slow)', facBuilt: n => `Built ${n}`, guests: n => `${n} guests`, tankOil: 'Oil', tankHot: 'Hot water',
-    pipe: 'Pipeline', pipeDesc: 'Connect a source to the surface. Once it reaches the first underground row, it fills the surface tank.',
+    pipe: 'Pipeline', pipeDesc: 'Connects a source to a surface facility. Can be laid on any dug cell, even over conveyors and machines. It connects once it reaches the cell right below the facility (first underground row). One pipe network carries only hot water or only oil.', pipex: 'Pipe crossing', pipexDesc: 'Lets a vertical and a horizontal pipe cross without joining.', pipeMix: 'Hot water and oil would mix, so they cannot be joined', pipeDug: 'Pipes can only go on dug cells', pipeFlow: 'Flowing', pipeIdle: 'Not flowing', pipeRm: 'Remove pipe', facLiqNone: 'No pipe connected (pipe from a source to the cell below this facility)',
     wellName: { oil: 'Oil well', hot: 'Hot spring source' }, wellDesc: { oil: 'Oil keeps flowing (0.5/s).', hot: 'Hot water keeps flowing (1/s).' },
-    wellOn: 'Connected to the surface', wellOff: 'Not connected yet (lay pipes up to the first underground row)',
+    wellOn: 'Connected to a facility', wellOff: 'Not connected yet (pipe it to the cell below a facility)',
     found: { oil: 'Struck oil! Connect it to the surface with pipes', hot: 'Hot spring found! Connect it to the surface with pipes' }, foundPop: { oil: 'Oil!', hot: 'Hot spring!' },
     land: 'Buy land', forSale: 'Sale', landBought: 'Bought more land', landHint: 'Land for sale. Buy it from Facilities → Buy land',
     skill: 'R&D', researching: 'Researching', researchDone: n => `Research done: ${n}`, busy: 'Another research is in progress', months: ' mo',
@@ -749,7 +749,7 @@ const TXT_ADD = {
     yard: 'トラックヤード', elevPut: 'エレベーターを置く', seeBelow: '下の物を見る', truckAddT: 'トラック増車', truckAddN: n => `今 ${n}台（交代で出発。何台でも増やせます）`, truckAddB: '1台増やす', truckAdded: n => `トラックを増車（${n}台）`,
     hFacs: '地上の施設', hTools: '設置物', hMachs: '機械', hRes: '資源・製品（今手に入る物）', labDesc: '研究をする建物です（会社レベル1で建てられます）。研究室を増やすと、同時に研究できます。',
     toolDesc: { drill: '地面を掘り進みます。掘った資源は後ろに出ます。', fdrill: '速く掘るドリル。', adrill: 'ふさがると自分で向きを変えるドリル。', conv: '資源を運びます。なぞって続けて置けます。',
-      sort: '選んだ資源だけを横へ出します。', tee: '真ん中で左右に振り分けます。', cross: '2つの流れを交差させます。', tri: 'まっすぐ・左・右に、順番に均等に分けます。', branch: 'まっすぐと横に、順番に均等に分けます（横は左か右を選べます）。', pipe: '湧き口と地上のタンクをつなぎます。', elev: '作業員が上り下りする時、とても速くなります（ほかの物の上にも置けます）。' },
+      sort: '選んだ資源だけを横へ出します。', tee: '真ん中で左右に振り分けます。', cross: '2つの流れを交差させます。', tri: 'まっすぐ・左・右に、順番に均等に分けます。', branch: 'まっすぐと横に、順番に均等に分けます（横は左か右を選べます）。', pipe: '湧き口と地上の施設をつなぎます（掘ってあるマスなら何の上にも）。', pipex: '縦と横の管を、つながずに交差させます。', elev: '作業員が上り下りする時、とても速くなります（ほかの物の上にも置けます）。' },
     rareFound: n => `珍しい物を掘り当てました：${n}！`, museumNew: n => `博物館に新しく展示：${n}`,
     lamp: '照明', lampDesc: 'ほかの物と別の層に置けます（機械やコンベアの上にも）。周り2マスの作業が少し速くなります。', museumCol: (n, m) => `展示 ${n}/${m}種類（2つ目からは売店で1.5倍で売ります）`, elev: 'エレベーター', elevDesc: 'ほかの物と別の層に置けます（コンベアや機械の上にも）。作業員が上り下りする時、とても速くなります。撤去で外せます。',
     pickT: 'どちらを選ぶ？', granted: n => `新しく使えるようになりました：${n}`,
@@ -878,7 +878,7 @@ const TXT_ADD = {
     playTime: (mo, x1, others) => `ここまで：ゲームで ${mo}かげつ＝×1で ${x1}（${others}）`,
     privacy: 'プライバシーポリシー', feedbackX: 'ごいけん（X）', feedbackNote: 'ごいけん（note）',
     help0: ['そうさ', 'がめんは ゆびで なぞると うごきます。がめんの はし（▲▼◀▶）を おしても うごきます。「ちず」で ぜんたいを みられます。\nしたの タブを おすと ひきだしが ひらいて、どうぐを えらべます。ドリルや きかいは 1つ おくと えらぶのが おわります。コンベアは つづけて おけて、ひだりしたの「×」か タブを おすと おわります。ドリルは、おく ところを タップしてから ほる むきを えらんで「おく」。'],
-    help7: ['せきゆと おんせん', 'がんばん3より ふかい ところでは、ほりぬくと おんせんが わくことが あります（がんばん4より ふかいと せきゆも）。わきぐちの うえには なにも おけません。わきぐちは パイプで つなぎ、ちか1だんめまで とどくと ちじょうの タンクに たまります。\nちじょうには おんせん・はつでんしょ・せいゆじょを たてられます。とちが たりなければ、けんきゅう「とちを かう」で ひろげられます。'],
+    help7: ['せきゆと おんせん', 'がんばん3より ふかい ところでは、ほりぬくと おんせんが わくことが あります（がんばん4より ふかいと せきゆも）。わきぐちの うえには なにも おけません。わきぐちから パイプを、つかう しせつの まっした（ちか1だんめ）まで つなぐと、しせつに ながれます。パイプは ほってある ますなら、コンベアや きかいの うえにも おけます。1ぽんの くだには、おゆか せきゆの どちらかだけ。\nちじょうには おんせん・はつでんしょ・せいゆじょを たてられます。とちが たりなければ、けんきゅう「とちを かう」で ひろげられます。'],
   },
   en: {
     officeLv: 'Company', hOffice: n => `Company upgraded to level ${n}`, needLab: 'You need a Lab (available at company level 1)',
@@ -908,7 +908,7 @@ const TXT_ADD = {
     yard: 'Truck yard', elevPut: 'Place elevator', seeBelow: 'Open the one below', truckAddT: 'Extra truck', truckAddN: n => `${n} now (they take turns; add as many as you like)`, truckAddB: 'Add one', truckAdded: n => `Added a truck (${n})`,
     hFacs: 'Surface facilities', hTools: 'Placeables', hMachs: 'Machines', hRes: 'Resources & products (available now)', labDesc: 'Where research happens (build at company level 1). More rooms = more research at once.',
     toolDesc: { drill: 'Digs forward; mined items come out behind.', fdrill: 'A faster drill.', adrill: 'Turns by itself when blocked.', conv: 'Carries items. Drag to lay many.',
-      sort: 'Sends only the chosen item to the side.', tee: 'Splits left and right.', cross: 'Lets two flows cross.', tri: 'Splits evenly straight, left and right in turn.', branch: 'Splits evenly straight and to one side in turn.', pipe: 'Connects wells to the surface tanks.', elev: 'Workers climb much faster here (can sit over other things).' },
+      sort: 'Sends only the chosen item to the side.', tee: 'Splits left and right.', cross: 'Lets two flows cross.', tri: 'Splits evenly straight, left and right in turn.', branch: 'Splits evenly straight and to one side in turn.', pipe: 'Connects sources to surface facilities (on any dug cell).', pipex: 'Lets vertical and horizontal pipes cross without joining.', elev: 'Workers climb much faster here (can sit over other things).' },
     rareFound: n => `Found something rare: ${n}!`, museumNew: n => `New exhibit at the museum: ${n}`,
     lamp: 'Lamp', lampDesc: 'Sits on its own layer (over machines and conveyors too). Work within 2 cells runs a little faster.', museumCol: (n, m) => `Exhibits ${n}/${m} kinds (duplicates sell at the shop ×1.5)`, elev: 'Elevator', elevDesc: 'Sits on its own layer (over conveyors and machines too). Workers climb much faster here. Remove to take it away.',
     pickT: 'Which one?', granted: n => `Now available: ${n}`,
@@ -990,7 +990,7 @@ const HELP_V2 = {
       ['作業員', '事務所で雇います。作業員はドリル・機械・フォークリフトなどへ歩いて行って働き、仕事をするほどレベルが上がります（暇な時は上がりません）。\n機械とフォークリフトは、作業員がいないと止まります（研究「自動化」で、わずかに動くようになります）。ドリルは人がいなくても少しずつ掘ります。疲れると休憩室で休みます。給料は毎月で、上級ほど・会社が大きいほど高くなります。'],
       ['事務所と研究所', '事務所で会社レベルを上げると、新しい機械や研究が出てきます（カードで知らせます）。定員・フォークリフトの台数・ドリルの強化の上限も上がります。\n研究所は会社レベル1から建てられます（設置 → 施設）。研究室は最大6室まで増やせ、研究員がいると速く進みます。研究「秘書の提案」で、右下の秘書が困りごとを教えてくれます。'],
       ['お金', '売上はトラックが帰ってきた時に入ります。お金が少なく売上も無い時は、銀行が融資してくれます（売上から少しずつ返します）。\n「情報」で経営の様子をグラフで見られます。ゲームは自動でセーブされます。'],
-      ['石油と温泉', '岩盤3より深い所では、掘り抜くと温泉が湧くことがあります（岩盤4より深いと石油も）。湧き口の上には何も置けません。湧き口はパイプラインでつなぎ、地下1段目まで届くと地上のタンクにたまります。\n地上には温泉・発電所・製油所などを建てられます。地上の施設は作業員がいると速く動きます。土地が足りなければ、研究「土地買収」で広げられます。'],
+      ['石油と温泉', '岩盤3より深い所では、掘り抜くと温泉が湧くことがあります（岩盤4より深いと石油も）。湧き口の上には何も置けません。湧き口からパイプラインを、使う施設の真下（地下1段目）までつなぐと、施設に流れます。パイプは掘ってあるマスなら、コンベアや機械の上にも重ねて置けます。1本の管には、お湯か石油の片方だけ流せます（横切る時は「パイプの交差」）。\n地上には温泉（お湯）・発電所（お湯か石油）・製油所（石油）などを建てられます。地上の施設は作業員がいると速く動きます。土地が足りなければ、研究「土地買収」で広げられます。'],
       ['ホーム画面に追加', 'スマホのホーム画面に置くと、アプリのように全画面で遊べます（無料）。\niPhone：Safari の共有ボタン[share]→「ホーム画面に追加」→「追加」。\nAndroid：Chrome の右上の[menu] →「ホーム画面に追加」（または「アプリをインストール」）。\nパソコン：Chrome・Edge のアドレスバーの右にあるインストールの印。\nタイトル画面の「ホーム画面に追加」からも、やり方を見られます。'],
     ],
     levelHelp: '強化（下のタブ）：お金で、ドリル・機械・コンベア・トラック・フォークリフトのレベルや、資源の売値を上げます。置いた物をタップしても強化できます。\n研究（研究所）：時間をかけて、高級な機械・地上の施設・会社の力（スキル）を手に入れます。研究員がいると速く進みます。\n機械や道具の多くは、会社レベルが上がると研究なしで使えるようになります。',
@@ -1004,7 +1004,7 @@ const HELP_V2 = {
       ['さぎょういん', 'じむしょで やといます。さぎょういんは あるいて いって はたらき、しごとを するほど レベルが あがります。\nきかいと フォークリフトは、ひとが いないと とまります（けんきゅう「じどうか」で すこし うごきます）。ドリルは ひとが いなくても すこし ほります。つかれると やすみます。'],
       ['じむしょと けんきゅうしょ', 'じむしょで かいしゃ レベルを あげると、あたらしい きかいや けんきゅうが でて きます。\nけんきゅうしょは かいしゃ レベル1から たてられます（おく → しせつ）。'],
       ['おかね', 'うりあげは トラックが かえって きた ときに はいります。おかねが たりない ときは、ぎんこうが かして くれます。\nゲームは じどうで セーブされます。'],
-      ['せきゆと おんせん', 'がんばん3より ふかい ところでは、ほりぬくと おんせんが わくことが あります（がんばん4より ふかいと せきゆも）。わきぐちは パイプで つなぎ、ちか1だんめまで とどくと ちじょうの タンクに たまります。\nちじょうには おんせん・はつでんしょ などを たてられます。'],
+      ['せきゆと おんせん', 'がんばん3より ふかい ところでは、ほりぬくと おんせんが わくことが あります（がんばん4より ふかいと せきゆも）。わきぐちから パイプを、つかう しせつの まっした（ちか1だんめ）まで つなぐと、しせつに ながれます。パイプは ほってある ますなら、コンベアや きかいの うえにも おけます。1ぽんの くだには、おゆか せきゆの どちらかだけ。\nちじょうには おんせん・はつでんしょ などを たてられます。'],
       ['ホームがめんに ついか', 'スマホの ホームがめんに おくと、アプリのように ぜんがめんで あそべます（むりょう）。\niPhone：Safari の きょうゆうボタン[share]→「ホーム画面に追加」→「追加」。\nAndroid：Chrome の みぎうえの [menu] →「ホーム画面に追加」（または「アプリをインストール」）。\nパソコン：Chrome・Edge の アドレスバーの みぎの インストールの しるし。'],
     ],
     levelHelp: 'つよくする（したの タブ）：おかねで、ドリル・きかい・コンベア・トラック・フォークリフトの レベルや、ねだんを あげます。\nけんきゅう（けんきゅうしょ）：じかんを かけて、あたらしい きかいや ちからを てに いれます。\nきかいや どうぐの おおくは、かいしゃ レベルが あがると つかえるように なります。',
@@ -1018,7 +1018,7 @@ const HELP_V2 = {
       ['Workers', 'Hire at the office. Workers walk to drills, machines and forklifts and level up by working (not while idle).\nMachines and forklifts stop without a worker (the Automation research lets them move a little). Drills dig slowly even unstaffed. Tired workers rest in the break room. Wages are monthly and higher for senior staff and bigger companies.'],
       ['Office & Lab', 'Raising the company level unlocks new machines and research (a card shows them). It also raises staff limits, forklift count and the drill upgrade limit.\nYou can build the Lab from company level 1 (Build → Facilities). Up to 6 lab rooms. The Secretary tips research adds helpful hints at the bottom right.'],
       ['Money', 'You get paid when a truck returns. If you are short of money with no sales, the bank lends you some (repaid from sales).\nInfo shows charts of your business. The game saves automatically.'],
-      ['Oil & hot springs', 'Below bedrock 3, digging out a cell may reveal a hot spring (oil below bedrock 4). Nothing can be built on a source. Connect it with pipes up to the first underground row to fill the surface tank.\nOn the surface you can build a Hot spring, Power plant, Refinery and more. Surface facilities run faster with workers.'],
+      ['Oil & hot springs', 'Below bedrock 3, digging out a cell may reveal a hot spring (oil below bedrock 4). Nothing can be built on a source. Lay pipes from the source to the cell right below the facility that uses it (first underground row). Pipes can go on any dug cell, even over conveyors and machines. One network carries only hot water or only oil (use a Pipe crossing to cross).\nOn the surface you can build a Hot spring (hot water), Power plant (either) and Refinery (oil). Surface facilities run faster with workers.'],
       ['Home Screen', 'Put the game on your phone home screen to play full screen like an app (free).\niPhone: Safari Share button [share] → "Add to Home Screen" → "Add".\nAndroid: Chrome [menu] at the top right → "Add to Home screen" (or "Install app").\nComputer: the install icon at the right of the Chrome/Edge address bar.\nYou can also open the steps from "Add to Home Screen" on the title screen.'],
     ],
     levelHelp: 'Upgrades (bottom tab): spend money to level up drills, machines, conveyors, the truck and forklifts, and raise prices. You can also tap a placed thing to upgrade it.\nResearch (Lab): takes time; gives advanced machines, surface facilities and company skills. Faster with researchers.\nMany machines and tools become available as the company level rises, without research.',
@@ -1262,7 +1262,7 @@ function newGame() {
     moneyMark: 0,       // 資金の節目（履歴用）
     boost: { priceT: 0, wageM: 0, speedUntil: 0 },   // 取引の効果：売値2倍の残り秒・給料カットの残り月・速さ10倍の終わる時刻
     fac: [],            // 地上の施設 {type:'fac', f, c, op, t}
-    tank: { oil: 0, hot: 0 },   // 地上のタンク
+    pipes: {},   // v1.72：パイプの層（キー→{x:1 なら交差}）。掘ってあるマスなら、ほかの物と重ねて置ける
     cars: [],           // 温泉のお客さんの車
     landL: LAND0[0], landR: LAND0[1],   // 持っている土地（列の左端・右端）
     stVer: 0,           // 設備が変わった回数（パイプのつながりの再計算用）
@@ -1283,7 +1283,7 @@ function newGame() {
 // 設備を置けるマス
 const isOpen = (c, r) => inB(c, r) && r >= SKY && blk(c, r) === null && !S.st.has(key(c, r));   // 地下の空いたマス
 // 設置する道具を選んでいるか／そのマスに置けるか（ドリルは地上にも、コンベア・機械は地下だけ）
-const isBuildTool = () => isDrillTool(tool) || tool === 'elev' || tool === 'lamp' || tool === 'vend' || tool === 'yard' || tool === 'conv' || tool === 'sort' || tool === 'tee' || tool === 'cross' || tool === 'tri' || tool === 'branch' || tool === 'machine' || tool === 'lab' || tool === 'pipe' || isFacTool(tool);
+const isBuildTool = () => isDrillTool(tool) || tool === 'elev' || tool === 'lamp' || tool === 'vend' || tool === 'yard' || tool === 'conv' || tool === 'sort' || tool === 'tee' || tool === 'cross' || tool === 'tri' || tool === 'branch' || tool === 'machine' || tool === 'lab' || tool === 'pipe' || tool === 'pipex' || isFacTool(tool);
 // そのマスに置けるか
 // ・研究所：地上の段、施設の無いマス
 // ・ドリル：地下1段目より下。空いたマス、または地上とつながった穴の隣の土・石（上書きして置く）
@@ -1292,6 +1292,7 @@ function canPlaceAt(c, r) {
   if (tool === 'lab') return r === YARD_R && surfaceFree(c) && !S.lab.built;
   if (isFacTool(tool)) return r === YARD_R && surfaceFree(c);
   if (!inB(c, r) || r < SKY) return false;
+  if (tool === 'pipe' || tool === 'pipex') { const w0 = S.st.get(key(c, r)); return blk(c, r) === null && !(w0 && w0.type === 'well'); }   // v1.72：パイプは掘ってあるマスだけ（ほかの物と重なってよい）
   const b = blk(c, r);
   if (S.tut && isDrillTool(tool) && r !== SKY) return false;   // 31：はじめの手順の間、ドリルは地下1段目だけ
   if (isDrillTool(tool) && b) return diggable().has(key(c, r));   // 岩盤にも置ける（レベル不足ならとても遅い）
@@ -1342,7 +1343,7 @@ const CO_UNLOCK = {
   'm:bagger': 4, 't:tee': 4, 't:branch': 5, 't:tri': 6, 'sk:secAdv': 4, 'sk:bored': 4,
   't:elev': 5, 'm:roller': 5, 'sk:land': 5, 'sk:autoUpg': 5,
   't:lamp': 6, 'm:drawer': 6, 't:vend': 3, 'f:hc': 9, 'sk:autoPrice': 6, 'sk:vein': 6,
-  't:pipe': 7, 'm:factory': 7, 'f:spa': 7, 'sk:statue': 7,
+  't:pipe': 5, 'm:factory': 7, 'f:spa': 7, 'sk:statue': 7,
   'm:glassF': 8, 't:cross': 8, 'f:power': 8, 'sk:garden': 8, 'sk:conne': 8,
   't:fdrill': 9, 'm:caster': 9, 'sk:goldUp': 9, 'sk:sortPlus': 9, 'sk:sortPlus2': 11,
   'm:metalwork': 10, 'f:refinery': 10, 'sk:yardPlus': 10, 'sk:newTech': 10,
@@ -1638,34 +1639,62 @@ function updateForks(dt) {
 
 // ---- パイプライン：湧き口から地上（地下1段目のパイプ）までつながっていれば、タンクにたまる ----
 let netCache = { ver: -1, info: new Map() };
-const isPipeLike = s => !!s && (s.type === 'pipe' || s.type === 'well');
-function pipeNet() {
-  if (netCache.ver === S.stVer + S.digVer * 1e6) return netCache.info;
-  const info = new Map(), seen = new Set();
-  for (const [k, s] of S.st) {
-    if (!isPipeLike(s) || seen.has(k)) continue;
-    const comp = [], q = [k]; seen.add(k);
-    let surface = false, kind = null;
-    for (let i = 0; i < q.length; i++) {
-      const kk = q[i], c = cOf(kk), r = rOf(kk), st = S.st.get(kk); comp.push(kk);
-      if (r === SKY) surface = true;
-      if (st.type === 'well' && !kind) kind = st.kind;
-      for (const [dx, dy] of NB) { const nk = key(c + dx, r + dy); if (inB(c + dx, r + dy) && !seen.has(nk) && isPipeLike(S.st.get(nk))) { seen.add(nk); q.push(nk); } }
+// ---- v1.72 パイプの層 ----
+// 1マスの管は「節」1つ（交差は縦の節と横の節の2つ）。となりのパイプと自動でつながる。湧き口はとなりの節に入る。
+// 地下1段目の節は、真上に施設があれば、その施設につながる。1つのつながり（ネットワーク）には、お湯か石油の片方だけ。
+const LIQ_FAC = { spa: ['hot'], power: ['hot', 'oil'], refinery: ['oil'] };   // その施設が使う液体
+let pipeVer = 0, pnCache = { sig: '', nets: [], at: new Map(), wells: new Map() };
+const pipeAt = k => S.pipes[k];
+const pNode = (k, dx) => (pipeAt(k) && pipeAt(k).x ? k * 2 + (dx ? 0 : 1) : k * 2);   // 交差：横の節＝偶数、縦の節＝奇数
+function pipeNets() {
+  const sig = pipeVer + '|' + S.stVer + '|' + S.fac.map(f => f.f + f.c).join(',');
+  if (pnCache.sig === sig) return pnCache;
+  const nets = [], at = new Map(), wells = new Map();
+  for (const ks of Object.keys(S.pipes)) {
+    const k0 = +ks;
+    for (const node0 of S.pipes[ks].x ? [k0 * 2, k0 * 2 + 1] : [k0 * 2]) {
+      if (at.has(node0)) continue;
+      const net = { id: nets.length, nodes: [], cells: new Set(), wells: [], facs: [], kinds: new Set(), flow: false };
+      nets.push(net); at.set(node0, net);
+      const q = [node0];
+      for (let i = 0; i < q.length; i++) {
+        const node = q[i], k = node >> 1, c = cOf(k), r = rOf(k), cross = !!pipeAt(k).x, axis = node & 1;
+        net.nodes.push(node); net.cells.add(k);
+        for (const [dx, dy] of NB) {
+          if (cross && (axis === 1) !== (dx === 0)) continue;   // 交差の節は、自分の向きだけ
+          if (dy === -1 && r === SKY) { const f = facAt(c); if (f && LIQ_FAC[f.f] && !net.facs.includes(f)) net.facs.push(f); continue; }
+          const nc = c + dx, nr = r + dy; if (!inB(nc, nr)) continue;
+          const nk = key(nc, nr), w = S.st.get(nk);
+          if (w && w.type === 'well') { if (!net.wells.includes(nk)) { net.wells.push(nk); net.kinds.add(w.kind); wells.set(nk, net); } continue; }
+          if (!pipeAt(nk)) continue;
+          const nn = pNode(nk, dx);
+          if (!at.has(nn)) { at.set(nn, net); q.push(nn); }
+        }
+      }
+      net.kind = net.kinds.size === 1 ? [...net.kinds][0] : null;
+      net.mixed = net.kinds.size > 1;
     }
-    for (const kk of comp) info.set(kk, { surface, kind });
   }
-  netCache = { ver: S.stVer + S.digVer * 1e6, info };
-  return info;
+  pnCache = { sig, nets, at, wells };
+  return pnCache;
 }
+const wellNet = k => pipeNets().wells.get(k) || null;
+const pipeNetAt = k => { const pn = pipeNets(); return pn.at.get(k * 2) || pn.at.get(k * 2 + 1) || null; };
+// 1秒ごと：湧き口の量を、つながった施設が空いている分だけ分け合う（いっぱいなら流れない）
 function updateLiquids(dt) {
   S.liqT = (S.liqT || 0) + dt;
   if (S.liqT < 1) return;
   S.liqT -= 1;
-  const net = pipeNet();
-  for (const [k, s] of S.st) {
-    if (s.type !== 'well') continue;
-    const n = net.get(k);
-    if (n && n.surface) S.tank[s.kind] = Math.min(BAL.tankCap, S.tank[s.kind] + WELL_RATE[s.kind]);
+  for (const net of pipeNets().nets) {
+    net.flow = false;
+    if (!net.kind || net.mixed || !net.facs.length) continue;
+    let left = net.wells.length * WELL_RATE[net.kind];
+    const take = net.facs.filter(f => LIQ_FAC[f.f].includes(net.kind) && (!(f.liq > 0) || f.lk === net.kind));
+    for (let loop = 0; loop < 4 && left > 1e-6; loop++) {
+      const open = take.filter(f => (f.liq || 0) < BAL.tankCap); if (!open.length) break;
+      const share = left / open.length;
+      for (const f of open) { const add = Math.min(share, BAL.tankCap - (f.liq || 0)); f.liq = (f.liq || 0) + add; f.lk = net.kind; left -= add; if (add > 0) net.flow = true; }
+    }
   }
 }
 // 地上の施設：製油所（石油2→燃料1、ヤードへ）・発電所（お湯か石油を燃やして売電）・温泉（お客さんが来る）
@@ -1677,15 +1706,14 @@ function updateFacs(dt) {
   for (const f of S.fac) {
     f.t = (f.t || 0) + dt * facRate(f);
     if (f.f === 'refinery') {
-      if (f.t >= 4) { if (S.tank.oil >= 2) { f.t -= 4; S.tank.oil -= 2; S.yard.push({ k: 'fuel', rx: Math.random(), ry: Math.random() }); } else f.t = 4; }
+      if (f.t >= 4) { if ((f.liq || 0) >= 2 && f.lk === 'oil') { f.t -= 4; f.liq -= 2; S.yard.push({ k: 'fuel', rx: Math.random(), ry: Math.random() }); } else f.t = 4; }
     } else if (f.f === 'power') {
       while (f.t >= 1) {
         f.t -= 1;
-        // 発電は「余っている分」だけ使う（温泉・製油所があれば、その分を残す）
-        const keepHot = S.fac.some(o => o.f === 'spa') ? 60 : 0, keepOil = S.fac.some(o => o.f === 'refinery') ? 60 : 0;
-        const src = S.tank.hot >= 1 + keepHot ? 'hot' : S.tank.oil >= 1 + keepOil ? 'oil' : null;
+        // v1.72：自分のタンクにある液体（つないだ管がお湯ならお湯、石油なら石油）
+        const src = (f.liq || 0) >= 1 ? f.lk : null;
         if (!src) { f.t = 0; break; }
-        S.tank[src] -= 1; f.acc = (f.acc || 0) + (src === 'oil' ? 4 : 2) * TUNE.price / 2.5;
+        f.liq -= 1; f.acc = (f.acc || 0) + (src === 'oil' ? 4 : 2) * TUNE.price / 2.5;
         if (f.acc >= 20) { earn(Math.round(f.acc), f.c + 0.5, YARD_R - 0.2); f.acc = 0; }
       }
     } else if (f.f === 'hc') {   // 46 ホームセンター
@@ -1715,7 +1743,7 @@ function updateFacs(dt) {
       }
     } else if (f.f === 'spa') {
       if (f.t >= 6) {
-        if (S.tank.hot >= 5 && visitors(f) < 3) { f.t -= 6; S.tank.hot -= 5; S.cars.push({ f: f.c, x: -1.2, st: 'in', t: 0, col: CAR_COLS[Math.floor(Math.random() * CAR_COLS.length)] }); }
+        if ((f.liq || 0) >= 5 && f.lk === 'hot' && visitors(f) < 3) { f.t -= 6; f.liq -= 5; S.cars.push({ f: f.c, x: -1.2, st: 'in', t: 0, col: CAR_COLS[Math.floor(Math.random() * CAR_COLS.length)] }); }
         else f.t = 6;
       }
     }
@@ -2539,7 +2567,7 @@ function unlockCard(gIds, rIds) {
   const face = $('unlockFace'); if (face && !face.dataset.ok) { face.width = face.height = 16; face.getContext('2d').drawImage(secFace('good'), 0, 0); face.dataset.ok = 1; }   // にこにこの秘書
   const add = (id, sub) => {
     const row = document.createElement('div'); row.className = 'ulRow';
-    let pic = null; try { if (id.startsWith('m:') || isDrillTool(id) || ['tee', 'cross', 'tri', 'branch', 'pipe', 'elev', 'lamp', 'vend'].includes(id) || isFacTool(id)) pic = thumb(id); } catch (e) { }
+    let pic = null; try { if (id.startsWith('m:') || isDrillTool(id) || ['tee', 'cross', 'tri', 'branch', 'pipe', 'pipex', 'elev', 'lamp', 'vend'].includes(id) || isFacTool(id)) pic = thumb(id); } catch (e) { }
     const pc = document.createElement('canvas'); pc.width = pc.height = 48; pc.className = 'ulPic'; if (pic) pc.getContext('2d').drawImage(pic, 0, 0); else { const g = pc.getContext('2d'); g.fillStyle = '#e8eef2'; g.fillRect(4, 4, 40, 40); g.fillStyle = '#5a6a78'; g.fillRect(20, 10, 8, 12); g.beginPath(); g.moveTo(20, 22); g.lineTo(12, 38); g.lineTo(36, 38); g.lineTo(28, 22); g.closePath(); g.fill(); g.fillStyle = '#9fd0f0'; g.fillRect(16, 30, 16, 6); }   // 研究：フラスコ
     const tx2 = document.createElement('div'); const b = document.createElement('b'); b.textContent = id.startsWith('m:') ? T.mach[id.slice(2)] : resDef(id.includes(':') ? id : 't:' + id).name; const sm = document.createElement('small'); sm.textContent = unlockDesc(id) || sub; tx2.append(b, sm);
     row.append(pc, tx2); list.append(row);
@@ -2595,7 +2623,7 @@ function deserialize(json) {
   d.dock = d.dock || {}; d.forks = d.forks || [Object.assign(newFork(), { x: PARK_X })];
   d.stage = d.stage || stageOf(d.deepest); d.history = d.history || []; d.moneyMark = d.moneyMark || 0;
   d.boost = d.boost || { priceT: 0, wageM: 0, speedUntil: 0 };
-  d.fac = (d.fac || []).filter(f => f.f !== 'vend'); d.vends = d.vends || {}; d.tank = d.tank || { oil: 0, hot: 0 }; d.cars = d.cars || []; d.stVer = d.stVer || 0;   // v1.35：自販機は地下の設備になった（v1.43：コメントに飲まれていた cars・stVer を戻す）
+  d.fac = (d.fac || []).filter(f => f.f !== 'vend'); d.vends = d.vends || {}; d.pipes = d.pipes || {}; d.cars = d.cars || []; d.stVer = d.stVer || 0;   // v1.35：自販機は地下の設備になった（v1.43：コメントに飲まれていた cars・stVer を戻す）
   if (d.landL === undefined) {   // v0.39までのセーブ：土地はぜんぶ持っている。ヤードが1マスになったので、そこにある物はずらす
     d.landL = 0; d.landR = COLS - 1; d.skills = d.skills || {}; d.skills.land = LAND_MAX; delete d.land;
     const busy = c => (d.lab && d.lab.built && d.lab.c === c) || (d.fac || []).some(x => x.c === c) || c === OFFICE_C || c === OFFICE_C + 1 || c === YARD_C;
@@ -3057,7 +3085,7 @@ function workNeed(st) {
     const k2 = stationKey(st), n = beltN.get(k2) || 0; if (!n) return -5;
     return n >= BELT_CAP[st.lv || 0] ? 7 + Math.max(0, 5 - (rOf(k2) - SKY) / 6) : 1;
   }
-  if (st.type === 'fac') return st.f === 'vend' ? -10 : st.f === 'hc' ? (Object.values(st.stock || {}).some(n => n > 0) ? 6 : -10) : (st.f === 'museum' ? Object.keys(S.museum || {}).length > 0 : st.f === 'refinery' ? S.tank.oil >= 2 : st.f === 'spa' ? S.tank.hot >= 5 : S.tank.hot + S.tank.oil >= 1) ? 8 : -10;
+  if (st.type === 'fac') return st.f === 'vend' ? -10 : st.f === 'hc' ? (Object.values(st.stock || {}).some(n => n > 0) ? 6 : -10) : (st.f === 'museum' ? Object.keys(S.museum || {}).length > 0 : st.f === 'refinery' ? (st.liq || 0) >= 2 : st.f === 'spa' ? (st.liq || 0) >= 5 : (st.liq || 0) >= 1) ? 8 : -10;
   if (st.type === 'machine') {
     const n = st.cur ? 3 : 0, b = Object.values(st.buf || {}).reduce((a, v) => a + v, 0) + Object.values(st.bags || {}).reduce((a, v) => a + v, 0);
     return n + b > 0 ? Math.min(12, n + b) : -10;
@@ -3165,7 +3193,7 @@ const effDir = (c, r, dragging) => (dragging && dragDir ? dragDir : dir === 'aut
 function memSet(k, v) { S.opts = S.opts || {}; S.opts.dirMem = S.opts.dirMem || {}; S.opts.dirMem[k] = v; }
 const memGet = k => ((S.opts || {}).dirMem || {})[k];
 // 続けて置くかもしれない道具（選んだまま）。それ以外（ドリル・機械・施設）は1つ置くと選択が外れる
-const isRepeatTool = t => ['vend', 'conv', 'sort', 'tee', 'cross', 'tri', 'branch', 'pipe', 'elev', 'lamp', 'dig', 'remove'].includes(t);
+const isRepeatTool = t => ['vend', 'conv', 'sort', 'tee', 'cross', 'tri', 'branch', 'pipe', 'pipex', 'elev', 'lamp', 'dig', 'remove'].includes(t);
 const isDragTool = t => t === 'conv' || t === 'pipe' || t === 'elev' || t === 'remove';   // なぞって続けて置ける（なぞっても画面は動かない）
 function apply(c, r, dragging) {
   if (!inB(c, r) || tool === 'pan' || tool === 'none') return;
@@ -3173,6 +3201,8 @@ function apply(c, r, dragging) {
   const k = key(c, r), s = S.st.get(k);
   if (tool === 'remove') {   // コンベア・パイプはそのまま。ほかは尋ねる（なぞっている時は、とばす）
     const ask = f => { if (!dragging) askConfirm(tx().removeQ, () => { f(); updateUI(); }); };
+    if (pipeAt(k) && s && !dragging) { openPop({ type: 'pick', c, r, opts: [[tx().pipeRm, () => { removePipe(k); closePop(); updateUI(); }], [stLabel(s), () => { closePop(); if (isLineLike(s)) removeAt(k); else ask(() => removeAt(k)); updateUI(); }]] }); return; }   // v1.72：パイプと重なっている時は、どちらを撤去するか選ぶ
+    if (pipeAt(k) && (!s || dragging)) { removePipe(k); return; }
     if (s) { if (isLineLike(s)) removeAt(k); else ask(() => removeAt(k)); }
     else if (S.elev[k]) ask(() => removeElev(k));
     else if (S.lamps[k]) ask(() => removeLamp(k));
@@ -3193,6 +3223,20 @@ function apply(c, r, dragging) {
     if (blk(c, r) || s) { if (!dragging) say(tx().cantPlace); return; }
     if (S.money < COST.vend) { if (!dragging) say(tx().noMoney); return; }
     spend(COST.vend, c + 0.5, r + 0.3); (S.vends || (S.vends = {}))[k] = 1; return;
+  }
+  if (tool === 'pipe' || tool === 'pipex') {   // v1.72：パイプの層。掘ってあるマスなら何の上にも。1本の管にはお湯か石油の片方だけ
+    if (r < SKY) return;
+    if (!canPlaceAt(c, r)) { if (!dragging) say(blk(c, r) ? tx().pipeDug : tx().cantPlace); return; }
+    const cross = tool === 'pipex', old = pipeAt(k);
+    if (old && !!old.x === cross) return;
+    if (dragging && old) return;
+    const cost = COST[tool];
+    if (S.money < cost) { if (!dragging) say(tx().noMoney); return; }
+    S.pipes[k] = cross ? { x: 1 } : {}; pipeVer++;
+    const n = pipeNetAt(k);
+    if (n && n.mixed) { if (old) S.pipes[k] = old; else delete S.pipes[k]; pipeVer++; say(tx().pipeMix); return; }
+    if (old) { const back = Math.floor(COST[old.x ? 'pipex' : 'pipe'] / 2); S.money += back; }
+    spend(cost, c + 0.5, r + 0.3); return;
   }
   if (tool === 'lamp') {   // 照明：別の層に置く（何の上にも置ける）
     if (r < SKY || S.lamps[k]) return;
@@ -3300,6 +3344,7 @@ function removeYard() {
   const back = Math.floor(COST.yard / 2); S.money += back; pop('+' + back, c + 0.5, YARD_R, 'sale'); say(tx().yardNone, 4000);
 }
 function removeLamp(k) { if (!S.lamps[k]) return; delete S.lamps[k]; lampVer++; const back = Math.floor(COST.lamp / 2); S.money += back; pop('+' + back, cOf(k) + 0.5, rOf(k) + 0.3, 'sale'); }
+function removePipe(k) { const o = S.pipes[k]; if (!o) return; delete S.pipes[k]; pipeVer++; const back = Math.floor(COST[o.x ? 'pipex' : 'pipe'] / 2); S.money += back; pop('+' + back, cOf(k) + 0.5, rOf(k) + 0.3, 'sale'); }
 function removeElev(k) { if (!S.elev[k]) return; delete S.elev[k]; elevVer++; const back = Math.floor(COST.elev / 2); S.money += back; pop('+' + back, cOf(k) + 0.5, rOf(k) + 0.3, 'sale'); }
 function removeAt(k) {
   const s = S.st.get(k); if (!s || s.type === 'well') return;   // 湧き口は撤去できない
@@ -3439,7 +3484,7 @@ function popCell() {
   if (!popTarget) return null;
   if (popTarget === 'truck') return { c: BED, r: YARD_R };
   if (popTarget.type === 'fork') return { c: popTarget.x - 0.5, r: YARD_R };
-  if (popTarget.type === 'digcell' || popTarget.type === 'item' || popTarget.type === 'pend' || popTarget.type === 'pick' || popTarget.type === 'elev' || popTarget.type === 'elevPlace' || popTarget.type === 'lid' || popTarget.type === 'lamp') return { c: popTarget.c, r: popTarget.r };
+  if (popTarget.type === 'digcell' || popTarget.type === 'item' || popTarget.type === 'pend' || popTarget.type === 'pick' || popTarget.type === 'elev' || popTarget.type === 'elevPlace' || popTarget.type === 'lid' || popTarget.type === 'lamp' || popTarget.type === 'pipe') return { c: popTarget.c, r: popTarget.r };
   if (popTarget.type === 'fac') return { c: popTarget.c, r: YARD_R };
   const k = findKey(popTarget);
   return k < 0 ? null : { c: cOf(k), r: rOf(k) };
@@ -3477,7 +3522,7 @@ function buildPop() {
     return;
   }
   if (t.type === 'fac' || t.type === 'well' || t.type === 'pipe') {   // 施設・湧き口・パイプ：説明と状態
-    $('popTitle').textContent = t.type === 'fac' ? T.fac[t.f] : t.type === 'well' ? T.wellName[t.kind] : T.pipe;
+    $('popTitle').textContent = t.type === 'fac' ? T.fac[t.f] : t.type === 'well' ? T.wellName[t.kind] : (pipeAt(key(t.c, t.r)) || {}).x ? T.pipex : T.pipe;
     for (const id of ['popDirs', 'popFilterRow', 'popSideRow', 'popLevel', 'popLvUp', 'popAction']) $(id).hidden = true;
     $('popRemove').hidden = t.type === 'well'; $('popPrioRow').hidden = t.type !== 'fac' || t.f === 'vend';
     $('popView').hidden = t.type !== 'fac' || t.f === 'vend';   // 施設の中の様子（自販機は無し）
@@ -3542,7 +3587,7 @@ function helpItemList() {
   const itemPic = k => { const c2 = document.createElement('canvas'); c2.width = c2.height = 32; c2.className = 'thumb'; const g = c2.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(itemSprite(k), 4, 4, 24, 24); return c2; };
   const facs = ['lab', ...FAC_IDS.filter(f => S.unlock[f])];
   sec(T.hFacs, facs.map(f => [thumb(f), f === 'lab' ? T.labName : T.fac[f], f === 'lab' ? T.labDesc : T.facDesc[f]]));
-  const tools = ['drill', 'fdrill', 'adrill', 'conv', 'sort', 'tee', 'cross', 'pipe', 'elev'].filter(t => ['drill', 'conv', 'sort'].includes(t) || S.unlock[t]);
+  const tools = ['drill', 'fdrill', 'adrill', 'conv', 'sort', 'tee', 'cross', 'pipe', 'pipex', 'elev'].filter(t => ['drill', 'conv', 'sort'].includes(t) || S.unlock[t === 'pipex' ? 'pipe' : t]);
   sec(T.hTools, tools.map(t => [thumb(t), T[t], T.toolDesc[t] || '']));
   sec(T.hMachs, MACHINE_ORDER.filter(m => S.unlock[m]).map(m => { const def = MACHINES[m]; return [thumb('m:' + m), T.mach[m], def.bag ? T.bagRule : def.src ? T.aditRule : def.recipes.map(x => `${recIn(x)} → ${T.items[x.out]}`).join(' / ')]; }));
   sec(T.hRes, catalogIds().map(k => [itemPic(k), T.items[k], itemInfo(k).split('\n')[0]]));
@@ -3637,14 +3682,14 @@ function updatePop() {
   }
   if (t.type === 'fac' || t.type === 'well' || t.type === 'pipe') {
     document.querySelectorAll('#pop [data-pp]').forEach(b => b.classList.toggle('active', +b.dataset.pp === (t.prio === undefined ? 1 : t.prio)));
-    const tanks = `${T.tankOil} ${Math.floor(S.tank.oil)}/${BAL.tankCap}　${T.tankHot} ${Math.floor(S.tank.hot)}/${BAL.tankCap}`;
+    const tanks = t.type === 'fac' && LIQ_FAC[t.f] ? (t.liq > 0 || pipeNets().nets.some(n => n.facs.includes(t)) ? `${t.lk === 'oil' ? T.tankOil : T.tankHot} ${Math.floor(t.liq || 0)}/${BAL.tankCap}` : T.facLiqNone) : '';
     if (t.type === 'fac') {
       const ws = facWorkers(t), col = S.museum || {};
       const extra = t.f === 'museum' ? `${T.museumCol(Object.keys(col).length, RARE.length)}\n${Object.entries(col).map(([k2, n]) => `${T.items[k2]}×${n}`).join('　') || '-'}\n${T.guests(visitors(t))}` : `${tanks}` + (t.f === 'spa' ? `\n${T.guests(visitors(t))}` : '');
       $('popInfo').innerText = t.f === 'hc' ? `${T.facDesc.hc}\n${Object.entries(t.stock || {}).filter(([, n]) => n > 0).map(([k2, n]) => `${T.items[k2]} ${n}/10`).join('　') || T.hcEmpty}\n${T.guests(visitors(t))}\n${ws.length ? T.facStaff(ws.length, BAL.facSlots) : T.facNoOp}` : t.f === 'vend' ? `${T.facDesc.vend}\n${T.vendN(Math.min(3, S.fac.filter(f2 => f2.f === 'vend').length))}` : `${T.facDesc[t.f]}\n${extra}\n${ws.length ? T.facStaff(ws.length, BAL.facSlots) : T.facNoOp}`;   // 自販機は人がいらない
     }
-    else if (t.type === 'well') { const n = pipeNet().get(findKey(t)); $('popInfo').innerText = `${T.wellDesc[t.kind]}\n${n && n.surface ? T.wellOn : T.wellOff}`; }
-    else { const n = pipeNet().get(findKey(t)); $('popInfo').innerText = `${T.pipeDesc}\n${n && n.surface && n.kind ? T.wellOn : T.wellOff}\n${tanks}`; }
+    else if (t.type === 'well') { const n = wellNet(findKey(t)); $('popInfo').innerText = `${T.wellDesc[t.kind]}\n${n && n.facs.length ? T.wellOn : T.wellOff}`; }
+    else { const n = pipeNetAt(key(t.c, t.r)), cr = pipeAt(key(t.c, t.r)) && pipeAt(key(t.c, t.r)).x; $('popInfo').innerText = `${cr ? T.pipexDesc : T.pipeDesc}\n${n && n.mixed ? T.pipeMix : n && n.kind ? (n.kind === 'oil' ? T.tankOil : T.tankHot) + '：' + (n.flow ? T.pipeFlow : T.pipeIdle) : T.pipeIdle}`; }
     return;
   }
   document.querySelectorAll('#pop [data-pdir]').forEach(b => b.classList.toggle('active', t !== 'truck' && b.dataset.pdir === t.dir));
@@ -3720,6 +3765,7 @@ $('popRemove').addEventListener('click', () => {
     else if (t.type === 'elev') removeElev(key(t.c, t.r));
     else if (t.type === 'lamp' && t.vend) { const k2 = key(t.c, t.r); if (S.vends[k2]) { delete S.vends[k2]; const back = Math.floor(COST.vend / 2); S.money += back; pop('+' + back, t.c + 0.5, t.r + 0.3, 'sale'); } }
     else if (t.type === 'lamp') removeLamp(key(t.c, t.r));
+    else if (t.type === 'pipe') removePipe(key(t.c, t.r));
     else { const k = findKey(t); if (k >= 0) removeAt(k); }
     closePop(); updateUI();
   };
@@ -3732,7 +3778,7 @@ let menuOpen = false, openCat = null, openGrp = null;
 // 設置の中の3つの項目と、その種類（研究したものだけ。レベル1では追加要素は見せない）
 const grpList = g => g === 'drill' ? ['drill', ...['fdrill', 'adrill'].filter(t => S.unlock[t])]
   : g === 'belt' ? ['conv', 'sort', ...['tee', 'branch', 'tri', 'cross'].filter(t => S.unlock[t])]
-  : g === 'pipe' ? (S.unlock.pipe ? ['pipe'] : [])
+  : g === 'pipe' ? (S.unlock.pipe ? ['pipe', 'pipex'] : [])
   : g === 'other' ? ['elev', 'lamp', 'vend'].filter(t => S.unlock[t])
   : g === 'fac' ? (S.office.lv >= 1 ? facTools() : [])
   : g === 'works' ? ['dig', 'remove', ...(YARD_C < 0 ? ['yard'] : [])]
@@ -3768,7 +3814,7 @@ function thumb(id) {
     else if (id === 'conv' || id === 'sort' || id === 'tee' || id === 'cross' || id === 'tri' || id === 'branch') drawBeltCell(0, 0, { type: id, dir: id === 'tee' || id === 'tri' || id === 'branch' ? 'up' : 'right', filter: 'iron', side: 'left' }, 0, true);
     else if (id === 'lab') { ctx.translate(0, -YARD_R * cp); drawLabAt(0, true); }
     else if (isFacTool(id)) { ctx.imageSmoothingEnabled = false; ctx.drawImage(sprite(id), 0, 0, 48, 48); }
-    else if (id === 'pipe') drawPipe(0, 0, -9, -9, true);
+    else if (id === 'pipe' || id === 'pipex') drawPipeIcon(0, 0, id === 'pipex');
     else if (id === 'elev') drawElev(0, 0);
     else if (id === 'lamp') { drawLamp(0, 0, false); }
     else if (id === 'vend') { ctx.imageSmoothingEnabled = false; ctx.drawImage(sprite('vend'), 0, 0, 48, 48); }
@@ -3920,9 +3966,9 @@ function drawFacView(cv2, f) {
       g.fillStyle = '#8fc6e0'; g.fillRect(12, floor - 14, W - 24, 14); g.fillStyle = '#6aa8c8'; g.fillRect(12, floor - 14, W - 24, 2);
       g.fillStyle = '#9a8a76'; g.fillRect(8, floor - 16, 4, 16); g.fillRect(W - 12, floor - 16, 4, 16);
     } else if (f.f === 'power') {   // 発電機（ランプはついたまま。点滅しない）
-      for (let i = 0; i < 3; i++) { const x = 20 + i * (W - 40) / 3; g.fillStyle = '#6a6f78'; g.fillRect(x, floor - 30, 34, 30); g.fillStyle = '#3a3d44'; g.fillRect(x + 4, floor - 26, 26, 8); g.fillStyle = S.tank.hot + S.tank.oil >= 1 ? '#7ad07a' : '#5a5d64'; g.fillRect(x + 26, floor - 14, 5, 5); }
+      for (let i = 0; i < 3; i++) { const x = 20 + i * (W - 40) / 3; g.fillStyle = '#6a6f78'; g.fillRect(x, floor - 30, 34, 30); g.fillStyle = '#3a3d44'; g.fillRect(x + 4, floor - 26, 26, 8); g.fillStyle = (f.liq || 0) >= 1 ? '#7ad07a' : '#5a5d64'; g.fillRect(x + 26, floor - 14, 5, 5); }
     } else if (f.f === 'refinery') {   // タンク（中の石油の量）
-      for (let i = 0; i < 3; i++) { const x = 18 + i * (W - 36) / 3, th = 40, lv = Math.min(1, S.tank.oil / (BAL.tankCap || 300)); g.fillStyle = '#8a8478'; g.fillRect(x, floor - th, 30, th); g.fillStyle = '#2a2420'; g.fillRect(x + 3, floor - 3 - (th - 6) * lv, 24, (th - 6) * lv); }
+      for (let i = 0; i < 3; i++) { const x = 18 + i * (W - 36) / 3, th = 40, lv = Math.min(1, (f.liq || 0) / (BAL.tankCap || 100)); g.fillStyle = '#8a8478'; g.fillRect(x, floor - th, 30, th); g.fillStyle = '#2a2420'; g.fillRect(x + 3, floor - 3 - (th - 6) * lv, 24, (th - 6) * lv); }
     }
     // 作業員（施設で働いている人）と、お客さん（温泉・博物館）
     const ws = facWorkers(f).length;
@@ -4771,12 +4817,12 @@ function draw() {
     if (out(c, r) || s.type === 'drill') continue;
     const x = c * cell, y = r * cell;
     if (s.type === 'machine') { drawMachine(x, y, s); drawLevel(x, y, s.lv); continue; }
-    if (s.type === 'pipe') { drawPipe(x, y, c, r, false); continue; }
     if (s.type === 'well') { ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(sprite(s.kind === 'oil' ? 'oilwell' : 'spring'), x, y, cell, cell); ctx.restore(); continue; }
     drawBeltCell(x, y, s, valOf(s) * TUNE.belt * beltSlow(s, k), false, c, r);   // あふれて遅いコンベアは、縞々もゆっくり
     drawBeltLv(x, y, s);
   }
 
+  drawPipes(out);   // v1.72：パイプの層（コンベアや機械の上に、細く左上寄せで）
   drawLand(g0, r1);
   drawBridges();
   drawOffice();
@@ -5581,7 +5627,7 @@ function drawGhost(x, y) {
   if (isDrillTool(tool)) { drawDrill(x, y, { dir: 'down', tid: tool }); return; }
   if (tool === 'lab') { drawLabAt(x / cp, true); return; }
   if (isFacTool(tool)) { ctx.imageSmoothingEnabled = false; ctx.drawImage(sprite(tool), x, y, cp, cp); return; }
-  if (tool === 'pipe') { drawPipe(x, y, -9, -9, true); return; }
+  if (tool === 'pipe' || tool === 'pipex') { drawPipeIcon(x, y, tool === 'pipex', true); return; }
   if (tool === 'elev') { drawElev(x, y); return; }
   const gd = dir === 'auto' ? (tool === 'conv' ? autoDir(Math.round(x / cp), Math.round(y / cp)) : 'right') : dir;
   if (tool === 'machine') { drawMachine(x, y, { m: machSel, dir: gd, cur: null }); return; }
@@ -5831,18 +5877,62 @@ function drawOffice0() {
 // 研究所：1マスの小さな建物（地上のどこでも）
 function drawLab() { if (S.lab.built) drawLabAt(S.lab.c, false); }
 // パイプ：つながっている向きへ管をのばす。地上につながって流れていれば、中に液体の色
-function drawPipe(x, y, c, r, ghost) {
-  const cell = cp, cx = x + cell / 2, cy = y + cell / 2, w = cell * 0.34;
-  const conn = [];
-  if (!ghost) for (const [dx, dy] of NB) { if ((dy === -1 && r === SKY) || isPipeLike(inB(c + dx, r + dy) && S.st.get(key(c + dx, r + dy)))) conn.push([dx, dy]); }
-  if (!conn.length) conn.push([0, -1], [0, 1]);
-  const seg = (dx, dy, wid, col) => { ctx.fillStyle = col; if (dx) ctx.fillRect(dx > 0 ? cx : x, cy - wid / 2, cell / 2, wid); else ctx.fillRect(cx - wid / 2, dy > 0 ? cy : y, wid, cell / 2); };
-  for (const [dx, dy] of conn) seg(dx, dy, w + 2, THEME.pipe.line);
-  ctx.fillStyle = THEME.pipe.line; ctx.fillRect(cx - w / 2 - 2, cy - w / 2 - 2, w + 4, w + 4);
-  for (const [dx, dy] of conn) seg(dx, dy, w, THEME.pipe.body);
-  ctx.fillStyle = THEME.pipe.joint; ctx.fillRect(cx - w / 2, cy - w / 2, w, w);
-  const n = !ghost && pipeNet().get(key(c, r));
-  if (n && n.surface && n.kind) for (const [dx, dy] of conn) seg(dx, dy, w * 0.36, THEME.pipe[n.kind]);
+// v1.72：パイプは細く、マスの左上寄せ（コンベアは真ん中・作業員はマスの右を歩く）。中を流れている時だけ、液体が動いて見える
+const PIPE_O = 0.16;   // 節の位置（マスの左上からの割合）
+function drawPipes(out) {
+  const cell = cp, w = Math.max(4, cell * 0.16), pn = pipeNets(), t = performance.now() / 1000;
+  const segs = [];
+  for (const ks of Object.keys(S.pipes)) {
+    const k = +ks, c = cOf(k), r = rOf(k); if (out(c, r)) continue;
+    const o = S.pipes[ks], x0 = (c + PIPE_O) * cell, y0 = (r + PIPE_O) * cell;
+    for (const [dx, dy] of NB) {
+      if (dx < 0 || dy < 0) { if (!(dy === -1 && r === SKY && facAt(c))) continue; }   // 線は右と下へ引く（重ねて描かない）。地下1段目の上は施設へ
+      const nc = c + dx, nr = r + dy, nk = key(nc, nr);
+      const net = pn.at.get(o.x ? k * 2 + (dx ? 0 : 1) : k * 2);
+      if (dy === -1) { segs.push([x0, y0, x0, r * cell - cell * 0.1, net, !!o.x && dx === 0]); continue; }
+      const w2 = inB(nc, nr) && S.st.get(nk);
+      if (pipeAt(nk)) segs.push([x0, y0, (nc + PIPE_O) * cell, (nr + PIPE_O) * cell, net, !!o.x && dx === 0]);
+      else if (w2 && w2.type === 'well') segs.push([x0, y0, (nc + 0.5) * cell, (nr + 0.5) * cell, net, false]);
+    }
+    for (const [dx, dy] of [[-1, 0], [0, -1]]) {   // 左・上にある湧き口
+      const nc = c + dx, nr = r + dy, w2 = inB(nc, nr) && S.st.get(key(nc, nr));
+      if (w2 && w2.type === 'well') segs.push([x0, y0, (nc + 0.5) * cell, (nr + 0.5) * cell, pn.at.get(o.x ? k * 2 + (dx ? 0 : 1) : k * 2), false]);
+    }
+  }
+  const line = (a, col, wd) => { ctx.strokeStyle = col; ctx.lineWidth = wd; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(a[2], a[3]); ctx.stroke(); };
+  ctx.save(); ctx.lineCap = 'butt';
+  for (const a of segs) line(a, THEME.pipe.line, w + 2);
+  for (const a of segs) line(a, THEME.pipe.body, w);
+  // 中身：種類が決まった管は液体の色。流れている時は、粒（お湯＝明るい泡・石油＝暗い点）がゆっくり動く。光らせない
+  for (const a of segs) {
+    const net = a[4]; if (!net || !net.kind || net.mixed) continue;
+    line(a, THEME.pipe[net.kind], w * 0.56);
+    if (!net.flow) continue;
+    const len = Math.hypot(a[2] - a[0], a[3] - a[1]); if (len < 1) continue;
+    const step = cell * 0.32, ph = (t * cell * 0.45) % step;
+    ctx.fillStyle = net.kind === 'hot' ? 'rgba(235,250,255,.95)' : 'rgba(20,12,6,.9)';
+    for (let d = ph; d < len; d += step) {
+      const px = a[0] + (a[2] - a[0]) * d / len, py = a[1] + (a[3] - a[1]) * d / len;
+      if (net.kind === 'hot') { ctx.beginPath(); ctx.arc(px, py, w * 0.2, 0, Math.PI * 2); ctx.fill(); }
+      else ctx.fillRect(px - w * 0.18, py - w * 0.18, w * 0.36, w * 0.36);
+    }
+  }
+  // 節（つなぎ目）と、交差の印（横の管を縦の管の上にまたがせる）
+  for (const ks of Object.keys(S.pipes)) {
+    const k = +ks, c = cOf(k), r = rOf(k); if (out(c, r)) continue;
+    const x0 = (c + PIPE_O) * cell, y0 = (r + PIPE_O) * cell;
+    if (S.pipes[ks].x) { ctx.fillStyle = THEME.pipe.line; ctx.fillRect(x0 - w * 0.9, y0 - w * 0.9, w * 1.8, w * 1.8); ctx.fillStyle = THEME.pipe.joint; ctx.fillRect(x0 - w * 0.7, y0 - w * 0.25, w * 1.4, w * 0.5); }
+    else { ctx.fillStyle = THEME.pipe.line; ctx.fillRect(x0 - w * 0.65, y0 - w * 0.65, w * 1.3, w * 1.3); ctx.fillStyle = THEME.pipe.joint; ctx.fillRect(x0 - w * 0.45, y0 - w * 0.45, w * 0.9, w * 0.9); }
+  }
+  ctx.restore();
+}
+// メニュー・置く前の絵：パイプ（交差）の小さな絵
+function drawPipeIcon(x, y, cross, ghost) {
+  const cell = cp, w = Math.max(3, cell * (ghost ? 0.13 : 0.16)), x0 = x + cell * (ghost ? PIPE_O : 0.5), y0 = y + cell * (ghost ? PIPE_O : 0.5);
+  ctx.save(); if (ghost) ctx.globalAlpha = 0.7;
+  const bar = (vx) => { ctx.fillStyle = THEME.pipe.line; if (vx) ctx.fillRect(x0 - w / 2 - 1, y, w + 2, cell); else ctx.fillRect(x, y0 - w / 2 - 1, cell, w + 2); ctx.fillStyle = THEME.pipe.body; if (vx) ctx.fillRect(x0 - w / 2, y, w, cell); else ctx.fillRect(x, y0 - w / 2, cell, w); };
+  bar(true); if (cross) bar(false);
+  ctx.restore();
 }
 // よその土地：地下は暗く、土地の境目に柵
 function drawLand(g0, r1) {
@@ -5882,9 +5972,9 @@ function drawFacs() {
     const x = f.c * cell, y = YARD_R * cell;
     ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(sprite(f.f), x, y, cell, cell); ctx.restore();
     if (!facWorkers(f).length) { ctx.fillStyle = THEME.zMark || '#2b2b2e'; ctx.font = `bold ${Math.round(cell * 0.22)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('z', x + cell * 0.84, y + cell * 0.17); }
-    const tk = f.f === 'refinery' ? S.tank.oil : f.f === 'spa' ? S.tank.hot : S.tank.hot + S.tank.oil;   // タンクの残り
+    if (!LIQ_FAC[f.f]) continue;   // タンクのある施設だけ（v1.72：施設ごとのタンク）
     ctx.fillStyle = THEME.gaugeBg; ctx.fillRect(x + 3, y + cell - 5, cell - 6, 3);
-    ctx.fillStyle = f.f === 'refinery' ? THEME.pipe.oil : THEME.pipe.hot; ctx.fillRect(x + 3, y + cell - 5, (cell - 6) * Math.min(1, tk / BAL.tankCap), 3);
+    ctx.fillStyle = THEME.pipe[f.lk || (f.f === 'refinery' ? 'oil' : 'hot')]; ctx.fillRect(x + 3, y + cell - 5, (cell - 6) * Math.min(1, (f.liq || 0) / BAL.tankCap), 3);
   }
   for (const car of S.cars) {
     const cx = car.x * cell, by = (YARD_R + 0.95) * cell, w = cell * 0.62, h = cell * 0.26;
@@ -6199,8 +6289,7 @@ function advList() {   // 今の提案（大事な順）。sig が変わるま�
   }
   if (!sk('auto') && resAvail('sk:auto') && typeList('mach').some(m => !opOf(m))) add('auto', A.auto, { c: S.lab.c || OFFICE_C, r: YARD_R, open: () => togglePanel('skillPanel') });
   // 4. 地上・湧き口・珍品
-  for (const [k, w] of S.st) { if (w.type !== 'well') continue; const n2 = pipeNet().get(k); if (!(n2 && n2.surface)) { add('well' + k, A.well(T.wellName[w.kind]), { ...stOf(k), open: () => openPop({ type: 'well', ...w, c: cOf(k), r: rOf(k) }) }); break; } }
-  if ((S.tank.hot > 200 || S.tank.oil > 200) && !S.fac.some(f => FAC_USE[f.f] && FAC_USE[f.f].some(l => S.tank[l] > 0))) add('tank', A.tank, { c: OFFICE_C, r: YARD_R, open: () => { openCat = 'build'; openGrp = 'fac'; renderSub(); updateUI(); } });
+  for (const [k, w] of S.st) { if (w.type !== 'well') continue; const n2 = wellNet(k); if (!(n2 && n2.facs.length)) { add('well' + k, A.well(T.wellName[w.kind]), { ...stOf(k), open: () => openPop({ type: 'well', ...w, c: cOf(k), r: rOf(k) }) }); break; } }
   if (S.yard.some(it => isRare(it.k)) && !S.fac.some(f => f.f === 'museum')) add('museum', A.museum, { c: YARD_C, r: YARD_R, open: () => openPop('truck') });
   const tired = S.workers.filter(w => w.state === 'rest' || w.state === 'toRest').length;
   if (S.workers.length >= 6 && tired / S.workers.length > 0.5) add('tired', S.unlock.vend && !Object.keys(S.vends || {}).length ? A.tiredVend : A.tired, { c: OFFICE_C, r: YARD_R, open: () => togglePanel('office') });
@@ -6263,7 +6352,7 @@ function xAvoidMsg() {
 // ---- 111 コレクション：画面で見た物が格子に並ぶ（まだの物は灰色の影絵・タップでぶるぶる） ----
 const colIds = () => [
   'p:boss', 'p:worker', 'p:sec', 'p:hr', 'p:tech', 'p:sales', 'p:guest', 'v:fork', 'v:bossFork', 'v:truck', 'v:sedan', 'v:kei', 'v:guestCar', 'x:plane', 'x:birds', 'x:stake', 'x:rocket', 'w:hot', 'w:oil', 'b:office', 'lab', ...FAC_IDS,
-  'drill', 'fdrill', 'adrill', 'conv', 'sort', 'tee', 'branch', 'tri', 'cross', 'pipe', 'elev', 'lamp', 'vend',
+  'drill', 'fdrill', 'adrill', 'conv', 'sort', 'tee', 'branch', 'tri', 'cross', 'pipe', 'pipex', 'elev', 'lamp', 'vend',
   ...MACHINE_ORDER.map(m => 'm:' + m), ...ITEM_ORDER.filter(k => k !== 'bag').map(k => 'i:' + k)];
 function colScan() {   // 見た物を覚える（なくなっても数える）
   const c = S.col || (S.col = {}), on = id => { c[id] = 1; };
@@ -6293,7 +6382,7 @@ function colPic(id) {   // 48×48 の絵（ゲームの絵をそのまま使う�
   if (colCache.has(id)) return colCache.get(id);
   let c2;
   if (id.startsWith('i:')) { c2 = document.createElement('canvas'); c2.width = c2.height = 48; const g = c2.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(itemSprite(id.slice(2)), 4, 4, 40, 40); }
-  else if (id.startsWith('m:') || isDrillTool(id) || ['conv', 'sort', 'tee', 'cross', 'tri', 'branch', 'pipe', 'elev', 'lamp', 'vend', 'lab'].includes(id) || isFacTool(id)) { const t = thumb(id); c2 = document.createElement('canvas'); c2.width = c2.height = 48; c2.getContext('2d').drawImage(t, 0, 0); }
+  else if (id.startsWith('m:') || isDrillTool(id) || ['conv', 'sort', 'tee', 'cross', 'tri', 'branch', 'pipe', 'pipex', 'elev', 'lamp', 'vend', 'lab'].includes(id) || isFacTool(id)) { const t = thumb(id); c2 = document.createElement('canvas'); c2.width = c2.height = 48; c2.getContext('2d').drawImage(t, 0, 0); }
   else {
     c2 = document.createElement('canvas'); c2.width = c2.height = 48;
     const saved = [ctx, cp]; ctx = c2.getContext('2d'); ctx.imageSmoothingEnabled = false;
@@ -6526,6 +6615,7 @@ function tapAt(p) {
     if (p.r === YARD_R && S.dock[p.c] && S.dock[p.c].length) addKinds(S.dock[p.c], p.c, p.r);   // 地上に出た資源の山：種類ごと
     if (s) cands.push([stLabel(s), () => openPop(s)]);
     if (ev) cands.push([T.elev, () => openPop({ type: 'elev', c: p.c, r: p.r })]);
+    if (inB(p.c, p.r) && pipeAt(key(p.c, p.r))) cands.push([pipeAt(key(p.c, p.r)).x ? T.pipex : T.pipe, () => openPop({ type: 'pipe', c: p.c, r: p.r })]);   // v1.72
     if (inB(p.c, p.r) && S.lamps[key(p.c, p.r)]) cands.push([T.lamp, () => openPop({ type: 'lamp', c: p.c, r: p.r })]);
     if (inB(p.c, p.r) && (S.vends || {})[key(p.c, p.r)]) cands.push([T.vend, () => openPop({ type: 'lamp', vend: true, c: p.c, r: p.r })]);
     if (!s && inB(p.c, p.r) && S.lids[key(p.c, p.r)]) cands.push([T.lidName, () => openPop({ type: 'lid', c: p.c, r: p.r })]);
@@ -6750,29 +6840,16 @@ function autoPut(k, obj, cost) {   // 地下に置く（今ある物は撤去し
 // 湧き口から地下1段目まで、空いたマスをたどってパイプの道を探す
 // 湧き口から地下1段目まで、パイプの道を探す。空いたマス（安い）と、掘れる土（掘る費用がかかる）を通れる。
 // 縦穴のコンベアなど、置いた物のあるマスは通れない（湧き口はたいてい縦穴の底にできるので、横の土を掘って上がる）
-function autoPipePath(wk) {
-  const dist = new Map([[wk, 0]]), prev = new Map([[wk, -1]]), done = new Set();
-  const stepCost = (c, r) => {
-    const b = blk(c, r);
-    if (b) return b.mat === 'rock' && false ? Infinity : COST.pipe + digCost(b);
-    const s2 = S.st.get(key(c, r));
-    if (s2 && s2.type !== 'pipe') return Infinity;
-    return s2 ? 0 : COST.pipe;
-  };
-  for (let guard = 0; guard < 4000; guard++) {   // 小さな盤面なので、いちばん安い所を順に広げる
-    let k = -1, bd = Infinity;
-    for (const [k2, d] of dist) if (!done.has(k2) && d < bd) { bd = d; k = k2; }
-    if (k < 0) return null;
-    done.add(k);
+function autoPipePath(wk, kind) {   // v1.72：湧き口から、その液体を使う施設の真下（地下1段目）まで、掘ってあるマスだけを通る道
+  const goal = new Set(S.fac.filter(f => LIQ_FAC[f.f] && LIQ_FAC[f.f].includes(kind)).map(f => key(f.c, SKY)));
+  if (!goal.size) return null;
+  const free = (c, r) => { if (!inB(c, r) || r < SKY) return false; const b0 = blk(c, r); if (b0 !== null && !(r === SKY && b0.mat !== 'rock')) return false; /* 地下1段目だけは、土を掘って通ってよい（安い） */ const w = S.st.get(key(c, r)); if (w && w.type === 'well') return false; const n = pipeAt(key(c, r)) && pipeNetAt(key(c, r)); return !(n && n.kind && n.kind !== kind); };
+  const c0 = cOf(wk), r0 = rOf(wk), prev = new Map(), q = [];
+  for (const [dx, dy] of NB) { const c = c0 + dx, r = r0 + dy; if (free(c, r)) { const k = key(c, r); prev.set(k, -1); q.push(k); } }
+  for (let i = 0; i < q.length && i < 6000; i++) {
+    const k = q[i]; if (goal.has(k)) { const path = []; for (let x = k; x !== -1; x = prev.get(x)) path.push(x); return { path, cost: path.reduce((a, x) => a + (pipeAt(x) ? 0 : COST.pipe) + (blk(cOf(x), rOf(x)) ? digCost(blk(cOf(x), rOf(x))) : 0), 0) }; }
     const c = cOf(k), r = rOf(k);
-    if (r === SKY && k !== wk) { const p2 = []; for (let x = k; x !== wk; x = prev.get(x)) p2.push(x); return { path: p2, cost: bd }; }
-    for (const [dx, dy] of NB) {
-      const nc = c + dx, nr = r + dy, nk = key(nc, nr);
-      if (!inB(nc, nr) || nr < SKY || done.has(nk)) continue;
-      const sc = stepCost(nc, nr); if (sc === Infinity) continue;
-      const nd = bd + sc;
-      if (!dist.has(nk) || nd < dist.get(nk)) { dist.set(nk, nd); prev.set(nk, k); }
-    }
+    for (const [dx, dy] of NB) { const nc = c + dx, nr = r + dy, nk = key(nc, nr); if (!prev.has(nk) && free(nc, nr)) { prev.set(nk, k); q.push(nk); } }
   }
   return null;
 }
@@ -6899,7 +6976,7 @@ function autoSortLines(drills) {
   }
 }
 // 地上の施設：使う液体（新しい施設はここに足すだけで、AIも使う）
-const FAC_USE = { spa: ['hot'], power: ['hot', 'oil'], refinery: ['oil'], museum: ['rare'] };
+const FAC_USE = { spa: ['hot'], power: ['hot', 'oil'], refinery: ['oil'], museum: ['rare'] };   // v1.72：液体は LIQ_FAC（パイプで直接つなぐ）
 
 // ---- 自動プレイの「失敗」：銀行の融資（300）はプレイヤーの救済なので、AIが借りたら失敗として原因を残す ----
 // 学んだこと（お金の残し方など）は、この端末に覚えておき、次の自動プレイで使う
@@ -6943,7 +7020,7 @@ function autoSnap() {
     fl: S.forks.reduce((a, f2) => a + f2.lv, 0), dl: sts.filter(s => s.type === 'drill').reduce((a, s) => a + s.lv, 0),
     ml: sts.filter(s => s.type === 'machine').reduce((a, s) => a + s.lv, 0), pr: { ...(S.priceLv || {}) },
     dn: sts.filter(s => s.type === 'drill').length, ms: sts.filter(s => s.type === 'machine').map(s => s.m),
-    pn: sts.filter(s => s.type === 'pipe').length, fac: S.fac.map(x => x.f), dirs: sts.filter(s => s.type === 'drill').map(s => s.dir).join(),
+    pn: Object.keys(S.pipes).length, fac: S.fac.map(x => x.f), dirs: sts.filter(s => s.type === 'drill').map(s => s.dir).join(),
     sorts: sts.filter(s => s.type === 'sort').length };
 }
 let aiNote = [];   // その場で起きたこと（ドリルの撤去など）
@@ -7096,27 +7173,23 @@ function autoStep(build = true) {
   } else autoSortLines(live);
   if (S.unlock.adit) autoAdit(live);
   // 湧き口：パイプで地下1段目までつなぐ
-  if (S.unlock.pipe) {
-    const net = pipeNet();
+  if (S.unlock.pipe) {   // v1.72：つながっていない湧き口は、合う施設の真下までパイプを敷く（掘ってあるマスだけを通る）
     for (const [wk, w] of all) {
       if (w.type !== 'well') continue;
-      const n = net.get(wk); if (n && n.surface) continue;
-      const found = autoPipePath(wk);
-      if (!found || S.money < found.cost * 2) continue;
-      for (const k of found.path) {
-        if (S.st.has(k)) continue;
-        const b = blk(cOf(k), rOf(k)); if (b && S.money < digCost(b) + COST.pipe) break; if (b) { spend(digCost(b), cOf(k) + 0.5, rOf(k) + 0.3); row(rOf(k))[cOf(k)] = null; S.digVer++; }   // 土を掘ってから（払えなければやめる）
-        autoPut(k, { type: 'pipe', dir: 'up', lv: 0 }, COST.pipe);
-      }
+      const n = wellNet(wk); if (n && n.facs.length) continue;
+      const found = autoPipePath(wk, w.kind);
+      if (!found || S.money < found.cost * 2 + 50) continue;
+      for (const k of found.path) { const b0 = blk(cOf(k), rOf(k)); if (b0) { if (S.money < digCost(b0) + COST.pipe) break; spend(digCost(b0), cOf(k) + 0.5, rOf(k) + 0.3); row(rOf(k))[cOf(k)] = null; S.digVer++; } if (!pipeAt(k)) { S.pipes[k] = {}; pipeVer++; spend(COST.pipe, cOf(k) + 0.5, rOf(k) + 0.3); } }
       break;
     }
   }
   // 地上の施設：使う液体がたまっていれば建てる（1種類1つ）
   for (const fid of FAC_IDS) {
     const use = FAC_USE[fid] || [];
+    const wellKinds = new Set(all.filter(([, x]) => x.type === 'well').map(([, x]) => x.kind));
     const ok = fid === 'museum' ? RARE.some(([k2]) => S.sold[k2] || S.yard.some(it => it.k === k2))   // 博物館は珍しい物を見つけてから
       : fid === 'hc' ? Object.keys(S.sold).some(k2 => k2[0] !== '@' && !RAW_KINDS.has(k2) && !isRare(k2) && k2 !== 'bag' && k2 !== 'fuel')   // v1.68 ホームセンター：製品を作って売っていたら（前はAIの条件に無く、建たなかった）
-      : use.some(l => S.tank[l] > 20);
+      : (LIQ_FAC[fid] || []).some(l => wellKinds.has(l)) && !(fid === 'power' && wellKinds.size === 1 && wellKinds.has('hot') && !S.fac.some(x => x.f === 'spa'));   // v1.72：合う湧き口があれば（お湯だけなら温泉を先に）
     if (!ok || !S.unlock[fid] || S.fac.some(x => x.f === fid)) continue;
     const c = autoFreeCol(), cost = buildCost(fid);
     if (c === undefined || S.money < cost * 1.5 * R) continue;
@@ -7342,6 +7415,7 @@ const ura = (() => {
     if (Object.keys(S.elev || {}).length) b.add('t:elev');
     if (Object.keys(S.lamps || {}).length) b.add('t:lamp');
     if (Object.keys(S.vends || {}).length) b.add('t:vend');
+    for (const o of Object.values(S.pipes || {})) b.add(o.x ? 't:pipex' : 't:pipe');
     return b;
   }
   const resDone = () => new Set(allResIds().filter(id => !id.startsWith('sk:') && resDef0(id).done));
@@ -7509,7 +7583,7 @@ const BAL_GROUP = { ITEMS: '資源・製品', MACHINES: '機械', LV: 'レベル
   PRICE_BASE: '売値アップ1回目の値段', FORK: 'フォークリフト', WELL_RATE: '湧き口が1秒に出す量', TUNE: '全体の倍率（前からの「調整」）', AI_W: 'AIのお金の使い方', BAL: 'その他（単独の数字・式の中の数字）' };
 const BAL_WORD = { v: '売値', cost: '値段', time: '加工の時間（秒）', n: '使う数', recipes: '作り方', val: '値', v0: '最初の値', vg: '値の伸び（倍）', c0: '最初の値段', cg: '値段の伸び（倍）',
   cap: '上限', rest: '休憩の速さ', forks: 'フォークリフトの台数', months: 'か月', max: '上限', speed: '速さ', rate: '積みおろしの速さ', ins: '材料',
-  tankCap: 'タンクの容量', facSlow: '作業員なしの施設の速さ', drillHit: 'ドリルが1回削る間隔（秒）', grav: '資源が落ちる強さ', loadRate: 'トラックに積む速さ（個/秒）',
+  tankCap: '施設のタンクの容量', facSlow: '作業員なしの施設の速さ', drillHit: 'ドリルが1回削る間隔（秒）', grav: '資源が落ちる強さ', loadRate: 'トラックに積む速さ（個/秒）',
   walkH: '歩く速さ（横）', walkV: 'はしごの速さ（縦）', restSec: '休みきるまでの秒', valueUp: '機械レベルごとの売値の倍率（付加価値）', loan: '銀行の融資の額', loanMax: '融資の上限',
   advLv: '研究所・運転に要る作業員のレベル', facSlots: '地上施設で働ける人数', aditMax: '横穴のレベルアップ回数', aditMaxSpeed: '横穴の最大レベルの速さ（倍）',
   hireFee0: '契約金（基本）', hireFeeLv: '契約金（レベルごと）', wage0: '給料（基本）', wageLv: '給料（レベルごと）', forkSpd0: 'フォークリフトの速さ（基本）',
