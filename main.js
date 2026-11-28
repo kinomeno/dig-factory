@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v2.04（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v2.05（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '2.04';
+const VERSION = '2.05';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -1591,8 +1591,8 @@ function spawnItem(k, x, y, cc, cr) {
 }
 function toYard(it) { S.yard.push({ k: it.k, v: it.v, of: it.of, rx: Math.random(), ry: Math.random() }); }
 const PARK_X = OFFICE_C - 0.35;   // フォークリフトの待機場所（事務所の左横）
-function dockCol(c) {   // v2.04：荷おろし場に使える列（自分の土地で、ヤード・事務所・研究所の列でない）のうち、c にいちばん近い列（同じ近さなら左）
-  const ok = x => x >= S.landL && x <= S.landR && x !== YARD_C && x !== OFFICE_C && x !== OFFICE_C + 1 && !(S.lab.built && S.lab.c === x);
+function dockCol(c) {   // v2.05：荷おろし場に使える列（自分の土地で、ヤードの列でない。事務所・研究所の前でもよい）のうち、c にいちばん近い列（同じ近さなら左）
+  const ok = x => x >= S.landL && x <= S.landR && x !== YARD_C;
   for (let d = 1; d < COLS; d++) for (const x of [c - d, c + d]) if (ok(x)) return x;
   return clamp(c, S.landL, S.landR);
 }
@@ -2471,7 +2471,7 @@ function makeWell(c, r, kind) {
 }
 // 49：岩盤を突破したご褒美：その深さの資源が、地上にどっと出る（岩盤のレベルが高いほど多い）
 function bonusPile(c, kinds) {   // ご褒美を地上に積む（放置の計算中・出せない時）
-  const c2 = owned(c) && c !== YARD_C && c !== OFFICE_C && c !== OFFICE_C + 1 && !(S.lab.built && c === S.lab.c) ? c : dockCol(c);   // v2.04：自分の土地の中へ
+  const c2 = owned(c) && c !== YARD_C ? c : dockCol(c);   // v2.04：自分の土地の中へ（v2.05：事務所・研究所の前でもよい）
   const pile = S.dock[c2] || (S.dock[c2] = []);
   for (const k of kinds) { pile.push({ k, rx: Math.random(), ry: Math.random() }); if (S.seenIt) S.seenIt[k] = 1; }
   return c2;
