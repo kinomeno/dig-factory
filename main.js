@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.74（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.75（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.74';
+const VERSION = '1.75';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -1669,6 +1669,19 @@ function pipeNets() {
           if (!pipeAt(nk)) continue;
           const nn = pNode(nk, dx);
           if (!at.has(nn)) { at.set(nn, net); q.push(nn); }
+        }
+      }
+      net.dist = new Map();   // v1.75：施設の真下の節からの距離（小さい方が施設に近い＝流れていく先）
+      const dq = [];
+      for (const node of net.nodes) { const k = node >> 1, c = cOf(k), r = rOf(k); if (r === SKY && (!pipeAt(k).x || (node & 1)) && facAt(c) && LIQ_FAC[facAt(c).f]) { net.dist.set(node, 0); dq.push(node); } }
+      for (let i = 0; i < dq.length; i++) {
+        const node = dq[i], k = node >> 1, c = cOf(k), r = rOf(k), cross = !!pipeAt(k).x, axis = node & 1;
+        for (const [dx, dy] of NB) {
+          if (cross && (axis === 1) !== (dx === 0)) continue;
+          const nc = c + dx, nr = r + dy; if (!inB(nc, nr)) continue;
+          const nk = key(nc, nr); if (!pipeAt(nk)) continue;
+          const nn = pNode(nk, dx); if (at.get(nn) !== net || net.dist.has(nn)) continue;
+          net.dist.set(nn, net.dist.get(node) + 1); dq.push(nn);
         }
       }
       net.kind = net.kinds.size === 1 ? [...net.kinds][0] : null;
@@ -5898,30 +5911,30 @@ function drawPipes(out) {
       if (dx < 0 || dy < 0) { if (!(dy === -1 && r === SKY && facAt(c))) continue; }   // 線は右と下へ引く（重ねて描かない）。地下1段目の上は施設へ
       const nc = c + dx, nr = r + dy, nk = key(nc, nr);
       const net = pn.at.get(o.x ? k * 2 + (dx ? 0 : 1) : k * 2);
-      if (dy === -1) { segs.push([x0, y0, x0, r * cell - cell * 0.1, net, !!o.x && dx === 0]); continue; }
+      if (dy === -1) { segs.push([x0, y0, x0, r * cell - cell * 0.1, net, !!o.x && dx === 0, 1]); continue; }   // 施設へ（上へ流れる）
       const w2 = inB(nc, nr) && S.st.get(nk);
-      if (pipeAt(nk)) segs.push([x0, y0, (nc + PIPE_O) * cell, (nr + PIPE_O) * cell, net, !!o.x && dx === 0]);
-      else if (w2 && w2.type === 'well') segs.push([x0, y0, (nc + 0.5) * cell, (nr + 0.5) * cell, net, false]);
+      if (pipeAt(nk)) { const da = net && net.dist.get(o.x ? k * 2 + (dx ? 0 : 1) : k * 2), db = net && net.dist.get(pNode(nk, dx)); segs.push([x0, y0, (nc + PIPE_O) * cell, (nr + PIPE_O) * cell, net, !!o.x && dx === 0, da !== undefined && db !== undefined && da < db ? -1 : 1]); }   // 施設に近い方へ流れる
+      else if (w2 && w2.type === 'well') segs.push([x0, y0, (nc + 0.5) * cell, (nr + 0.5) * cell, net, false, -1]);   // 湧き口から出てくる
     }
     for (const [dx, dy] of [[-1, 0], [0, -1]]) {   // 左・上にある湧き口
       const nc = c + dx, nr = r + dy, w2 = inB(nc, nr) && S.st.get(key(nc, nr));
-      if (w2 && w2.type === 'well') segs.push([x0, y0, (nc + 0.5) * cell, (nr + 0.5) * cell, pn.at.get(o.x ? k * 2 + (dx ? 0 : 1) : k * 2), false]);
+      if (w2 && w2.type === 'well') segs.push([x0, y0, (nc + 0.5) * cell, (nr + 0.5) * cell, pn.at.get(o.x ? k * 2 + (dx ? 0 : 1) : k * 2), false, -1]);
     }
   }
   const line = (a, col, wd) => { ctx.strokeStyle = col; ctx.lineWidth = wd; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(a[2], a[3]); ctx.stroke(); };
   ctx.save(); ctx.lineCap = 'butt';
   for (const a of segs) line(a, THEME.pipe.line, w + 2);
   for (const a of segs) line(a, THEME.pipe.body, w);
-  // 中身：種類が決まった管は液体の色。流れている時は、粒（お湯＝明るい泡・石油＝暗い点）がゆっくり動く。光らせない
+  // 中身：種類が決まった管は液体の色。流れている時は、粒（お湯＝明るい丸い泡・石油＝琥珀色の四角）がゆっくり動く。光らせない
   for (const a of segs) {
     const net = a[4]; if (!net || !net.kind || net.mixed) continue;
     line(a, THEME.pipe[net.kind], w * 0.56);
     if (!net.flow) continue;
     const len = Math.hypot(a[2] - a[0], a[3] - a[1]); if (len < 1) continue;
     const step = cell * 0.32, ph = (t * cell * 0.45) % step;
-    ctx.fillStyle = net.kind === 'hot' ? 'rgba(235,250,255,.95)' : 'rgba(20,12,6,.9)';
+    ctx.fillStyle = net.kind === 'hot' ? 'rgba(235,250,255,.95)' : 'rgba(222,168,84,.95)';   // v1.75：石油の粒は明るい琥珀色（暗い管の中で見えるように。形は四角でお湯の丸と見分ける）
     for (let d = ph; d < len; d += step) {
-      const px = a[0] + (a[2] - a[0]) * d / len, py = a[1] + (a[3] - a[1]) * d / len;
+      const d2 = a[6] < 0 ? len - d : d, px = a[0] + (a[2] - a[0]) * d2 / len, py = a[1] + (a[3] - a[1]) * d2 / len;   // v1.75：湧き口 → 施設 の向きに動く
       if (net.kind === 'hot') { ctx.beginPath(); ctx.arc(px, py, w * 0.2, 0, Math.PI * 2); ctx.fill(); }
       else ctx.fillRect(px - w * 0.18, py - w * 0.18, w * 0.36, w * 0.36);
     }
