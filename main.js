@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v2.06（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v2.07（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '2.06';
+const VERSION = '2.07';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -315,7 +315,7 @@ const TXT = {
     wage: '給料', perMonth: '/月', fee: '契約金', payroll: '人件費（毎月）', cands: '雇える人（毎月入れかわる）',
     noCands: '今月はもういません', nobody: 'まだいません',
     wstate: { idle: '待機', toWork: '持ち場へ', work: '作業中', drive: '運転中', toRest: '休みに戻る', rest: '休憩中' },
-    worker: n => `作業員${n}`, manned: n => `作業員：${n}`, unmanned: '作業員なし（止まっています）',
+    worker: n => `作業員${n}`, manned: n => `作業員：${n}`, unmanned: '作業員なし（止まっています）', unmannedAuto: '作業員なし（オートモード）',
     sortRare: '珍品（まとめて）', sortGrp: { raw: '原料', prod: '製品' }, eject: '材料を排出', ejecting: n => `排出中…（残り${n}）　止める`, payPop: '人件費', payMsg: v => `今月の給料 ${v} を払いました`,
     infoRows: { money: '資金', mSale: '今月の売上', mCost: '今月の経費', mNet: '今月の収支', lNet: '先月の収支',
       tSale: '売上の合計', tCost: '経費の合計', ships: '出荷した回数', deepest: 'いちばん深い所', drills: 'ドリル',
@@ -469,7 +469,7 @@ const TXT = {
     wage: 'きゅうりょう', perMonth: '/つき', fee: 'やとう おかね', payroll: 'きゅうりょう（まいつき）', cands: 'やとえる ひと（まいつき かわる）',
     noCands: 'こんげつは もう いません', nobody: 'まだ いません',
     wstate: { idle: 'まち', toWork: 'しごとへ', work: 'しごとちゅう', drive: 'うんてんちゅう', toRest: 'やすみに もどる', rest: 'やすみちゅう' },
-    worker: n => `さぎょういん${n}`, manned: n => `さぎょういん：${n}`, unmanned: 'さぎょういん なし（とまっています）',
+    worker: n => `さぎょういん${n}`, manned: n => `さぎょういん：${n}`, unmanned: 'さぎょういん なし（とまっています）', unmannedAuto: 'さぎょういん なし（オートモード）',
     sortRare: 'めずらしい もの（まとめて）', sortGrp: { raw: 'げんりょう', prod: 'せいひん' }, eject: 'ざいりょうを だす', ejecting: n => `だしている…（のこり${n}）　とめる`, payPop: 'きゅうりょう', payMsg: v => `こんげつの きゅうりょう ${v} を はらいました`,
     infoRows: { money: 'おかね', mSale: 'こんげつ うれた', mCost: 'こんげつ つかった', mNet: 'こんげつの もうけ', lNet: 'せんげつの もうけ',
       tSale: 'うれた ごうけい', tCost: 'つかった ごうけい', ships: 'トラックで うりに いった かいすう', deepest: 'いちばん ふかい ところ', drills: 'ドリル',
@@ -614,7 +614,7 @@ const TXT = {
     wage: 'Wage', perMonth: '/mo', fee: 'Signing fee', payroll: 'Payroll (monthly)', cands: 'Candidates (change monthly)',
     noCands: 'No more candidates this month', nobody: 'Nobody yet',
     wstate: { idle: 'Idle', toWork: 'Going to work', work: 'Working', drive: 'Driving', toRest: 'Going to rest', rest: 'Resting' },
-    worker: n => `Worker ${n}`, manned: n => `Operator: ${n}`, unmanned: 'No operator (stopped)',
+    worker: n => `Worker ${n}`, manned: n => `Operator: ${n}`, unmanned: 'No operator (stopped)', unmannedAuto: 'No operator (auto mode)',
     sortRare: 'Rarities (all)', sortGrp: { raw: 'Raw', prod: 'Products' }, eject: 'Eject materials', ejecting: n => `Ejecting… (${n} left)  Stop`, payPop: 'Wages', payMsg: v => `Paid this month's wages: ${v}`,
     infoRows: { money: 'Money', mSale: 'Sales this month', mCost: 'Costs this month', mNet: 'Net this month', lNet: 'Net last month',
       tSale: 'Total sales', tCost: 'Total costs', ships: 'Shipments', deepest: 'Deepest', drills: 'Drills',
@@ -3138,9 +3138,10 @@ function updateWorkers(dt) {
     const maxS = maxStamina(w);
     if (vks.length && !w.boss && w.stamina < maxS * 0.6 && S.time - (w.vendT || -99) > 60 && (w.state === 'toWork' || w.state === 'work' || w.state === 'toRest')) {   // 43：自販機で一息
       const wc = Math.floor(w.x), wr = Math.floor(w.y);
-      if (vks.some(k => Math.abs(cOf(+k) - wc) <= 1 && Math.abs(rOf(+k) - wr) <= 1)) {
-        w.vendT = S.time; w.stamina = Math.min(maxS, w.stamina + maxS * 0.25); earn(100, w.x, w.y - 0.3);
-        if (!catchBusy && !autoBusy) bubble(w, tx().vendLine);
+      const vk = vks.find(k => Math.abs(cOf(+k) - wc) <= 1 && Math.abs(rOf(+k) - wr) <= 1), vp = vk !== undefined && pathBetween(wKey(w), +vk);
+      if (vp) {   // v2.07：その場で飲まず、自販機まで寄る（持ち場は一度はなれる）
+        if (w.target && w.target.op === w.id) w.target.op = null;
+        w.vendT = S.time; w.target = null; w.path = vp; w.state = 'toVend'; w.vend = { k: +vk, t: 0 };
       }
     }
     if (w.boss && S.tut) continue;   // はじめの手順の間、社長は手順どおりに動く
@@ -3202,6 +3203,21 @@ function updateWorkers(dt) {
           w.state = 'toWork';
         }
         w.leftFrom = null;
+        break;
+      }
+      case 'toVend':   // v2.07：自販機へ歩く
+        if (!w.vend || !(S.vends || {})[w.vend.k]) { w.vend = null; w.state = 'idle'; w.lastLook = -9; break; }
+        if (walk(w, dt)) { w.state = 'vend'; w.vend.t = 0; }
+        break;
+      case 'vend': {   // v2.07：自販機の前で1秒ほど飲む → +100・ぷはー → 仕事へ戻る
+        const vk = w.vend && w.vend.k;
+        if (vk === undefined || !(S.vends || {})[vk]) { w.vend = null; w.state = 'idle'; w.lastLook = -9; break; }
+        w.vend.t += dt;
+        if (w.vend.t >= 1) {
+          w.stamina = Math.min(maxS, w.stamina + maxS * 0.25); earn(100, cOf(vk) + 0.5, rOf(vk) + 0.3);
+          if (!catchBusy && !autoBusy) bubble(w, tx().vendLine);
+          w.vend = null; w.state = 'idle'; w.lastLook = -9;
+        }
         break;
       }
       case 'toWork': {
@@ -3905,7 +3921,7 @@ function popInfoText() {
   }
   if (t.type === 'sort') return T.sortInfo;
   const opW = isStation(t) ? opOf(t) : null;
-  const opLine = isStation(t) ? '\n' + (opW ? T.manned(`Lv${opW.lv}`) : T.unmanned) : '';
+  const opLine = isStation(t) ? '\n' + (opW ? T.manned(`Lv${opW.lv}`) : unmannedOf(t) > 0 ? T.unmannedAuto : T.unmanned) : '';   // v2.07：人がいなくても動いている時は（オートモード）
   if (t.type === 'machine') {
     const def = MACHINES[t.m];
     const rule = def.bag ? T.bagRule : def.src ? T.aditRule
@@ -5302,9 +5318,10 @@ function draw() {
     ctx.globalAlpha = Math.min(1, a * 1.5);
     ctx.fillStyle = q.kind === 'cost' ? THEME.cost : THEME.sale;
     ctx.strokeStyle = THEME.popLine; ctx.lineWidth = 3;
-    ctx.font = `bold ${Math.round(Math.min(cell * (q.kind === 'sale' ? 0.55 : 0.42), q.kind === 'sale' ? 20 : 15))}px sans-serif`;   // v0.97：控えめに（大きい画面でも20pxまで）
+    let fs = Math.round(Math.min(cell * 0.36, 16)); ctx.font = `bold ${fs}px sans-serif`;   // v2.07：小さめ。字の幅はマスの9割まで
+    const tw = ctx.measureText(q.text).width; if (tw > cell * 0.9) { fs = Math.max(7, Math.floor(fs * cell * 0.9 / tw)); ctx.font = `bold ${fs}px sans-serif`; }
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    const yy = (q.wy - (1 - a) * 1.2) * cell;
+    const yy = (q.wy - 0.1 - (1 - a) * 0.8) * cell;   // 出た所の少し上から、上へ動きながら消える
     ctx.strokeText(q.text, q.wx * cell, yy); ctx.fillText(q.text, q.wx * cell, yy);
     ctx.globalAlpha = 1;
   }
@@ -5724,7 +5741,7 @@ function drawWorker(x, y, w) {   // x,y＝マスの中心（画面座標）。�
   const lr = BAL.walkH * TUNE.walk * Math.min(0.1, drawDt || 0.016);   // v1.11：寄せる速さは歩く速さと同じ（前は一瞬で半マス動いて「ビュン」となっていた）
   w.lx = (w.lx || 0) + clamp(tgt - (w.lx || 0), -lr, lr); if (Math.abs(w.lx) < 0.01) w.lx = 0;
   x += w.lx * cp;
-  const moving = w.path && w.path.length, working = w.state === 'work';
+  const moving = w.path && w.path.length, working = w.state === 'work' || w.state === 'vend';   // v2.07：自販機の前でも、機械に乗っている時と同じ形
   const f = fpsCtl.lite >= 1 ? 0 : moving || working ? Math.floor(S.time / 0.17) % 2 : 1;   // 重い時は大の字（1枚）のまま動く
   const tired = w.stamina / maxStamina(w) < 0.25;
   drawWorkerSprite(x, y + cp * 0.48, cp * 0.42, f, tired ? 0.6 : 1, w.boss);
