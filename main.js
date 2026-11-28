@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.82（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.83（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.82';
+const VERSION = '1.83';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -6711,6 +6711,31 @@ function say(t, ms, mood, at, who) {
   requestAnimationFrame(xAvoidMsg);   // ×と重なったら下げる
 }
 
+// v1.83：タイトルの字は10ドット角の手描き（キャンバスに描く）。字の無い言葉（英語）は、今までのドット風フォントのまま
+const TITLE_GLYPH = {
+  'ほ': ['.#...###..', '.#....#...', '.#.######.', '.#....#...', '.#....#...', '.#....#...', '.#..####..', '.#.#..#.#.', '.#.#..#..#', '.#..##....'],
+  'り': ['.#....#...', '.#....#...', '.#....#...', '.#....#...', '.#....#...', '..#...#...', '......#...', '.....#....', '....#.....', '..##......'],
+  '工': ['..........', '.########.', '....#.....', '....#.....', '....#.....', '....#.....', '....#.....', '....#.....', '##########', '..........'],
+  '場': ['.....####.', '.....#..#.', '.....####.', '.....#..#.', '.....####.', '.#...#####', '###...####', '.#...#.#.#', '.#.....#.#', '####..#.##'],   // 土偏は短く（キノメノ）
+  'こ': ['..........', '..######..', '........#.', '..........', '..........', '..........', '.#........', '.#........', '..#######.', '..........'],
+  'う': ['...####...', '..........', '..######..', '.#......#.', '........#.', '........#.', '.......#..', '......#...', '....##....', '..##......'],
+  'じ': ['.#....#.#.', '.#.....#.#', '.#........', '.#........', '.#........', '.#........', '.#........', '.#.....#..', '..#...#...', '...###....'],
+  'ょ': ['..........', '..........', '..........', '.....#....', '.....###..', '.....#....', '.....#....', '...####...', '..#..#.#..', '...##.....'],
+};
+function renderTitleDots() {
+  const el = document.querySelector('#title .tname'); if (!el) return;
+  const text = tx().title, chars = [...text];
+  if (chars.some(ch => !TITLE_GLYPH[ch])) { el.classList.remove('dots'); el.textContent = text; return; }
+  const N = 10, gap = 1, unit = chars.length * (N + gap) - gap, dpr = window.devicePixelRatio || 1;
+  const dot = Math.max(2, Math.min(4, Math.floor((Math.min(window.innerWidth, 640) - 40) / unit)));   // 画面に入る大きさ（最大4ピクセル）
+  const cv = document.createElement('canvas'), w = unit * dot, h = N * dot + 3;
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.width = w + 'px'; cv.style.height = h + 'px';
+  const g = cv.getContext('2d'); g.scale(dpr, dpr);
+  const draw = (col, oy) => chars.forEach((ch, i) => TITLE_GLYPH[ch].forEach((row, y) => { for (let x = 0; x < N; x++) if (row[x] === '#') { g.fillStyle = col; g.fillRect((i * (N + gap) + x) * dot, y * dot + oy, dot, dot); } }));
+  draw('rgba(30,60,90,.22)', 3); draw('#ffffff', 0);   // 影 → 白い字
+  el.classList.add('dots'); el.textContent = ''; el.append(cv); el.setAttribute('aria-label', text);
+}
+window.addEventListener('resize', () => { if (!$('title').hidden) renderTitleDots(); });
 function setupText() {
   document.title = lang === 'en' ? 'Dig Factory Tycoon' : 'ほりほり工場';   // 共有・ホーム画面の名前も言語に合わせる
   { const m = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (m) m.content = lang === 'en' ? 'Dig Factory' : 'ほりほり工場'; }
@@ -6719,6 +6744,7 @@ function setupText() {
   document.title = T.title;
   document.querySelectorAll('[data-t]').forEach(el => { const v = T[el.dataset.t]; if (typeof v === 'string') el.textContent = v; });
   $('ver').textContent = 'v' + VERSION; $('tVer').textContent = 'v' + VERSION;
+  renderTitleDots();   // v1.83
   document.querySelectorAll('[data-lang]').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
   document.querySelector('#hdr .wm').hidden = lang === 'en';
   $('adminBtn').hidden = !adminMode() && !DEV;

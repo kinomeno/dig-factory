@@ -696,3 +696,7 @@ body.moneyFold #goalHud, body.moneyFold #monthHud, body.moneyFold #aiHud, body.m
 /* v1.82：遊び方の目次は上に固定（説明を縦にスクロールしても動かない） */
 #helpNav { position: sticky; top: -10px; z-index: 3; align-self: start; background: rgb(252, 252, 250); padding-top: 10px; margin-top: -10px; }
 @media (max-width: 560px) { #helpNav { box-shadow: 0 6px 6px -6px rgba(0,0,0,.12); } }
+
+/* v1.83：タイトルの字（10ドットの手描き） */
+#title .tname.dots { line-height: 0; letter-spacing: 0; text-shadow: none; }
+#title .tname.dots canvas { display: inline-block; image-rendering: pixelated; }
