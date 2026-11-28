@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.99（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v2.00（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.99';
+const VERSION = '2.00';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -2056,7 +2056,7 @@ function tut2Update(dt) {
     }
     return;
   }
-  if (tut2Done(t.step)) { closePanels(); closePop(); if (openCat) { openCat = null; renderSub(); } tut2Next(); return; }   // v1.96：どの案内も、できたら開いた画面・メニューは閉じる
+  if (tut2Poll()) return;   // v1.96：どの案内も、できたら開いた画面・メニューは閉じる
   // 離脱：案内した窓を開いて、しないで閉じた
   const winOpen = t.step === 'hire' || t.step === 'office' ? !$('office').hidden : t.step === 'lvup' ? !!(popTarget && popTarget.type === 'fork') : null;
   if (winOpen !== null) { if (winOpen) t.saw = 1; else if (t.saw) { tut2Next(); return; } }
@@ -2112,6 +2112,10 @@ function tutPileUp(n) {   // 案内用：荷おろし場に土が積み上がる
   for (let i = 0; i < n; i++) toSurface({ k: 'soil', v: ITEMS.soil.v, x: c0 + 0.5 });
   const c1 = Object.keys(S.dock).map(Number).sort((a, b) => Math.abs(a - c0) - Math.abs(b - c0))[0];
   if (c1 !== undefined) pop('+' + n, c1 + 0.5, YARD_R + 0.2, 'sale');
+}
+function tut2Poll() {   // v2.00：出ている案内ができたら、開いた画面・メニューを閉じて終わり（ゲームを止めていても、押した時に見る）
+  const t = S && S.tut2; if (!t || t.step === 'wait' || !tut2Done(t.step)) return false;
+  closePanels(); closePop(); if (openCat) { openCat = null; renderSub(); } tut2Next(); return true;
 }
 function tut2Next() {   // 出ている案内を終わりにして、発動リストの待ちへ
   const t = S.tut2; if (!t) return;
@@ -2508,7 +2512,7 @@ const BAYS = () => (sk('yardPlus') ? 4 : 3);   // v1.26：ヤードに同時に�
 const bayFull = () => S.fleet.filter(inBay).length >= BAYS();
 function payTruck(t) {
   earn(t.value, BED + 0.5, YARD_R);        // 帰ってきたら売上
-  if (!S.tut && staffN() === 0 && t.value > 0) S.soloTrips = (S.soloTrips || 0) + 1;   // v1.74：社長ひとりで回した出荷の回数
+  if (staffN() === 0 && t.value > 0) S.soloTrips = (S.soloTrips || 0) + 1;   // v2.00：はじめの手順の間の出荷も数える   // v1.74：社長ひとりで回した出荷の回数
   if (S.loan > 0 && t.value > 0) {         // 融資の返済（売上の2割）
     const back = Math.min(S.loan, Math.ceil(t.value * 0.2));
     S.money -= back; S.loan -= back;
@@ -6578,7 +6582,9 @@ function jumpTo(at) {
   if (at.open) at.open();
 }
 // v1.99：メッセージを押しても消えない。▼＝次の文へ、OK＝この段の終わり、×＝この案内を断る（終わり扱い）
-$('tutNext').addEventListener('click', e => { e.stopPropagation(); if (!S.tut && S.tut2 && S.tut2.step !== 'wait') { S.tut2.pg = (S.tut2.pg || 0) + 1; tutShow(); updateUI(); return; } if (tutWait()) { tutNext(); updateUI(); } });
+function tutInTarget(c, r) { const tg = tutTarget(), q = tg && tg.cell; return !!q && c >= q.c && c < q.c + q.w && r >= q.r && r < q.r + q.h; }   // 光っているマスを押したか
+function tutPageNext() { if ($('tutNext').hidden) return false; S.tut2.pg = (S.tut2.pg || 0) + 1; tutShow(); updateUI(); return true; }   // v2.00：▼ が出ている時だけ（最後の文で止まる）
+$('tutNext').addEventListener('click', e => { e.stopPropagation(); if (!S.tut && S.tut2 && S.tut2.step !== 'wait') { tutPageNext(); return; } if (tutWait()) { tutNext(); updateUI(); } });
 $('tutOk').addEventListener('click', e => { e.stopPropagation(); if (!S.tut && S.tut2 && S.tut2.step !== 'wait') { tut2Next(); updateUI(); } });
 $('tutX').addEventListener('click', e => { e.stopPropagation(); if (!S.tut && S.tut2 && S.tut2.step !== 'wait') { closePanels(); closePop(); if (openCat) { openCat = null; renderSub(); } if (tool !== 'none') tool = 'none'; tut2Next(); updateUI(); } });
 $('tutSkip').addEventListener('click', () => {   // はじめの手順をとばす（ドリルを1台もらって、ふつうに始める）。そのあとの案内も出さない
@@ -6787,18 +6793,20 @@ function renderCol() {
   }
 }
 // v1.98：資金の数字は、1ずつ数えて（だーっと）、桁がドラムのように上下に回る（点滅はしない）
-let monD = null, monFrom = 0, monTo = 0, monT0 = 0, monDur = 300, monRaf = 0, monS = null, monUp = true;
+let monD = null, monRaf = 0, monS = null, monLast = 0, monTo = 0, monSp = 60;
 function moneyShow(m) {
   const v = S.money;
-  if (monD === null || monS !== S || inTitle || document.hidden) { monS = S; monD = monTo = monFrom = v; }
-  else if (v !== monTo) { monFrom = monD; monTo = v; monUp = v > monD; monT0 = performance.now(); monDur = clamp(Math.abs(v - monD) * 40, 250, 900); if (!monRaf) monRaf = requestAnimationFrame(monStep); }
+  if (monD === null || monS !== S || inTitle || document.hidden) { monS = S; monD = monTo = v; }
+  else if (v !== monTo) { monTo = v; monSp = Math.max(Math.abs(v - monD) / 0.6, 60); if (!monRaf) { monLast = performance.now(); monRaf = requestAnimationFrame(monStep); } }   // v2.00：同じ速さで数える（0.6秒で着く。最低でも1秒に60）
   moneyReel(m, monD);
 }
 function monStep(now) {
-  const k = Math.min(1, (now - monT0) / monDur); monD = monFrom + (monTo - monFrom) * (1 - Math.pow(1 - k, 2));
-  if (k >= 1) monD = monTo;
+  const dt = Math.min(0.1, (now - monLast) / 1000); monLast = now;
+  if (S.money !== monTo) { monTo = S.money; monSp = Math.max(Math.abs(monTo - monD) / 0.6, 60); }
+  const rem = monTo - monD, sp = monSp * dt;
+  monD = Math.abs(rem) <= sp ? monTo : monD + Math.sign(rem) * sp;
   moneyReel($('money'), monD);
-  monRaf = k < 1 ? requestAnimationFrame(monStep) : 0;
+  monRaf = monD !== monTo ? requestAnimationFrame(monStep) : 0;
 }
 function moneyReel(m, vf) {   // 桁ごとに 0〜9 と 0 を縦に並べた帯。1万までは連続で回る（一の桁がくるくる、繰り上がりで上の桁もぐるっ）
   const vi = Math.round(vf), str = fmt(vi); m.classList.toggle('neg', vi < 0);
@@ -6817,6 +6825,7 @@ function moneyReel(m, vf) {   // 桁ごとに 0〜9 と 0 を縦に並べた帯�
   }
 }
 function updateUI() {
+  if (S && !S.tut) tut2Poll();
   advTick(); xAvoidMsg(); tutGoalShow();
   const T = tx(), m = $('money');
   moneyShow(m);
@@ -6986,6 +6995,7 @@ function local(e) { const r = cv.getBoundingClientRect(); return { x: e.clientX 
 function cellAtXY(x, y) { const wx = (x - offX) / cp + cam.x, wy = y / cp + cam.y; return { c: Math.floor(wx), r: Math.floor(wy), wx, wy }; }
 const stLabel = st => { const T = tx(); return st.type === 'machine' ? T.mach[st.m] : st.type === 'sort' ? T.sortTitle : st.type === 'well' ? T.wellName[st.kind] : st.type === 'pipe' ? T.pipe : T[st.tid || st.type] || st.type; };
 function tapAt(p) {
+  if (!S.tut && S.tut2 && S.tut2.step !== 'wait' && !$('tutNext').hidden && !tutInTarget(p.c, p.r)) { if (tutCell) tutShake(); tutPageNext(); return true; }   // v2.00：▼ が出ている時は、地図を押しても文字送り
   if (!tutCellOk(p.c, p.r)) { tutShake(); return true; }   // v1.90
   if (S.tut && tutTap(p)) return true;   // はじめの手順
   if (p.wx !== undefined && p.wy < YARD_R && skyTap(p.wx, p.wy)) return true;   // 19・20：空の鳥・飛行機
