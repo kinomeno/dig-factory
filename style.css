@@ -706,3 +706,7 @@ body.moneyFold #goalHud, body.moneyFold #monthHud, body.moneyFold #aiHud, body.m
 
 /* v1.87：iPhone が字を勝手に大きくしないように（はみ出しの原因になる） */
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+/* v1.90：案内で違う所を押した時、光っている枠がぷるぷる（ここだよ） */
+.tutShake { animation: tutShake .42s ease-in-out !important; }
+@keyframes tutShake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-4px); } 40% { transform: translateX(4px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(3px); } }
