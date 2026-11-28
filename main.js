@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.88（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.89（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.88';
+const VERSION = '1.89';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -2337,6 +2337,9 @@ function emitOre(c, r, s, kind) {
   if (canPut(bc, br)) {   // v1.70：ドリルの後ろの黒い口から出す（口のはばの中・ふちのすぐ外）。掘った物が出てくるのが分かるように
     const it = spawnItem(kind, c + 0.5 + bx * 0.56, r + 0.5 + by * 0.56, bc, br);
     it.x = clamp(c + 0.5 + bx * 0.56 + (bx ? 0 : rand(-0.07, 0.07)), bc + 0.04, bc + 0.96); it.y = clamp(r + 0.5 + by * 0.56 + (by ? 0 : rand(-0.07, 0.07)), br + 0.04, br + 0.96);
+    // v1.89：見た目だけ、出た直後は「今のドリルの後ろの穴」（掘り進んで前へずれている）から半分顔を出し、押し出されて出てくる
+    const [ox, oy] = drillShift(key(c, r), s), pu = drillPunch(s), [fx, fy] = DIRS[s.dir];
+    it.pop = { x: c + 0.5 + ox + fx * pu + bx * 0.5 + (it.x - (c + 0.5 + bx * 0.56)), y: r + 0.5 + oy + fy * pu + by * 0.5 + (it.y - (r + 0.5 + by * 0.56)), t0: S.time };
   }
   else spawnItem(kind, c + 0.5, r + 0.5, c, r);
 }
@@ -4996,6 +4999,11 @@ function draw() {
     drawn.set(ck, n);
     if (lite && cnt.get(ck) > fpsCtl.cap) { over.set(ck, cnt.get(ck)); continue; }   // 山の絵にするマス
     if (n > fpsCtl.cap) { over.set(ck, n); continue; }
+    if (it.pop) {   // v1.89：穴から押し出されて出てくる（0.35秒。ドリルの胴体に半分隠れたところから）
+      const p = (S.time - it.pop.t0) / 0.35;
+      if (p >= 1 || p < 0) delete it.pop;
+      else { const e = 1 - (1 - p) * (1 - p); drawItemShape(it, (it.pop.x + (it.x - it.pop.x) * e) * cell, (it.pop.y + (it.y - it.pop.y) * e) * cell, 1); continue; }
+    }
     drawItemShape(it, it.x * cell, it.y * cell, 1);
   }
   if (lite) for (const [ck, n] of over) {
