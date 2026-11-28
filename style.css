@@ -605,7 +605,7 @@ body.hideUI #hdr, body.hideUI #dash, body.hideUI #catBar, body.hideUI #menuBtn, 
 #unhideBtn { position: fixed; top: 6px; right: 6px; z-index: 46; width: 30px; height: 26px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(250,250,248,.75); border: 1px solid var(--line2); border-radius: 6px; color: #555; }
 #unhideBtn[hidden] { display: none; }
 /* v1.31 タイトルの字：ドット絵風（飾りはつけない）。読めない時はふつうの字 */
-#title .tname { font-family: 'DotGothic16', sans-serif; font-weight: 400; letter-spacing: .1em; }
+#title .tname { font-family: 'Shippori Mincho B1', serif; font-weight: 600; letter-spacing: .01em; text-shadow: 0 1px 3px rgba(20,40,70,.22); }   /* v1.84：エレガントな細い明朝（キノメノ） */
 /* v1.32 案内の枠（ボタンなど）：外から縮んでくる輪をくり返す。明るさは変えない・ほかの部品より前に */
 .tutPulse, .tutPulse2 { position: relative; z-index: 6; animation: tutRing 1.4s ease-out infinite !important; box-shadow: 0 0 0 2px rgba(208,102,31,.85); }
 @keyframes tutRing { 0% { box-shadow: 0 0 0 2px rgba(208,102,31,.85), 0 0 0 12px rgba(208,102,31,.25); } 100% { box-shadow: 0 0 0 2px rgba(208,102,31,.85), 0 0 0 3px rgba(208,102,31,.7); } }
@@ -645,7 +645,7 @@ body.hideUI #hdr, body.hideUI #dash, body.hideUI #catBar, body.hideUI #menuBtn, 
 #moneyHud .mfold { font-style: normal; font-size: 9px; color: #8a8a90; margin-right: -2px; transition: transform .15s; }
 body:not(.moneyFold) #moneyHud .mfold { transform: rotate(180deg); }
 body.moneyFold #goalHud, body.moneyFold #monthHud, body.moneyFold #aiHud, body.moneyFold #aiTime { display: none !important; }
-#hdr .title { font-family: 'DotGothic16', sans-serif; font-weight: 400; }
+#hdr .title { font-family: 'Shippori Mincho B1', serif; font-weight: 600; letter-spacing: .02em; }   /* v1.84：タイトルに合わせる */
 #tutGoal { top: calc(var(--hdr) + 36px) !important; }   /* 資金の行の下（重ならない） */
 .modal.space { transition: opacity 3s ease !important; }   /* 26：最後の絵はもっとゆっくり出てくる */
 /* v1.53 断面図の吹き出し（▽は話す人の頭へ） */
@@ -697,6 +697,6 @@ body.moneyFold #goalHud, body.moneyFold #monthHud, body.moneyFold #aiHud, body.m
 #helpNav { position: sticky; top: -10px; z-index: 3; align-self: start; background: rgb(252, 252, 250); padding-top: 10px; margin-top: -10px; }
 @media (max-width: 560px) { #helpNav { box-shadow: 0 6px 6px -6px rgba(0,0,0,.12); } }
 
-/* v1.83：タイトルの字（10ドットの手描き） */
-#title .tname.dots { line-height: 0; letter-spacing: 0; text-shadow: none; }
-#title .tname.dots canvas { display: inline-block; image-rendering: pixelated; }
+/* v1.84：タイトルの下の英字・ヘッダーの英字も明朝で、字間を広く */
+#title .tsub { font-family: 'Shippori Mincho B1', serif; font-weight: 500; letter-spacing: .5em; font-size: 10px; margin-top: 10px; }
+#hdr .wm { font-family: 'Shippori Mincho B1', serif; font-weight: 500; }
