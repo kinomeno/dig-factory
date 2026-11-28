@@ -742,3 +742,7 @@ body.tutSkipOn .panel:not(.bottom) { top: calc(var(--hdr) + var(--edge) + 34px);
 #hdr.c2 #infoBtn .sm, #hdr.c2 #helpBtn .sm, #hdr.c2 #adminBtn .sm { font-size: 14px; line-height: 1; display: block; }
 #hdr .icon svg { display: block; }
 #hdr .hrow:first-child > button { height: 30px; }   /* 字のボタン（広い画面の「遊び方」など）も同じ高さ */
+/* v2.11：ヘッダーの i（情報）・手のひら・地上・「ズーム」の字は出さない（情報は下のタブ、移動は指・マウスでそのまま） */
+#hdr #infoBtn, #hdr #panBtn, #hdr #topBtn, #timeGroup .zl, #panBtn + .sep { display: none !important; }
+#timeGroup .icon { width: 30px; height: 30px; padding: 0 !important; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+#timeGroup .icon svg { display: block; }

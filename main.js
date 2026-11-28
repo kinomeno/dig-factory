@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v2.10（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v2.11（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '2.10';
+const VERSION = '2.11';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -341,7 +341,7 @@ const TXT = {
     tuneInfo: 'バーを動かすとすぐ反映されます（最初の資金・鉱石の出やすさ・硬さは「最初から」の後に反映）。「結果をコピー」でチャットに貼れます。',
     tuneCopy: '結果をコピー', tuneCopied: 'コピーしました。チャットに貼ってください', tuneReset: '初期値に戻す', tuneT: '調整',
     helpTopics: [
-      ['操作', '画面は、右上の手のひらでつかんで動かすか、画面の端（▲▼◀▶の帯）を押すと動きます。2本指・Ctrl＋ホイール・＋－で拡大縮小、「地図」で全体を見られます。\n下のタブ（設置・工事など）を押すと引き出しが開き、道具を選べます。選んだ道具は、もう一度押すか、タブを押すと解除できます。置いた物をタップすると、向きの変更やレベルアップができます。'],
+      ['操作', '画面は、指（マウス）でなぞるか、画面の端（▲▼◀▶の帯）を押すと動きます。2本指・Ctrl＋ホイール・虫眼鏡のボタンで拡大縮小、地図のボタンで全体を見られます。\n下のタブ（設置・工事など）を押すと引き出しが開き、道具を選べます。選んだ道具は、もう一度押すか、タブを押すと解除できます。置いた物をタップすると、向きの変更やレベルアップができます。'],
       ['掘る', 'ドリルは地下に置きます（地上とつながった穴の隣なら、土を上書きして置けます）。置くと下へ掘ります。掘った資源はドリルの後ろに出て、空中の資源は下に落ちます。\n10m、その後は20mごとに硬い岩盤があります。研究所で「掘削レベル」を研究しないと、とても遅くしか掘れません。岩盤を掘り抜くと、新しい研究ができるようになります。ドリルを横向きにすれば横へ掘れます。「掘削」で、地上とつながった穴の隣を掘って場所を広げられます。'],
       ['運ぶ', 'コンベアで資源を運びます。仕分けコンベアは、選んだ資源だけを左右に出します。\n地上に出た資源はその場に置かれ、フォークリフトがヤードまで運びます。トラックが積んで出発し、帰ってきたら売上になります。'],
       ['加工', '機械は、前以外の方向から材料を入れると、前に製品を出します。対応していない資源は、機械の中を2倍の時間をかけて通り抜けます。\n最初はレンガ焼成機とクラッシャーだけ。'],
@@ -351,7 +351,7 @@ const TXT = {
       ['石油と温泉', '岩盤3より深い所では、掘り抜くと温泉が湧くことがあります（岩盤4より深いと石油も）。湧き口はパイプラインでつなぎ、地下1段目まで届くと地上のタンクにたまります。\n地上には温泉（お客さんが車で来る）・発電所（地熱か石油で売電）・製油所（石油から燃料）を建てられます。地上の施設は作業員がいないととても遅くなります。土地が足りなければ「施設」の「土地を買う」で広げられます。'],
     ],
     helpList: [
-      '手のひら（右上）でドラッグ、または画面の端の▲▼◀▶で画面が動きます。2本指・Ctrl＋ホイール・＋－で拡大縮小。「地図」で全体を見られます。',
+      '指（マウス）でなぞるか、画面の端の▲▼◀▶で画面が動きます。2本指・Ctrl＋ホイール・虫眼鏡のボタンで拡大縮小。地図のボタンで全体を見られます。',
       '下のタブから道具を選びます。タブを押すと引き出しが開きます。もう一度押すと解除。',
       'ドリルを空いたマスに置くと下へ掘ります。掘った資源はドリルの後ろに出ます。空中の資源は下に落ちます。',
       '地上に出た資源は、出た場所に置かれます。小さなフォークリフトがヤードまで運び、トラックが積んで出発し、帰ってきたら売上になります。',
@@ -493,7 +493,7 @@ const TXT = {
     tuneInfo: 'バーを うごかすと すぐ かわります。「けっかを コピー」で チャットに はれます。',
     tuneCopy: 'けっかを コピー', tuneCopied: 'コピー しました', tuneReset: 'はじめの あたいに もどす', tuneT: 'ちょうせい',
     helpTopics: [
-      ['そうさ', 'がめんは、みぎうえの てのひらで つかんで うごかすか、がめんの はし（▲▼◀▶の おび）を おすと うごきます。\nしたの タブを おすと ひきだしが ひらいて、どうぐを えらべます。もう いちど おすか、タブを おすと やめます。おいた ものを タップすると むきや レベルを かえられます。'],
+      ['そうさ', 'がめんは、ゆびで なぞるか、がめんの はし（▲▼◀▶の おび）を おすと うごきます。\nしたの タブを おすと ひきだしが ひらいて、どうぐを えらべます。もう いちど おすか、タブを おすと やめます。おいた ものを タップすると むきや レベルを かえられます。'],
       ['ほる', 'ドリルを あいている マスに おくと したへ ほります。ほった ものは ドリルの うしろに でて、くうちゅうの ものは したに おちます。\n10mごとに かたい がんばんが あり、けんきゅうじょで「あなほり レベル」を けんきゅうしないと ほれません。'],
       ['はこぶ', 'コンベアで はこびます。ちじょうに でた ものは フォークリフトが おきばまで はこび、トラックが かえってきたら おかねに なります。'],
       ['つくる', 'きかいは、まえ いがいから いれると、まえに だします。あわない ものは 2ばいの じかんで とおりぬけます。ほかの きかいは けんきゅうじょで ふえます。'],
@@ -503,7 +503,7 @@ const TXT = {
       ['せきゆと おんせん', 'がんばん3より ふかい ところでは、ほりぬくと おんせんが わくことが あります（がんばん4より ふかいと せきゆも）。わきぐちから パイプを、つかう しせつの まっした（ちか1だんめ）まで つなぐと、しせつに ながれます。パイプは ほってある ますなら、コンベアや きかいの うえにも おけます。1ぽんの くだには、おゆか せきゆの どちらかだけ。\nちじょうには おんせん・はつでんしょ・せいゆじょを たてられます。さぎょういんが いないと とても おそく なります。とちが たりなければ「しせつ」の「とちを かう」で ひろげられます。'],
     ],
     helpList: [
-      'てのひら（みぎうえ）で ひっぱるか、がめんの はしの ▲▼◀▶で がめんが うごきます。「ちず」で ぜんたいを みられます。',
+      'ゆびで なぞるか、がめんの はしの ▲▼◀▶で がめんが うごきます。ちずの ボタンで ぜんたいを みられます。',
       'したの タブから どうぐを えらびます。もう いちど おすと やめます。',
       'ドリルを あいている マスに おくと したへ ほります。ほった ものは ドリルの うしろに でます。',
       'ちじょうに でた ものは、フォークリフトが おきばまで はこびます。トラックが はこんで、かえってきたら おかねに なります。',
@@ -638,7 +638,7 @@ const TXT = {
     tuneInfo: 'Changes apply right away (starting money, ore and hardness after Restart). Copy the result to paste in chat.',
     tuneCopy: 'Copy result', tuneCopied: 'Copied', tuneReset: 'Reset to defaults', tuneT: 'Tuning',
     helpTopics: [
-      ['Controls', 'Drag with the hand (top right) or press the screen edges to scroll. Pinch, Ctrl+wheel or +/- to zoom; "Map" shows everything.\nPick tools from the tabs at the bottom; a tab opens its drawer. Tap the tool again, or the tab, to cancel. Tap anything you placed to turn it or level it up.'],
+      ['Controls', 'Drag with your finger (mouse) or press the screen edges to scroll. Pinch, Ctrl+wheel or the magnifier buttons to zoom; "Map" shows everything.\nPick tools from the tabs at the bottom; a tab opens its drawer. Tap the tool again, or the tab, to cancel. Tap anything you placed to turn it or level it up.'],
       ['Digging', 'Place drills underground (they can replace soil next to holes connected to the surface). Drills dig down. Mined items come out behind the drill and fall through the air.\nEvery 10m there is hard bedrock that needs the Dig level research (no cap; the price keeps rising). Turn a drill sideways to keep digging. "Dig" clears cells next to holes connected to the surface.'],
       ['Moving', 'Conveyors carry items; a sorter sends the chosen item to its side.\nItems that reach the surface are dropped there; forklifts carry them to the yard, and you get paid when the truck returns.'],
       ['Processing', 'Machines take input from any side but the front and output to the front. Items they do not accept pass through at half speed.\nYou start with the Brick kiln and the Crusher; research more at the Lab.'],
@@ -648,7 +648,7 @@ const TXT = {
       ['Oil & hot springs', 'Below bedrock 3, digging out a cell may reveal a hot spring (oil below bedrock 4). Connect the source with pipes up to the first underground row to fill the surface tank.\nOn the surface you can build a Hot spring (guests arrive by car), a Power plant (geothermal or oil) and a Refinery (oil to fuel). Surface facilities are very slow without a worker. Need room? Facilities → Buy land.'],
     ],
     helpList: [
-      'Drag with the hand (top right) or use the edge arrows to scroll. Pinch, Ctrl+wheel or +/- to zoom. "Map" shows everything.',
+      'Drag with your finger (mouse) or use the edge arrows to scroll. Pinch, Ctrl+wheel or the magnifier buttons to zoom. "Map" shows everything.',
       'Pick tools from the tabs at the bottom. A tab opens a drawer with its items. Tap again to cancel.',
       'Place a drill on an empty cell and it digs down. Mined items come out behind it. Items in the air fall.',
       'Items that reach the surface are dropped there; a little forklift carries them to the yard. The truck takes them away and you get paid when it returns.',
@@ -814,7 +814,7 @@ const TXT_ADD = {
       vein: ['鉱脈探知', '地面の中の鉱脈が、灰色の粒で見えるようになります（掘り始めると資源の色に）。珍しい物（化石・埴輪など）も出やすくなります（1段ごとに+25%）。'], labRoom: ['研究室の増室', '研究室が1つ増え、同時に研究できる数が増えます（最大4室）。研究所にいる研究員の数だけ、並んで進みます。'], land: ['土地買収', '自分の土地が左右に1マスずつ広がります（研究するごとに高くなる）。'], digLv: ['掘削レベル', '硬い岩盤（10mにLv1、その後は10mごと）を1段ずつ破れるようになります（Lv0は会社レベル1で破れる）。'] },
     deal: { land: ['地上げ', '土地買収のレベルが1つ上がります（左右に1マスずつ広がる）。', '地上げ'] },
     dealMax: '上限です',
-    help0: ['操作', '画面は指（マウス）でなぞると動きます。画面の端（▲▼◀▶）を押しても動きます。2本指・Ctrl＋ホイール・＋－で拡大縮小、「地図」で全体を見られます。\n下のタブを押すと引き出しが開き、道具を選べます。ドリル・機械などは1つ置くと選択が外れます。コンベアなどは続けて置けて、左下の「×」かタブを押すと外れます。ドリルは、置く所をタップしてから掘る向きを選んで「設置する」。置いた物をタップすると、向きの変更やレベルアップができます。'],
+    help0: ['操作', '画面は指（マウス）でなぞると動きます。画面の端（▲▼◀▶）を押しても動きます。2本指・Ctrl＋ホイール・虫眼鏡のボタンで拡大縮小、地図のボタンで全体を見られます。\n下のタブを押すと引き出しが開き、道具を選べます。ドリル・機械などは1つ置くと選択が外れます。コンベアなどは続けて置けて、左下の「×」かタブを押すと外れます。ドリルは、置く所をタップしてから掘る向きを選んで「設置する」。置いた物をタップすると、向きの変更やレベルアップができます。'],
     help7: ['石油と温泉', '岩盤3より深い所では、掘り抜くと温泉が湧くことがあります（岩盤4より深いと石油も）。湧き口の上には何も置けません。湧き口はパイプラインでつなぎ、地下1段目まで届くと地上のタンクにたまります。\n地上には温泉（お客さんが車で来る）・発電所（地熱か石油で売電）・製油所（石油から燃料）を建てられます。地上の施設は作業員がいないととても遅くなります。土地が足りなければ、研究「土地買収」で左右に広げられます。'],
   },
   hira: {
@@ -886,7 +886,7 @@ const TXT_ADD = {
     beltCapT: '1マスに のる かず', beltInf: 'むせいげん', beltN: n => `${n}こ`, valueUp: 'つくった ものの ねだん', forkSpd: 'はしる はやさ',
     playTime: (mo, x1, others) => `ここまで：ゲームで ${mo}かげつ＝×1で ${x1}（${others}）`,
     privacy: 'プライバシーポリシー', feedbackX: 'ごいけん（X）', feedbackNote: 'ごいけん（note）',
-    help0: ['そうさ', 'がめんは ゆびで なぞると うごきます。がめんの はし（▲▼◀▶）を おしても うごきます。「ちず」で ぜんたいを みられます。\nしたの タブを おすと ひきだしが ひらいて、どうぐを えらべます。ドリルや きかいは 1つ おくと えらぶのが おわります。コンベアは つづけて おけて、ひだりしたの「×」か タブを おすと おわります。ドリルは、おく ところを タップしてから ほる むきを えらんで「おく」。'],
+    help0: ['そうさ', 'がめんは ゆびで なぞると うごきます。がめんの はし（▲▼◀▶）を おしても うごきます。ちずの ボタンで ぜんたいを みられます。\nしたの タブを おすと ひきだしが ひらいて、どうぐを えらべます。ドリルや きかいは 1つ おくと えらぶのが おわります。コンベアは つづけて おけて、ひだりしたの「×」か タブを おすと おわります。ドリルは、おく ところを タップしてから ほる むきを えらんで「おく」。'],
     help7: ['せきゆと おんせん', 'がんばん3より ふかい ところでは、ほりぬくと おんせんが わくことが あります（がんばん4より ふかいと せきゆも）。わきぐちの うえには なにも おけません。わきぐちから パイプを、つかう しせつの まっした（ちか1だんめ）まで つなぐと、しせつに ながれます。パイプは ほってある ますなら、コンベアや きかいの うえにも おけます。1ぽんの くだには、おゆか せきゆの どちらかだけ。\nちじょうには おんせん・はつでんしょ・せいゆじょを たてられます。とちが たりなければ、けんきゅう「とちを かう」で ひろげられます。'],
   },
   en: {
@@ -973,7 +973,7 @@ const TXT_ADD = {
       vein: ['Vein finder', 'Ore veins underground show as grey specks (in colour once you dig into them). Rare finds (fossils, haniwa...) also appear more often (+25% per level).'], labRoom: ['Extra lab room', 'Adds a lab room so more research can run at once (up to 4). Each research needs its own researcher in the Lab.'], land: ['Land purchase', 'Your land grows by 1 cell on each side (each purchase costs more).'], digLv: ['Dig level', 'Break hard bedrock (Lv1 at 10m, then every 10m), one layer per level (Lv0 breaks at company level 1).'] },
     deal: { land: ['Land deal', 'Raises Land purchase by one level (1 cell wider on each side).', 'Land'] },
     dealMax: 'Maxed',
-    help0: ['Controls', 'Swipe the screen to scroll (or press the screen edges). Pinch, Ctrl+wheel or +/- to zoom; "Map" shows everything.\nPick tools from the tabs at the bottom. Drills and machines are deselected after placing one; conveyors stay selected until you press the "x" (bottom left) or a tab. For a drill, tap the spot, pick a direction, then Place.'],
+    help0: ['Controls', 'Swipe the screen to scroll (or press the screen edges). Pinch, Ctrl+wheel or the magnifier buttons to zoom; "Map" shows everything.\nPick tools from the tabs at the bottom. Drills and machines are deselected after placing one; conveyors stay selected until you press the "x" (bottom left) or a tab. For a drill, tap the spot, pick a direction, then Place.'],
     help7: ['Oil & hot springs', 'Below bedrock 3, digging out a cell may reveal a hot spring (oil below bedrock 4). Nothing can be built on a source. Connect it with pipes up to the first underground row to fill the surface tank.\nOn the surface you can build a Hot spring, a Power plant and a Refinery. Surface facilities are very slow without a worker. Need room? Research Land purchase.'],
   },
 };
@@ -992,7 +992,7 @@ for (const l of Object.keys(TXT_ADD)) {
 const HELP_V2 = {
   kanji: {
     topics: [
-      ['操作', '画面は、手のひらでつかんで動かします（指でなぞっても動きます）。2本指・Ctrl＋ホイール・＋－で拡大縮小、「地図」で全体を見られます。\n下のタブ（設置・研究・強化・情報・取引）を押すと引き出しが開きます。選んだ道具は、もう一度押すと解除できます。置いた物をタップすると、向き・レベルアップ・撤去ができます。右上のボタンで、ヘッダーと下のメニューを隠せます。'],
+      ['操作', '画面は、指（マウス）でなぞると動きます。2本指・Ctrl＋ホイール・虫眼鏡のボタンで拡大縮小、地図のボタンで全体を見られます。\n下のタブ（設置・研究・強化・情報・取引）を押すと引き出しが開きます。選んだ道具は、もう一度押すと解除できます。置いた物をタップすると、向き・レベルアップ・撤去ができます。右上のボタンで、ヘッダーと下のメニューを隠せます。'],
       ['掘る', 'ドリルは地下に置きます（坑道の隣の土なら、上書きして置けます）。掘った資源は、ドリルの後ろの出口から出ます。地面は1マス3mです。\n普通の層が5つ続くと、硬い岩盤があります（岩盤0は15m、そのあとは18mごと）。岩盤はドリルを強化すると破れます。強化の上限は会社レベルで上がります。岩盤を20秒で破れるドリルでも、次の岩盤には約24時間かかるほど硬くなります。破るまでの間も資源は出続け、破るとご褒美が地上に出ます。\n資源は岩盤1より下から増えていきます（「資源の出る深さ」）。1マスから出る資源の数は決まっているので、深く掘るほど新しい資源に出会えます。'],
       ['運ぶ', 'コンベアで資源を運びます。仕分けコンベアは選んだ資源を横へ（改良すると「以外」も選べます）、T字路は左右へ、三叉路・ト字路は順番に均等に分けます。交差は2つの流れを交差させます。\n地上に出た資源はその場に積もり、フォークリフト（運転手が必要）がヤードへ運びます。トラックはヤードに並んで積み、出発して帰ってくると売上になります。'],
       ['加工', '機械は、前以外の方向から材料を入れると、前に製品を出します。作り方がいくつもある機械は、材料のそろった物から並行して作ります。材料は種類ごとに500個まで中で待ち、いっぱいの材料は通り抜けます。メニューの「材料を排出」で中の材料を出せます。\n加工の段が増えるほど高く売れます（最後の段は組立機）。'],
@@ -1006,7 +1006,7 @@ const HELP_V2 = {
   },
   hira: {
     topics: [
-      ['そうさ', 'がめんは、てのひらで つかんで うごかします（ゆびで なぞっても うごきます）。2ほんゆびや ＋－で おおきく・ちいさく、「ちず」で ぜんたいを みられます。\nしたの タブを おすと ひきだしが ひらきます。おいた ものを タップすると、むき・レベルアップ・どける が できます。'],
+      ['そうさ', 'がめんは、てのひらで つかんで うごかします（ゆびで なぞっても うごきます）。2ほんゆびや ＋－で おおきく・ちいさく、ちずの ボタンで ぜんたいを みられます。\nしたの タブを おすと ひきだしが ひらきます。おいた ものを タップすると、むき・レベルアップ・どける が できます。'],
       ['ほる', 'ドリルは ちかに おきます。ほった ものは ドリルの うしろの でぐちから でます。じめんは 1マス 3mです。\nふつうの そうが 5つ つづくと、かたい がんばんが あります。がんばんは ドリルを つよく すると われます。つぎの がんばんは、とても かたく なります。われるまでも しげんは でつづけ、わると ごほうびが でます。\nしげんは がんばん1より したから ふえて いきます（「しげんの でる ふかさ」）。'],
       ['はこぶ', 'コンベアで はこびます。しわけコンベアは えらんだ ものを よこへ、Tじろは さゆうへ、さんさろ・トじろは じゅんばんに わけます。\nちじょうに でた ものは フォークリフト（うんてんしゅが いる）が ヤードへ はこびます。トラックが つんで でかけ、かえって くると うりあげに なります。'],
       ['かこう', 'きかいは、まえ いがいから ざいりょうを いれると、まえに せいひんを だします。つくりかたが いくつも ある きかいは、いっしょに つくります。「ざいりょうを だす」で なかの ものを だせます。\nつくりかえを かさねるほど たかく うれます。'],
