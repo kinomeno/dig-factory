@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.94（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.95（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.94';
+const VERSION = '1.95';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -7891,6 +7891,7 @@ function frame(now) {
   const tD = performance.now(); fpsMs('ui', tD - tU);
   try { draw(); } catch (e) { if (!frame.errSaid) { frame.errSaid = true; console.error(e); } }   // 描くのに失敗しても、ループは止めない
   fpsMs('draw', performance.now() - tD);
+  tutDotsShow();   // v1.95：●はいつもスキップの左横に（スキップが動いても付いていく）
   requestAnimationFrame(frame);
 }
 
