@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.85（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.86（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.85';
+const VERSION = '1.86';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -1835,10 +1835,13 @@ function tutGoalShow() {   // 6：はじめの手順の目標（小さく固定�
 }
 // v1.70：目標の行は1行のまま。画面に入らない時は、字を少しずつ小さくする（iPhone で変な所で折り返さない）
 function fitGoal() {
-  const g = $('tutGoal'); if (!g || g.hidden || g.classList.contains('mini')) return;
-  g.style.fontSize = '';
+  const g = $('tutGoal'); if (!g || g.hidden || g.classList.contains('mini') || !g.offsetWidth) return;   // 見えていない時は測らない（あとで測り直す）
+  g.style.fontSize = ''; g.classList.remove('wrap');
   let fs = parseFloat(getComputedStyle(g).fontSize) || 13;
-  while (fs > 9 && [...g.children].some(d => d.scrollWidth > d.clientWidth + 0.5)) { fs -= 0.5; g.style.fontSize = fs + 'px'; }
+  const over = () => [...g.children].some(d => d.scrollWidth > d.clientWidth + 0.5);
+  while (fs > 9 && over()) { fs -= 0.5; g.style.fontSize = fs + 'px'; }
+  if (over()) g.classList.add('wrap');   // 9ピクセルでも入らない時は折り返す（切れて読めないよりよい）
+  g.dataset.fitKey = window.innerWidth + '|' + g.dataset.txt;
 }
 window.addEventListener('resize', () => fitGoal());
 // v1.70：ほかのフロート（タップメニュー・パネル・窓）を開いている間は、目標の行を小さな○に畳む。閉じたら自動で開く（○を押しても開く）
@@ -1848,6 +1851,7 @@ setInterval(() => {
   if (!busy) delete g.dataset.open;
   const mini = busy && !g.dataset.open;
   if (g.classList.contains('mini') !== mini) { g.classList.toggle('mini', mini); if (!mini) fitGoal(); }
+  if (!mini && g.dataset.fitKey !== window.innerWidth + '|' + g.dataset.txt) fitGoal();   // v1.86：測った時と幅や文が違えば測り直す（iPhone で、最初の測り方がずれて、はみ出たままになっていた）
 }, 200);
 setTimeout(() => $('tutGoal').addEventListener('click', () => { const g = $('tutGoal'); if (g.classList.contains('mini')) { g.dataset.open = '1'; g.classList.remove('mini'); fitGoal(); } }), 0);   // $ の準備ができてから
 function tutShow() {

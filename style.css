@@ -700,3 +700,6 @@ body.moneyFold #goalHud, body.moneyFold #monthHud, body.moneyFold #aiHud, body.m
 /* v1.84：タイトルの下の英字・ヘッダーの英字も明朝で、字間を広く */
 #title .tsub { font-family: 'Shippori Mincho B1', serif; font-weight: 500; letter-spacing: .5em; font-size: 10px; margin-top: 10px; }
 #hdr .wm { font-family: 'Shippori Mincho B1', serif; font-weight: 500; }
+
+/* v1.86：目標の行が、いちばん小さい字でも入らない時は折り返す */
+#tutGoal.wrap .gl { white-space: normal; }
