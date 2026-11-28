@@ -333,7 +333,7 @@ body.title .panel { z-index: 45; }
 #title .tlang { margin-top: 18px; display: flex; gap: 6px; justify-content: center; }
 #title .tlang button { font-size: 11px; padding: 4px 8px; background: rgba(255,255,255,.6); }
 #title .tlang button.active { background: var(--selbg); color: #fff; }
-#title .tfoot { margin-top: 16px; font-size: 10px; letter-spacing: .1em; color: rgba(255,255,255,.9); }
+#title .tfoot { position: fixed; left: 0; right: 0; bottom: calc(8px + env(safe-area-inset-bottom)); text-align: center; font-size: 10px; letter-spacing: .1em; color: rgba(255,255,255,.92); text-shadow: 0 1px 2px rgba(0,0,0,.45); }   /* v1.69：コピーライトの行は画面のいちばん下 */
 .awaybar { height: 6px; margin: 0 0 14px; }
 
 .mv[hidden] { display: none; }
@@ -672,3 +672,7 @@ body.moneyFold #goalHud, body.moneyFold #monthHud, body.moneyFold #aiHud, body.m
 .homeBox #homeImg { display: block; width: 100%; max-width: 260px; height: auto; margin: 0 auto 10px; border-radius: 10px; }
 .homeBox #homeImg[hidden] { display: none; }
 .homeBox { max-height: calc(100vh - 40px); overflow-y: auto; }
+
+/* v1.69：手順の中の共有ボタン・メニューの絵（Safari のボタンと同じ青） */
+.stepIco { display: inline-flex; align-items: center; justify-content: center; width: 1.5em; height: 1.5em; margin: 0 .1em; vertical-align: -.4em; color: #2f7bf0; }
+.stepIco svg { width: 1.5em; height: 1.5em; }
