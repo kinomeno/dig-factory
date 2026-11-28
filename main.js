@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v2.02（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v2.03（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '2.02';
+const VERSION = '2.03';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -1889,7 +1889,7 @@ function tutShow() {
   if (!st && st2) {   // はじめの手順のあとの案内（メニューは隠さない。▼で閉じる）
     document.body.classList.remove('tut');
     const pages = String(st2 === 'kiln' && tutKilnPhase() === 'mach' ? T.tut2.kiln2 : T.tut2[st2]).split('\n'), pg = (S.tut2.pg || 0) % pages.length, last = pg >= pages.length - 1;   // v2.01：▼ で最後まで行ったら、また最初の文へ（ループ）   // v1.99：長い文は1文ずつ（▼で次へ）
-    $('tutMsg').hidden = false; $('tutText').textContent = pages[pg]; $('tutNext').hidden = pages.length < 2; $('tutOk').hidden = !(last && TUT2_MSG.includes(st2)); $('tutX').hidden = false; $('tutSkip').hidden = false;
+    $('tutMsg').hidden = false; $('tutText').textContent = pages[pg]; $('tutNext').hidden = pages.length < 2 || (last && TUT2_MSG.includes(st2)); $('tutOk').hidden = !(last && TUT2_MSG.includes(st2)); $('tutX').hidden = false; $('tutSkip').hidden = false;
     document.querySelectorAll('[data-open="build"], #catBar [data-cat="build"]').forEach(el => el.classList.toggle('tutPulse', st2 === 'kiln'));
     return;
   }

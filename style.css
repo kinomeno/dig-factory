@@ -729,3 +729,7 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 /* v1.99：案内の間は、スキップを窓より上に。右上の窓はスキップの下から */
 #tutSkip, #tutDots { z-index: 49 !important; }
 body.tutSkipOn .panel:not(.bottom) { top: calc(var(--hdr) + var(--edge) + 34px); max-height: calc(100% - var(--hdr) - 110px); }
+/* v2.03：OK がメッセージの外へはみ出さない（入らない時は、文の下の右へ回る） */
+#tutMsg { flex-wrap: wrap; box-sizing: border-box; }
+#tutText { flex: 1 1 auto; min-width: 0; }
+#tutOk { margin-left: auto; }
