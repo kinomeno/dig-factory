@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.93（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.94（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.93';
+const VERSION = '1.94';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -345,7 +345,7 @@ const TXT = {
       ['掘る', 'ドリルは地下に置きます（地上とつながった穴の隣なら、土を上書きして置けます）。置くと下へ掘ります。掘った資源はドリルの後ろに出て、空中の資源は下に落ちます。\n10m、その後は20mごとに硬い岩盤があります。研究所で「掘削レベル」を研究しないと、とても遅くしか掘れません。岩盤を掘り抜くと、新しい研究ができるようになります。ドリルを横向きにすれば横へ掘れます。「掘削」で、地上とつながった穴の隣を掘って場所を広げられます。'],
       ['運ぶ', 'コンベアで資源を運びます。仕分けコンベアは、選んだ資源だけを左右に出します。\n地上に出た資源はその場に置かれ、フォークリフトがヤードまで運びます。トラックが積んで出発し、帰ってきたら売上になります。'],
       ['加工', '機械は、前以外の方向から材料を入れると、前に製品を出します。対応していない資源は、機械の中を2倍の時間をかけて通り抜けます。\n最初はレンガ焼成機とクラッシャーだけ。'],
-      ['作業員', '事務所で「Lv0を増員」して雇います。作業員はドリル・機械へ自分で歩いて行って操作し、働くほどレベルが上がります。作業員がいない所は「z」の印が付き、とても遅くなります。\nLv2以上になると、地上・上級勤務（フォークリフト・トラック・研究所）にも就きます。疲れると事務所で休みます。給料は毎月。払えない月は1人やめます。'],
+      ['作業員', '事務所で「Lv0を増員」して雇います。作業員はドリル・機械へ自分で歩いて行って操作し、働くほどレベルが上がります。作業員がいない所は、止まっていれば「z」、人がいなくてもゆっくり動いていれば「A」の印が付きます。\nLv2以上になると、地上・上級勤務（フォークリフト・トラック・研究所）にも就きます。疲れると事務所で休みます。給料は毎月。払えない月は1人やめます。'],
       ['事務所と研究所', '事務所はタップでレベルアップできます。定員・フォークリフトの台数・休憩の速さが上がり、レベル2で下のタブの「施設」から研究所（1マス・地上のどこでも）を建てられます。\n研究所では、機械・まとめて強化・スキルを研究できます。Lv2以上の研究員がいないと、研究はとても遅くなります。フォークリフトは「強化」で買い足せます。'],
       ['お金', '売上はトラックが帰ってきた時に入ります。お金が少なく売上も無い月は、銀行が融資してくれます（売上から少しずつ返します）。\n「情報」で経営の様子をグラフで見られます。ゲームは自動でセーブされます。タイトルを押すとタイトル画面に戻ります。'],
       ['石油と温泉', '岩盤3より深い所では、掘り抜くと温泉が湧くことがあります（岩盤4より深いと石油も）。湧き口はパイプラインでつなぎ、地下1段目まで届くと地上のタンクにたまります。\n地上には温泉（お客さんが車で来る）・発電所（地熱か石油で売電）・製油所（石油から燃料）を建てられます。地上の施設は作業員がいないととても遅くなります。土地が足りなければ「施設」の「土地を買う」で広げられます。'],
@@ -356,7 +356,7 @@ const TXT = {
       'ドリルを空いたマスに置くと下へ掘ります。掘った資源はドリルの後ろに出ます。空中の資源は下に落ちます。',
       '地上に出た資源は、出た場所に置かれます。小さなフォークリフトがヤードまで運び、トラックが積んで出発し、帰ってきたら売上になります。',
       'コンベアと機械は地下に置きます。「掘削」で穴の隣を掘って場所を広げられます（お金がかかります）。',
-      '地上中央の事務所で作業員を雇えます（最初は自分ひとり＝0人）。作業員は自分でドリルや機械へ歩いて行って操作します。作業員がいないととても遅くなります（「z」の印）。疲れると事務所で休みます。給料は毎月払います。',
+      '地上中央の事務所で作業員を雇えます（最初は自分ひとり＝0人）。作業員は自分でドリルや機械へ歩いて行って操作します。作業員がいないととても遅くなります（止まっていれば「z」、ゆっくり動いていれば「A」の印）。疲れると事務所で休みます。給料は毎月払います。',
       '置いた物をタップすると、向きの変更やレベルアップができます。レベルは黄色い点の数で分かります。',
       '「情報」で経営の様子をグラフで見られます。',
       '下のタブの「スキル」で研究すると便利な力が手に入ります。硬い岩盤（10m、その後20mごと）は「掘削レベル」を研究しないと、とても遅くしか掘れません。事務所はタップでレベルアップできます。自動でセーブされます。',
@@ -497,7 +497,7 @@ const TXT = {
       ['ほる', 'ドリルを あいている マスに おくと したへ ほります。ほった ものは ドリルの うしろに でて、くうちゅうの ものは したに おちます。\n10mごとに かたい がんばんが あり、けんきゅうじょで「あなほり レベル」を けんきゅうしないと ほれません。'],
       ['はこぶ', 'コンベアで はこびます。ちじょうに でた ものは フォークリフトが おきばまで はこび、トラックが かえってきたら おかねに なります。'],
       ['つくる', 'きかいは、まえ いがいから いれると、まえに だします。あわない ものは 2ばいの じかんで とおりぬけます。ほかの きかいは けんきゅうじょで ふえます。'],
-      ['さぎょういん', 'じむしょで「Lv0を ふやす」で やといます。はたらくと レベルが あがり、Lv2いじょうは ちじょうの しごとも します。いない ところは「z」で とても おそく なります。'],
+      ['さぎょういん', 'じむしょで「Lv0を ふやす」で やといます。はたらくと レベルが あがり、Lv2いじょうは ちじょうの しごとも します。いない ところは、とまっていれば「z」、ひとが いなくても ゆっくり うごいていれば「A」の しるしが でます。'],
       ['じむしょと けんきゅうじょ', 'じむしょを レベルアップすると ひとや フォークリフトが ふえ、レベル2で けんきゅうじょが たちます。けんきゅうじょで きかい・まとめて つよく・スキルを けんきゅう できます。'],
       ['おかね', 'トラックが かえってきたら おかねが はいります。こまったら ぎんこうが かしてくれます。タイトルを おすと さいしょから。'],
       ['せきゆと おんせん', 'がんばん3より ふかい ところでは、ほりぬくと おんせんが わくことが あります（がんばん4より ふかいと せきゆも）。わきぐちから パイプを、つかう しせつの まっした（ちか1だんめ）まで つなぐと、しせつに ながれます。パイプは ほってある ますなら、コンベアや きかいの うえにも おけます。1ぽんの くだには、おゆか せきゆの どちらかだけ。\nちじょうには おんせん・はつでんしょ・せいゆじょを たてられます。さぎょういんが いないと とても おそく なります。とちが たりなければ「しせつ」の「とちを かう」で ひろげられます。'],
@@ -508,7 +508,7 @@ const TXT = {
       'ドリルを あいている マスに おくと したへ ほります。ほった ものは ドリルの うしろに でます。',
       'ちじょうに でた ものは、フォークリフトが おきばまで はこびます。トラックが はこんで、かえってきたら おかねに なります。',
       'コンベアと きかいは ちかに おきます。「あなほり」で ばしょを ひろげられます。',
-      'ちじょう まんなかの じむしょで さぎょういんを やとえます。さぎょういんが いないと とても おそく なります（「z」の しるし）。つかれると やすみます。きゅうりょうは まいつき はらいます。',
+      'ちじょう まんなかの じむしょで さぎょういんを やとえます。さぎょういんが いないと とても おそく なります（とまっていれば「z」、ゆっくり うごいていれば「A」の しるし）。つかれると やすみます。きゅうりょうは まいつき はらいます。',
       'おいた ものを タップすると むきを かえたり レベルアップ できます。',
       '「じょうほう」で ようすを グラフで みられます。',
       'したの タブの「スキル」で けんきゅうすると べんりな ちからが てに はいります。かたい がんばんは「あなほり レベル」が ないと、とても ゆっくりしか ほれません。セーブは せっていから。',
@@ -642,7 +642,7 @@ const TXT = {
       ['Digging', 'Place drills underground (they can replace soil next to holes connected to the surface). Drills dig down. Mined items come out behind the drill and fall through the air.\nEvery 10m there is hard bedrock that needs the Dig level research (no cap; the price keeps rising). Turn a drill sideways to keep digging. "Dig" clears cells next to holes connected to the surface.'],
       ['Moving', 'Conveyors carry items; a sorter sends the chosen item to its side.\nItems that reach the surface are dropped there; forklifts carry them to the yard, and you get paid when the truck returns.'],
       ['Processing', 'Machines take input from any side but the front and output to the front. Items they do not accept pass through at half speed.\nYou start with the Brick kiln and the Crusher; research more at the Lab.'],
-      ['Workers', 'Add Lv0 workers at the office. They walk to drills and machines and level up as they work; places without one show "z" and are very slow.\nFrom Lv2 they also take surface jobs (forklifts, trucks, the Lab). Tired workers rest at the office. Wages are monthly; if you cannot pay, one quits.'],
+      ['Workers', 'Add Lv0 workers at the office. They walk to drills and machines and level up as they work; places without one show "z" (stopped) or "A" (running slowly on their own).\nFrom Lv2 they also take surface jobs (forklifts, trucks, the Lab). Tired workers rest at the office. Wages are monthly; if you cannot pay, one quits.'],
       ['Office & Lab', 'Tap the office to upgrade it: more staff, more forklifts, faster rest. At level 2 you can build the Lab (1 cell, anywhere on the surface) from the Facilities tab.\nResearch machines, batch upgrades and skills at the Lab; without a Lv2+ researcher it is very slow. Buy forklifts from "Upgrade".'],
       ['Money', 'You get paid when the truck returns. If money is low and sales are zero, the bank lends you some (repaid from sales).\n"Info" shows graphs. Save from Settings. Tap the title to reset.'],
       ['Oil & hot springs', 'Below bedrock 3, digging out a cell may reveal a hot spring (oil below bedrock 4). Connect the source with pipes up to the first underground row to fill the surface tank.\nOn the surface you can build a Hot spring (guests arrive by car), a Power plant (geothermal or oil) and a Refinery (oil to fuel). Surface facilities are very slow without a worker. Need room? Facilities → Buy land.'],
@@ -653,7 +653,7 @@ const TXT = {
       'Place a drill on an empty cell and it digs down. Mined items come out behind it. Items in the air fall.',
       'Items that reach the surface are dropped there; a little forklift carries them to the yard. The truck takes them away and you get paid when it returns.',
       'Conveyors and machines go underground. Use "Dig" to make room next to existing holes (costs money).',
-      'Hire workers at the office (center of the surface; you start alone). They walk to drills and machines and run them; without one ("z" mark) they are very slow. Tired workers rest at the office. Wages are paid monthly.',
+      'Hire workers at the office (center of the surface; you start alone). They walk to drills and machines and run them; without one they show "z" (stopped) or "A" (running slowly on their own). Tired workers rest at the office. Wages are paid monthly.',
       'Tap anything you placed to turn it or level it up. Yellow dots show the level.',
       '"Info" shows how your business is doing, with graphs.',
       'Research "Skills" from the menu. Hard bedrock (10m, then every 20m) is very slow without the Dig level research. Tap the office to upgrade it. Save from Settings.',
@@ -1838,7 +1838,16 @@ function startTutorial() {
 }
 function tutSet(step) { S.tut.step = step; S.tut.t = 0; tutShow(); try { ura.tu(step); } catch (e) { } }   // うらがわ：短い段も取りこぼさない
 // 画面：吹き出し（社長）・メッセージ（秘書ではない）・メニューの隠しと光らせ
-function tutGoalShow() {   // 6：はじめの手順の目標（小さく固定）
+function tutDotsShow() {   // v1.94：スキップの横に、残りの案内の数だけ灰色の小さな●（1つ終わるごとに1つ消える）
+  const el = $('tutDots'), sk2 = $('tutSkip'); if (!el) return;
+  if (!S || inTitle || S.tutDone || sk2.hidden) { el.hidden = true; return; }
+  const E = (S.tut2 && S.tut2.end) || {}, n = (S.tut ? 1 : 0) + TUT2.filter(k => E[k] === undefined).length;
+  const tx2 = '●'.repeat(Math.max(0, n)); if (el.textContent !== tx2) el.textContent = tx2;
+  el.hidden = !n; const r = sk2.getBoundingClientRect();
+  el.style.top = Math.round(r.top + r.height / 2 - 6) + 'px'; el.style.right = Math.round(window.innerWidth - r.left + 6) + 'px';
+}
+function tutGoalShow() {
+  tutDotsShow();   // 6：はじめの手順の目標（小さく固定）
   const g = $('tutGoal'); if (!g) return;
   const on = !!(S && !inTitle && !S.tutDone && !S.goalOff);   // v1.90：案内が終わったら消える
   g.hidden = !on; if (on) { const need = offCost(S.office.lv) - S.money, t2 = staffN() >= 1 ? tx().tutGoal2 + (need > 0 ? tx().tutNeed(fmt(need)) : tx().tutCan) : ''; const txt = tx().tutGoal + (t2 ? '\n' + t2 : ''); if (g.dataset.txt !== txt) { g.dataset.txt = txt; g.textContent = ''; for (const ln of txt.split('\n')) { const d = document.createElement('div'); d.className = 'gl'; d.textContent = ln; g.append(d); } fitGoal(); } }
@@ -2043,7 +2052,7 @@ function tut2Update(dt) {
     }
     return;
   }
-  if (tut2Done(t.step)) { tut2Next(); return; }
+  if (tut2Done(t.step)) { if (t.step === 'hire' || t.step === 'resAuto') closePanels(); tut2Next(); return; }   // v1.94：できたら、開いた画面は閉じる
   // 離脱：案内した窓を開いて、しないで閉じた
   const winOpen = t.step === 'hire' || t.step === 'office' ? !$('office').hidden : t.step === 'lvup' ? !!(popTarget && popTarget.type === 'fork') : null;
   if (winOpen !== null) { if (winOpen) t.saw = 1; else if (t.saw) { tut2Next(); return; } }
@@ -2083,7 +2092,8 @@ function tutCellOk(c, r) {   // 案内で絞っている時：光っているマ
 function tutLockEvt(e) {
   if (!S || !tutGuided()) return;
   const el = e.target; if (!el || !el.closest) return;
-  if (el.closest('#tutSkip') || el.closest('#tutMsg') || el.closest('.modal') || el === cv) return;   // v1.92：確認・お知らせの窓は押せる（詰まらない）
+  if (el.closest('#tutSkip') || el.closest('#tutMsg') || el.closest('.modal') || el === cv) return;
+  if (el.closest('#hdr') || el.closest('[data-close]') || el.closest('#colPanel, #help, #settings, #info')) return;   // v1.94：変更を伴わない所（上の帯・閉じる・見るだけの画面）は押せる（詰み予防）   // v1.92：確認・お知らせの窓は押せる（詰まらない）
   const tg = tutTarget(); if (!tg || tg.cell) { if (!tg) return; }
   else if (tg === el || tg.contains(el) || (tg.dataset && tg.dataset.px && pxOf(tg) === el)) return;   // 下のタブは、裏のボタンを押して開く（それも通す）
   e.preventDefault(); e.stopPropagation(); if (e.type === 'pointerdown') tutShake();
@@ -5178,7 +5188,7 @@ function draw() {
     if (out(c, r) || !isStation(s) || isBelt(s) || workFactor(s) > unmannedOf(s)) continue;   // コンベアは人がいなくても普通に動くので「z」は出さない
     ctx.fillStyle = THEME.zBg; ctx.beginPath(); ctx.arc(c * cell + cell * 0.84, r * cell + cell * 0.16, cell * 0.12, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = THEME.zText; ctx.font = `bold ${Math.round(cell * 0.18)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('z', c * cell + cell * 0.84, r * cell + cell * 0.17);
+    ctx.fillText(unmannedOf(s) > 0 ? 'A' : 'z', c * cell + cell * 0.84, r * cell + cell * 0.17);   // v1.94：自動で動いている時は A（auto）
   }
   // 作業員（i の形）
   for (const w of S.workers) {
@@ -5199,7 +5209,7 @@ function draw() {
   }
   drawTutPick(); drawTutBoss();   // はじめの手順
   if (S.tut2 && S.tut2.step !== 'wait') {
-    const cells = S.tut2.step === 'kiln' && tool === 'machine' ? [...S.st.entries()].filter(([, v]) => v.type === 'conv').map(([k]) => ({ c: cOf(k), r: rOf(k), w: 1, h: 1 })) : tutCell ? [tutCell] : [];
+    const cells = S.tut2.step === 'kiln' && tool === 'machine' && tutKilnPhase() === 'free' ? [...S.st.entries()].filter(([, v]) => v.type === 'conv').map(([k]) => ({ c: cOf(k), r: rOf(k), w: 1, h: 1 })) : tutCell ? [tutCell] : [];
     for (const q of cells) drawTutFrames(q.c * cell + 2, q.r * cell + 2, q.w * cell - 4, q.h * cell - 4);
   }
 
@@ -5208,7 +5218,7 @@ function draw() {
     // 置ける所（空いているマス）だけ薄い青で塗る
     ctx.fillStyle = THEME.okFill; ctx.strokeStyle = THEME.okLine; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
     for (let r = Math.max(0, r0); r <= r1; r++) for (let c = c0; c <= c1; c++) {
-      if (canPlaceAt(c, r) && !S.st.has(key(c, r))) { ctx.fillRect(c * cell + 1, r * cell + 1, cell - 2, cell - 2); ctx.strokeRect(c * cell + 2.5, r * cell + 2.5, cell - 5, cell - 5); }
+      if (canPlaceAt(c, r) && !S.st.has(key(c, r)) && tutCellOk(c, r)) { ctx.fillRect(c * cell + 1, r * cell + 1, cell - 2, cell - 2); ctx.strokeRect(c * cell + 2.5, r * cell + 2.5, cell - 5, cell - 5); }
     }
     ctx.setLineDash([]);
     if (hover && inB(hover.c, hover.r) && canPlaceAt(hover.c, hover.r)) {
@@ -5954,8 +5964,9 @@ function makeDrillFrames(body, light) {
 }
 const DRILL_FR = { run: makeDrillFrames(THEME.drill, '#f1a46a'), stuck: makeDrillFrames('#9a9a9a', '#c4c4c4') };
 // アタックの動き（マスの大きさに対する前後のずれ）：当たった直後にぐっと前へ・すぐ戻り・次の直前にすっと引く
+const drillIdle = s => !opOf(s) && unmannedOf(s) <= 0;   // v1.94：人がいなくて止まっているドリル
 function drillPunch(s) {
-  if (s.stuck || s.off || fpsCtl.lite >= 2) return 0;
+  if (s.stuck || s.off || drillIdle(s) || fpsCtl.lite >= 2) return 0;
   const iv = drillIv(s), t = S.time - (s.hit || -99);
   if (t < 0 || t > iv * 1.5) return 0;
   if (t < 0.05) return 0.12 * (t / 0.05);                       // がっ
@@ -5982,10 +5993,10 @@ function drawDust() {
   ctx.globalAlpha = 1;
 }
 function drawDrill(x, y, s) {
-  const cell = cp, fr = s.stuck || s.off ? DRILL_FR.stuck : DRILL_FR.run;
+  const still = s.stuck || s.off || drillIdle(s), cell = cp, fr = still ? DRILL_FR.stuck : DRILL_FR.run;   // v1.94：人がいなくて止まっている時も、停止と同じ見た目
   const k = findKey(s);
   if (k >= 0) { const [ox, oy] = drillShift(k, s), pu = drillPunch(s), [ddx, ddy] = DIRS[s.dir]; x += (ox + ddx * pu) * cell; y += (oy + ddy * pu) * cell; }
-  const f = !s.stuck && S.time - (s.hit || -99) < 0.7 ? Math.floor(S.time * (opOf(s) ? 10 : 2.5)) % 2 : 0;   // 61：人がいない時はゆっくり回る
+  const f = !still && S.time - (s.hit || -99) < 0.7 ? Math.floor(S.time * (opOf(s) ? 10 : 2.5)) % 2 : 0;   // 61：人がいない時はゆっくり回る
   ctx.save(); ctx.imageSmoothingEnabled = false;
   ctx.translate(x + cell / 2, y + cell / 2); ctx.rotate(ANGLE[s.dir]);
   ctx.drawImage(fr[f], -cell / 2, -cell / 2, cell, cell);
@@ -6407,12 +6418,11 @@ function drawTruck1(t) {   // 1マスの小さなトラック。右からヤー�
   if (t.phase === 'leaving') p = ease(t.t / animSec());
   else if (t.phase === 'returning') p = 1 - ease(t.t / animSec());
   ctx.save();
-  ctx.globalAlpha = 1 - p * 0.9;
-  ctx.translate(p * cell * 3, 0);
+  ctx.translate(p * cell * (COLS + 2 - BED), 0);   // v1.94：右の画面の外まで（薄くしない）
   ctx.fillStyle = THEME.truck.body;
   ctx.fillRect(bx + cell * 0.04, y + cell * 0.52, cell * 0.6, cell * 0.24);              // 荷台
   ctx.fillRect(bx + cell * 0.04, y + cell * 0.34, cell * 0.05, cell * 0.2);
-  const fill = Math.min(1, t.load / valOf('truck'));
+  const fill = t.phase === 'returning' ? 0 : Math.min(1, t.load / valOf('truck'));   // 帰りは空荷
   ctx.fillStyle = THEME.truck.load;
   ctx.fillRect(bx + cell * 0.1, y + cell * 0.52 - cell * 0.18 * fill, cell * 0.54, cell * 0.18 * fill);
   const cx = bx + cell * 0.64;
