@@ -1,11 +1,11 @@
-// ほりほり工場 / Dig Factory Tycoon v1.97（作業フォルダ名：採掘ゲーム）
+// ほりほり工場 / Dig Factory Tycoon v1.98（作業フォルダ名：採掘ゲーム）
 // 画面をマス目に割り、地形・設備を描く。資源だけは別レイヤーで、マスに縛られず自由に動く。
 // 横は固定の列数、縦（深さ）は無制限。拡大縮小・上下移動できる。
 // 地上の事務所から作業員がドリル・機械へ歩いて行って操作する。
 (() => {
 'use strict';
 
-const VERSION = '1.97';
+const VERSION = '1.98';
 const NOTE_URL = 'https://note.com/kinomeno/n/n8ecbf906a59a';   // 紹介記事
 const X_URL = '';   // キノメノのX（決まったら入れる。空の間はXのボタンを出さない）
 // テスト用の管理メニュー：実機テストのため、当面は公開版でも出す（キノメノ指示 2026-11-23）。
@@ -217,7 +217,7 @@ const BR = k => 5 + 6 * k;                                               // 岩�
 const rockLv = layer => layer - 1;                                      // 画面に出す岩盤レベル
 const stageOf = deepest => { let n = 1; while (deepest - SKY >= layerDepth(n)) n++; return n; };
 // 事務所のレベル：休憩の速さ・定員
-const OFFICE_LV = { rest: [1, 1.5, 2, 3, 4], cap: [3, 5, 8, 12, 16], forks: [2, 4, 8, 12, 16], cost: [1000, 4000, 16000, 64000] };   // レベル2＝岩盤0を破れる・研究所。その先は4倍ずつ（会社レベルが大きな目標。インフレ）
+const OFFICE_LV = { rest: [1, 1.5, 2, 3, 4], cap: [3, 5, 8, 12, 16], forks: [2, 4, 8, 12, 16], cost: [600, 2000, 14000, 80000, 492000] };   // v1.98：レベル2は2000・3と4はなめらかに。5から先は前と同じ（492000から3倍ずつ）   // レベル2＝岩盤0を破れる・研究所。その先は4倍ずつ（会社レベルが大きな目標。インフレ）
 const LV_EXP = [180, 600, 1500, 3000, 5400, 9000, 14000, 21000];   // v0.72：上がりやすすぎたので3倍くらいに   // 働いた時間（秒）の合計でレベルアップ
 const HIRE_FEE = lv => BAL.hireFee0 + BAL.hireFeeLv * lv;                           // 雇うときの契約金
 const wageOf = w => (w.boss ? 0 : Math.round((BAL.wage0 + BAL.wageLv * w.lv * (1 + w.lv / 2)) * (1 + 0.2 * (S ? S.office.lv : 0))));   // v1.06：給料（月）。上級ほど高く・会社が大きいほど高い。社長は0
@@ -421,7 +421,7 @@ const TXT = {
     saveT: 'セーブ', save: 'セーブ', load: 'ロード', slot: n => `スロット${n}`, empty: '空き', saved: 'セーブしました', loaded: 'ロードしました',
     confirmLoad: 'ロードしますか？（今の状態は消えます）', saveNG: 'この環境ではセーブできません',
     officeLv: '事務所', capP: n => `定員${n}人`, restSp: '休憩の速さ', full: '事務所の定員がいっぱいです', techUp: '技術UP',
-    build: '設置', works: '工事', grpName: { drill: 'ドリル', belt: 'コンベア', pipe: '管', machine: '機械', other: 'その他', deco: '飾り', fac: '施設', works: '掘削・撤去' }, dc_flag: '旗', dc_sign: '看板', dc_plant: '植木鉢', dc_bench: 'ベンチ', dc_photo: '社員の写真', dc_ore: '鉱石の標本棚', dc_cart: 'トロッコの飾り', dc_elight: '非常灯', dc_ladder: 'はしご', dc_fence: '柵', dc_fan: '送風機', fanEff: '効き目：まわり2マスで働く作業員の体力が、ほんの少し減りにくくなります（2%・いくつあっても同じ）。', decoDesc: '飾りです。近くで働く作業員の体力が、少し減りにくくなります（まわり1マス・3つまで）。掘ってあるマスなら、何の上にも置けます。', decoEff: '効き目：まわり1マスで働く作業員の体力が、少し減りにくくなります（1つにつき5%・3つまで）。', decoLv: n => `会社レベル${n}で置けるようになります`, decoFlav: { dc_flag: '会社の旗。地下でも、ここがうちの現場だと分かります。', dc_sign: '文字の無い看板。何を書くかは、見る人しだい。', dc_plant: '小さな植木鉢。地下でも、緑があると落ち着きます。', dc_bench: 'ひと休みできそうなベンチ。あるだけで、ほっとします。', dc_photo: '社員の集合写真。みんな、いい顔をしています。', dc_ore: '掘り当てた鉱石の見本。ぴかぴかに磨いてあります。', dc_cart: '昔のトロッコ。もう走らない、記念の品です。', dc_elight: '緑の非常灯。いつも静かについています。', dc_ladder: '飾りのはしご。登っても、どこにも行けません。', dc_fence: '木の柵。ここから先は、ていねいに。', dc_fan: '地下の空気をかき回す送風機。ぶーん。' },
+    build: '設置', works: '工事', grpName: { drill: 'ドリル', belt: 'コンベア', pipe: '管', machine: '機械', other: 'その他', deco: '飾り', fac: '施設', works: '掘削・撤去' }, dc_flag: '旗', dc_sign: '看板', dc_plant: '植木鉢', dc_bench: 'ベンチ', dc_photo: '社員の写真', dc_ore: '鉱石の標本棚', dc_cart: 'トロッコの飾り', dc_elight: '非常灯', dc_ladder: 'はしご', dc_fence: '柵', dc_fan: '送風機', decoStack: '重ねて置けます（掘ってあるマスなら、コンベアや機械の上にも）', fanEff: '効き目：まわり2マスで働く作業員の体力が、ほんの少し減りにくくなります（2%・いくつあっても同じ）。', decoDesc: '飾りです。近くで働く作業員の体力が、少し減りにくくなります（まわり1マス・3つまで）。掘ってあるマスなら、何の上にも置けます。', decoEff: '効き目：まわり1マスで働く作業員の体力が、少し減りにくくなります（1つにつき5%・3つまで）。', decoLv: n => `会社レベル${n}で置けるようになります`, decoFlav: { dc_flag: '会社の旗。地下でも、ここがうちの現場だと分かります。', dc_sign: '文字の無い看板。何を書くかは、見る人しだい。', dc_plant: '小さな植木鉢。地下でも、緑があると落ち着きます。', dc_bench: 'ひと休みできそうなベンチ。あるだけで、ほっとします。', dc_photo: '社員の集合写真。みんな、いい顔をしています。', dc_ore: '掘り当てた鉱石の見本。ぴかぴかに磨いてあります。', dc_cart: '昔のトロッコ。もう走らない、記念の品です。', dc_elight: '緑の非常灯。いつも静かについています。', dc_ladder: '飾りのはしご。登っても、どこにも行けません。', dc_fence: '木の柵。ここから先は、ていねいに。', dc_fan: '地下の空気をかき回す送風機。ぶーん。' },
     fdrill: '高速ドリル', adrill: '自動ドリル', tee: 'T字路', cross: '交差', tri: '三叉路', branch: 'ト字路', resTool: '設置物', toolRes: 'この設置物を置けるようになります。',
     digDo: '掘削する', overwriteQ: '上書きしますか？（今ある物は撤去して半額戻ります）', advNote0: 'Lv2以上になると、地上の仕事（フォークリフト・トラック）にも就きます。',
     facility: '施設', labUnlocked: '研究所を建てられるようになりました（「設置」→施設→研究所）', labWhere: '研究所は地上の空いているマスに置けます', labOne: '研究所はもう建っています',
@@ -566,7 +566,7 @@ const TXT = {
     saveT: 'セーブ', save: 'セーブ', load: 'ロード', slot: n => `スロット${n}`, empty: 'あき', saved: 'セーブ しました', loaded: 'ロード しました',
     confirmLoad: 'ロード しますか？（いまの じょうたいは きえます）', saveNG: 'ここでは セーブ できません',
     officeLv: 'じむしょ', capP: n => `やとえる かず ${n}にん`, restSp: 'やすむ はやさ', full: 'じむしょが いっぱい です', techUp: 'うでまえUP',
-    build: 'おく', works: 'こうじ', grpName: { drill: 'ドリル', belt: 'コンベア', pipe: 'くだ', machine: 'きかい', other: 'そのほか', deco: 'かざり', fac: 'しせつ', works: 'ほる・どける' }, dc_flag: 'はた', dc_sign: 'かんばん', dc_plant: 'うえきばち', dc_bench: 'ベンチ', dc_photo: 'しゃいんの しゃしん', dc_ore: 'こうせきの ひょうほんだな', dc_cart: 'トロッコの かざり', dc_elight: 'ひじょうとう', dc_ladder: 'はしご', dc_fence: 'さく', dc_fan: 'せんぷうき', fanEff: 'ききめ：まわり2ますで はたらく さぎょういんが、ほんの すこし つかれにくく なります。', decoDesc: 'かざりです。ちかくで はたらく さぎょういんの たいりょくが、すこし へりにくく なります。ほってある ますなら、なんの うえにも おけます。', decoEff: 'ききめ：まわり1ますで はたらく さぎょういんの たいりょくが、すこし へりにくく なります（1つで 5%・3つまで）。', decoLv: n => `かいしゃ レベル${n}で おけるように なります`, decoFlav: { dc_flag: 'かいしゃの はた。ちかでも、ここが うちの げんばだと わかります。', dc_sign: 'もじの ない かんばん。なにを かくかは、みる ひと しだい。', dc_plant: 'ちいさな うえきばち。みどりが あると おちつきます。', dc_bench: 'ひとやすみ できそうな ベンチ。あるだけで、ほっとします。', dc_photo: 'しゃいんの しゅうごう しゃしん。みんな、いい かおを しています。', dc_ore: 'ほりあてた こうせきの みほん。ぴかぴかに みがいて あります。', dc_cart: 'むかしの トロッコ。もう はしらない、きねんの しなです。', dc_elight: 'みどりの ひじょうとう。いつも しずかに ついています。', dc_ladder: 'かざりの はしご。のぼっても、どこにも いけません。', dc_fence: 'きの さく。ここから さきは、ていねいに。', dc_fan: 'ちかの くうきを かきまぜる せんぷうき。ぶーん。' },
+    build: 'おく', works: 'こうじ', grpName: { drill: 'ドリル', belt: 'コンベア', pipe: 'くだ', machine: 'きかい', other: 'そのほか', deco: 'かざり', fac: 'しせつ', works: 'ほる・どける' }, dc_flag: 'はた', dc_sign: 'かんばん', dc_plant: 'うえきばち', dc_bench: 'ベンチ', dc_photo: 'しゃいんの しゃしん', dc_ore: 'こうせきの ひょうほんだな', dc_cart: 'トロッコの かざり', dc_elight: 'ひじょうとう', dc_ladder: 'はしご', dc_fence: 'さく', dc_fan: 'せんぷうき', decoStack: 'かさねて おけます（ほってある マスなら、コンベアや きかいの うえにも）', fanEff: 'ききめ：まわり2ますで はたらく さぎょういんが、ほんの すこし つかれにくく なります。', decoDesc: 'かざりです。ちかくで はたらく さぎょういんの たいりょくが、すこし へりにくく なります。ほってある ますなら、なんの うえにも おけます。', decoEff: 'ききめ：まわり1ますで はたらく さぎょういんの たいりょくが、すこし へりにくく なります（1つで 5%・3つまで）。', decoLv: n => `かいしゃ レベル${n}で おけるように なります`, decoFlav: { dc_flag: 'かいしゃの はた。ちかでも、ここが うちの げんばだと わかります。', dc_sign: 'もじの ない かんばん。なにを かくかは、みる ひと しだい。', dc_plant: 'ちいさな うえきばち。みどりが あると おちつきます。', dc_bench: 'ひとやすみ できそうな ベンチ。あるだけで、ほっとします。', dc_photo: 'しゃいんの しゅうごう しゃしん。みんな、いい かおを しています。', dc_ore: 'ほりあてた こうせきの みほん。ぴかぴかに みがいて あります。', dc_cart: 'むかしの トロッコ。もう はしらない、きねんの しなです。', dc_elight: 'みどりの ひじょうとう。いつも しずかに ついています。', dc_ladder: 'かざりの はしご。のぼっても、どこにも いけません。', dc_fence: 'きの さく。ここから さきは、ていねいに。', dc_fan: 'ちかの くうきを かきまぜる せんぷうき。ぶーん。' },
     fdrill: 'はやい ドリル', adrill: 'じどう ドリル', tee: 'Tじろ', cross: 'こうさ', tri: 'さんさろ', branch: 'トじろ', resTool: 'おく もの', toolRes: 'これを おけるように なります。',
     digDo: 'ほる', overwriteQ: 'うわがき しますか？（いまの ものは とりのぞいて はんがく もどります）', advNote0: 'Lv2いじょうに なると、ちじょうの しごと（フォークリフト・トラック）も します。',
     facility: 'しせつ', labUnlocked: 'けんきゅうじょを たてられるように なりました（「おく」→しせつ）', labWhere: 'けんきゅうじょは ちじょうの あいている マスに おけます', labOne: 'けんきゅうじょは もう たっています',
@@ -711,7 +711,7 @@ const TXT = {
     saveT: 'Save', save: 'Save', load: 'Load', slot: n => `Slot ${n}`, empty: 'Empty', saved: 'Saved', loaded: 'Loaded',
     confirmLoad: 'Load this save? (current game will be lost)', saveNG: 'Saving is not available here',
     officeLv: 'Office', capP: n => `${n} staff max`, restSp: 'Rest speed', full: 'The office is full', techUp: 'Skill up',
-    build: 'Build', works: 'Works', grpName: { drill: 'Drills', belt: 'Conveyors', pipe: 'Pipes', machine: 'Machines', other: 'Other', deco: 'Decor', fac: 'Facilities', works: 'Dig / Remove' }, dc_flag: 'Flag', dc_sign: 'Signboard', dc_plant: 'Potted plant', dc_bench: 'Bench', dc_photo: 'Staff photo', dc_ore: 'Ore display shelf', dc_cart: 'Mine cart (decor)', dc_elight: 'Emergency light', dc_ladder: 'Ladder', dc_fence: 'Fence', dc_fan: 'Fan', fanEff: 'Effect: workers within 2 cells tire very slightly more slowly (2%, does not stack).', decoDesc: 'A decoration. Workers nearby lose stamina a little more slowly (1 cell around, up to 3). Can go on any dug cell.', decoEff: 'Effect: workers within 1 cell lose stamina a little more slowly (5% each, up to 3).', decoLv: n => `Unlocks at company level ${n}`, decoFlav: { dc_flag: 'The company flag. Even underground, it shows whose site this is.', dc_sign: 'A signboard with no words. What it says is up to you.', dc_plant: 'A small potted plant. A bit of green helps underground.', dc_bench: 'A bench for a short break. Just having it is a relief.', dc_photo: 'A group photo of the staff. Everyone looks happy.', dc_ore: 'Samples of ore you dug up, polished to a shine.', dc_cart: 'An old mine cart. It no longer runs; it is a keepsake.', dc_elight: 'A green emergency light, always quietly on.', dc_ladder: 'A decorative ladder. Climbing it leads nowhere.', dc_fence: 'A wooden fence. Careful beyond this point.', dc_fan: 'A fan that stirs the air underground. Whirr.' },
+    build: 'Build', works: 'Works', grpName: { drill: 'Drills', belt: 'Conveyors', pipe: 'Pipes', machine: 'Machines', other: 'Other', deco: 'Decor', fac: 'Facilities', works: 'Dig / Remove' }, dc_flag: 'Flag', dc_sign: 'Signboard', dc_plant: 'Potted plant', dc_bench: 'Bench', dc_photo: 'Staff photo', dc_ore: 'Ore display shelf', dc_cart: 'Mine cart (decor)', dc_elight: 'Emergency light', dc_ladder: 'Ladder', dc_fence: 'Fence', dc_fan: 'Fan', decoStack: 'Can be stacked (on any dug cell, even over conveyors and machines)', fanEff: 'Effect: workers within 2 cells tire very slightly more slowly (2%, does not stack).', decoDesc: 'A decoration. Workers nearby lose stamina a little more slowly (1 cell around, up to 3). Can go on any dug cell.', decoEff: 'Effect: workers within 1 cell lose stamina a little more slowly (5% each, up to 3).', decoLv: n => `Unlocks at company level ${n}`, decoFlav: { dc_flag: 'The company flag. Even underground, it shows whose site this is.', dc_sign: 'A signboard with no words. What it says is up to you.', dc_plant: 'A small potted plant. A bit of green helps underground.', dc_bench: 'A bench for a short break. Just having it is a relief.', dc_photo: 'A group photo of the staff. Everyone looks happy.', dc_ore: 'Samples of ore you dug up, polished to a shine.', dc_cart: 'An old mine cart. It no longer runs; it is a keepsake.', dc_elight: 'A green emergency light, always quietly on.', dc_ladder: 'A decorative ladder. Climbing it leads nowhere.', dc_fence: 'A wooden fence. Careful beyond this point.', dc_fan: 'A fan that stirs the air underground. Whirr.' },
     fdrill: 'Fast drill', adrill: 'Auto drill', tee: 'T-junction', cross: 'Crossing', tri: '3-way splitter', branch: 'Side splitter', resTool: 'Equipment', toolRes: 'Lets you place this equipment.',
     digDo: 'Dig', overwriteQ: 'Replace it? (the current one is removed for a half refund)', advNote0: 'From Lv2, workers also take surface jobs (forklifts, trucks).',
     facility: 'Facilities', labUnlocked: 'You can now build the Lab (Build → Facilities)', labWhere: 'Place the Lab on a free surface cell', labOne: 'The Lab is already built',
@@ -1309,9 +1309,10 @@ function canPlaceAt(c, r) {
   if (S.tut && isDrillTool(tool) && (r !== SKY || !tutDrillOk(c))) return false;   // 31：はじめの手順の間、ドリルは地下1段目だけ   // v1.92：横に焼成機を置ける所だけ
   if (isDrillTool(tool) && b) return diggable().has(key(c, r));   // 岩盤にも置ける（レベル不足ならとても遅い）
   // 機械・コンベア類・パイプも、坑道に隣接した土なら上書きして置ける（中の資源はなくなる）。破れない岩盤は不可
-  if (b && (tool === 'machine' || tool === 'conv' || tool === 'sort' || tool === 'tee' || tool === 'cross' || tool === 'tri' || tool === 'branch' || tool === 'pipe')) return diggable().has(key(c, r)) && !(b.mat === 'rock' && false);
+  if (b && (tool === 'machine' || tool === 'vend' || tool === 'conv' || tool === 'sort' || tool === 'tee' || tool === 'cross' || tool === 'tri' || tool === 'branch' || tool === 'pipe')) return diggable().has(key(c, r)) && !(b.mat === 'rock' && false);
   const s0 = S.st.get(key(c, r));
   if (s0 && s0.type === 'well') return false;   // 温泉・油井の上には何も置けない
+  if (tool === 'vend' && (s0 || (S.vends || {})[key(c, r)])) return false;   // 自販機は、物の無いマスだけ
   if (tool === 'machine' && machSel === 'adit' && !aditFree(c, r)) return false;   // 横穴掘削口は、岩盤と岩盤の間に1つだけ
   return b === null;   // 何か置いてあっても上書きできる
 }
@@ -2360,6 +2361,7 @@ function updateDrills(dt) {
   const check = S.stopT >= 1; if (check) S.stopT -= 1;
   for (const s of typeList('drill').slice()) {   // ドリルは掘り進むと場所が変わるので、場所はその都度引く
     const k = stationKey(s); if (k < 0 || s.type !== 'drill' || s.off) continue;   // 止めてあるドリルは動かない
+    if (check && s.stuck && drillFrontOk(k, s)) s.stuck = false;   // v1.98：前があいたら、動かす人がいなくても印を消す
     if (check) {   // 1秒ごと：10秒以上止まっていたら知らせる（同じドリルは3分に1回まで）
       s.stuckT = s.stuck ? (s.stuckT || 0) + 1 : 0;
       if (s.stuckT >= 10 && S.time - (s.stopSaid || -1e9) > 180) {
@@ -2374,6 +2376,12 @@ function updateDrills(dt) {
     s.t -= iv;
     drillHit(k, s);
   }
+}
+function drillFrontOk(k, s) {   // 前を掘れる・前へ進める（drillHit と同じ決まり）
+  const [dx, dy] = DIRS[s.dir], tc = cOf(k) + dx, tr = rOf(k) + dy;
+  if (!inB(tc, tr)) return false;
+  const g = blk(tc, tr); if (g !== null) return true;
+  return s.dir === 'down' && !S.st.has(key(tc, tr)) && !isYard(tc, tr) && !isOffice(tc, tr);
 }
 function moveDrill(k, s, nk) {
   S.st.delete(k); S.st.set(nk, s); S.deepest = Math.max(S.deepest, rOf(nk)); checkStage();
@@ -3435,9 +3443,9 @@ function apply(c, r, dragging) {
   }
   if (tool === 'vend') {   // 43 自販機コーナー：坑道の空いたマスに置く（物の無いマス）
     if (r < SKY || (S.vends || {})[k]) return;
-    if (blk(c, r) || s) { if (!dragging) say(tx().cantPlace); return; }
+    if (s || !canPlaceAt(c, r)) { if (!dragging) say(tx().cantPlace); return; }   // v1.98：機械と同じく、坑道の横の土にも置ける
     if (S.money < COST.vend) { if (!dragging) say(tx().noMoney); return; }
-    spend(COST.vend, c + 0.5, r + 0.3); (S.vends || (S.vends = {}))[k] = 1; return;
+    spend(COST.vend, c + 0.5, r + 0.3); if (blk(c, r)) { row(r)[c] = null; S.digVer++; } (S.vends || (S.vends = {}))[k] = 1; return;
   }
   if (tool === 'pipe' || tool === 'pipex') {   // v1.72：パイプの層。掘ってあるマスなら何の上にも。1本の管にはお湯か石油の片方だけ
     if (r < SKY) return;
@@ -4015,8 +4023,8 @@ let menuOpen = false, openCat = null, openGrp = null;
 const grpList = g => g === 'drill' ? ['drill', ...['fdrill', 'adrill'].filter(t => S.unlock[t])]
   : g === 'belt' ? ['conv', 'sort', ...['tee', 'branch', 'tri', 'cross'].filter(t => S.unlock[t])]
   : g === 'pipe' ? (S.unlock.pipe ? ['pipe', 'pipex'] : [])
-  : g === 'other' ? [...['elev', 'lamp', 'vend'].filter(t => S.unlock[t]), ...(S.office.lv >= FAN_LV ? ['dc_fan'] : [])]
-  : g === 'deco' ? DECO_IDS.filter(d => S.office.lv >= DECO_LV[d])   // v1.81：飾りは会社レベルで順に増える
+  : g === 'other' ? ['elev', 'lamp', 'vend'].filter(t => S.unlock[t])
+  : g === 'deco' ? [...DECO_IDS.filter(d => S.office.lv >= DECO_LV[d]), ...(S.office.lv >= FAN_LV ? ['dc_fan'] : [])]   // v1.98：送風機も飾りの中   // v1.81：飾りは会社レベルで順に増える
   : g === 'fac' ? (S.office.lv >= 1 ? facTools() : [])
   : g === 'works' ? ['dig', 'remove', ...(YARD_C < 0 ? ['yard'] : [])]
   : MACHINE_ORDER.filter(m => S.unlock[m]).map(m => 'm:' + m);
@@ -4102,7 +4110,7 @@ function renderSub() {
       lb.classList.toggle('open', openGrp === g);
       lb.addEventListener('click', () => { openGrp = openGrp === g ? null : g; renderSub(); updateUI(); });
       rowD.append(lb);
-      if (openGrp === g) { const list = document.createElement('div'); list.className = 'types'; for (const id of grpList(g)) list.append(toolBtn(id)); rowD.append(list); if (S.seen) for (const id of grpList(g)) S.seen[id] = 1; }   // v1.92：見たら「new」は消える
+      if (openGrp === g) { const list = document.createElement('div'); list.className = 'types'; for (const id of grpList(g)) list.append(toolBtn(id)); if (g === 'deco') { const nt = document.createElement('small'); nt.className = 'grpNote'; nt.textContent = T.decoStack; list.append(nt); } rowD.append(list); if (S.seen) for (const id of grpList(g)) S.seen[id] = 1; }   // v1.92：見たら「new」は消える
       box.append(rowD);
     }
   } else if (openCat === 'infoCat') {
@@ -6772,19 +6780,35 @@ function renderCol() {
     box.append(cell);
   }
 }
-// v1.92：資金の数字は、すばやく数えて動く（点滅はしない）
-let monD = null, monFrom = 0, monTo = 0, monT0 = 0, monRaf = 0, monS = null;
+// v1.98：資金の数字は、1ずつ数えて（だーっと）、桁がドラムのように上下に回る（点滅はしない）
+let monD = null, monFrom = 0, monTo = 0, monT0 = 0, monDur = 300, monRaf = 0, monS = null, monUp = true;
 function moneyShow(m) {
   const v = S.money;
   if (monD === null || monS !== S || inTitle || document.hidden) { monS = S; monD = monTo = monFrom = v; }
-  else if (v !== monTo) { monFrom = monD; monTo = v; monT0 = performance.now(); if (!monRaf) monRaf = requestAnimationFrame(monStep); }
-  m.textContent = fmt(Math.round(monD)); m.classList.toggle('neg', monD < 0);
+  else if (v !== monTo) { monFrom = monD; monTo = v; monUp = v > monD; monT0 = performance.now(); monDur = clamp(Math.abs(v - monD) * 40, 250, 900); if (!monRaf) monRaf = requestAnimationFrame(monStep); }
+  moneyReel(m, monD);
 }
 function monStep(now) {
-  const k = Math.min(1, (now - monT0) / 300); monD = monFrom + (monTo - monFrom) * (1 - Math.pow(1 - k, 3));
+  const k = Math.min(1, (now - monT0) / monDur); monD = monFrom + (monTo - monFrom) * (1 - Math.pow(1 - k, 2));
   if (k >= 1) monD = monTo;
-  const m = $('money'); m.textContent = fmt(Math.round(monD)); m.classList.toggle('neg', monD < 0);
+  moneyReel($('money'), monD);
   monRaf = k < 1 ? requestAnimationFrame(monStep) : 0;
+}
+function moneyReel(m, vf) {   // 桁ごとに 0〜9 と 0 を縦に並べた帯。1万までは連続で回る（一の桁がくるくる、繰り上がりで上の桁もぐるっ）
+  const vi = Math.round(vf), str = fmt(vi); m.classList.toggle('neg', vi < 0);
+  const ch = [...str], isD = c => c >= '0' && c <= '9';
+  let cells = [...m.children];
+  if (cells.length !== ch.length || cells.some((c2, i) => (c2.className === 'reel') !== isD(ch[i]))) {
+    m.textContent = '';
+    cells = ch.map(c2 => { const sp = document.createElement('span'); if (isD(c2)) { sp.className = 'reel'; const st = document.createElement('i'); st.innerHTML = '0<br>1<br>2<br>3<br>4<br>5<br>6<br>7<br>8<br>9<br>0'; sp.append(st); } else sp.textContent = c2; m.append(sp); return sp; });
+  }
+  const plain = Math.abs(vi) < 10000, a = Math.abs(vf);
+  for (let i = ch.length - 1, di = 0; i >= 0; i--) {
+    if (!isD(ch[i])) { if (cells[i].textContent !== ch[i]) cells[i].textContent = ch[i]; continue; }
+    let pos = +ch[i];
+    if (plain) { const p10 = Math.pow(10, di), low = a % p10; pos = Math.floor(a / p10) % 10 + (di === 0 ? a % 1 : Math.max(0, low - (p10 - 1))); }
+    const st = cells[i].firstChild; st.style.transition = plain ? 'none' : ''; st.style.transform = `translateY(${-pos}em)`; di++;
+  }
 }
 function updateUI() {
   advTick(); xAvoidMsg(); tutGoalShow();
@@ -7938,7 +7962,7 @@ function balSet(path, v) {
   o[last] = v;
 }
 // キノメノが「釣り合い調整」で決めた数字（2026-11-24）。標準として先に入れる
-const BAL_PRESET = {"ITEMS.iron.v": 15, "ITEMS.gold.v": 50, "ITEMS.dia.v": 100, "ITEMS.gravel.v": 5, "ITEMS.brick.v": 7, "ITEMS.ironbar.v": 200, "ITEMS.goldbar.v": 800, "ITEMS.tool.v": 700, "ITEMS.jewel.v": 1000, "ITEMS.diaClean.v": 800, "ITEMS.diaCut.v": 1200, "ITEMS.gem.v": 500, "ITEMS.tile.v": 8, "ITEMS.glossTile.v": 16, "ITEMS.wire.v": 300, "ITEMS.goldleaf.v": 950, "ITEMS.decoIron.v": 3200, "ITEMS.decoGold.v": 7000, "COST.fdrill": 1200, "COST.adrill": 1500, "OFFICE_LV.cap.0": 8, "OFFICE_LV.cap.1": 14, "OFFICE_LV.cap.2": 22, "OFFICE_LV.cap.3": 32, "OFFICE_LV.cap.4": 44, "RESEARCH_TOOL.pipe.0": 200, "RESEARCH_TOOL.pipe.1": 1, "RESEARCH_BATCH.0": 10000, "RESEARCH_BATCH.1": 6, "SKILLS.speed.cost.2": 10000, "SKILLS.dragPlus.months.0": 1, "SKILLS.welfare.cost.0": 4000, "SKILLS.welfare.cost.1": 8000, "SKILLS.black.cost.0": 5000, "SKILLS.labRoom.cost.0": 1000, "SKILLS.labRoom.cost.1": 4000, "SKILLS.labRoom.cost.2": 8000, "RES_STAGE.m:bagger": 2, "RES_STAGE.sk:yardPlus": 3, "RES_STAGE.t:cross": 4, "RES_STAGE.t:pipe": 4, "RES_STAGE.sk:truck2": 4, "SK_STAGE.speed.0": 2, "SK_STAGE.labRoom.0": 2, "BELT_CAP.0": 5, "BELT_CAP.1": 10, "BELT_CAP.2": 20, "BELT_CAP.3": 40, "LV.truck.cap": 10, "OFFICE_LV.cost.0": 600, "OFFICE_LV.cost.1": 5000, "OFFICE_LV.cost.2": 56000, "OFFICE_LV.cost.3": 164000, "RES_STAGE.sk:land": 4, "RES_STAGE.batch": 3, "RES_STAGE.sk:veteran": 3, "RES_STAGE.f:refinery": 5, "SK_STAGE.labRoom.1": 3, "SK_STAGE.labRoom.2": 4, "BAL.priceUpMul": 1.2, "BAL.priceCostG": 2, "BAL.hotP": 0.033, "BAL.beltSlowMin": 0.03};
+const BAL_PRESET = {"ITEMS.iron.v": 15, "ITEMS.gold.v": 50, "ITEMS.dia.v": 100, "ITEMS.gravel.v": 5, "ITEMS.brick.v": 7, "ITEMS.ironbar.v": 200, "ITEMS.goldbar.v": 800, "ITEMS.tool.v": 700, "ITEMS.jewel.v": 1000, "ITEMS.diaClean.v": 800, "ITEMS.diaCut.v": 1200, "ITEMS.gem.v": 500, "ITEMS.tile.v": 8, "ITEMS.glossTile.v": 16, "ITEMS.wire.v": 300, "ITEMS.goldleaf.v": 950, "ITEMS.decoIron.v": 3200, "ITEMS.decoGold.v": 7000, "COST.fdrill": 1200, "COST.adrill": 1500, "OFFICE_LV.cap.0": 8, "OFFICE_LV.cap.1": 14, "OFFICE_LV.cap.2": 22, "OFFICE_LV.cap.3": 32, "OFFICE_LV.cap.4": 44, "RESEARCH_TOOL.pipe.0": 200, "RESEARCH_TOOL.pipe.1": 1, "RESEARCH_BATCH.0": 10000, "RESEARCH_BATCH.1": 6, "SKILLS.speed.cost.2": 10000, "SKILLS.dragPlus.months.0": 1, "SKILLS.welfare.cost.0": 4000, "SKILLS.welfare.cost.1": 8000, "SKILLS.black.cost.0": 5000, "SKILLS.labRoom.cost.0": 1000, "SKILLS.labRoom.cost.1": 4000, "SKILLS.labRoom.cost.2": 8000, "RES_STAGE.m:bagger": 2, "RES_STAGE.sk:yardPlus": 3, "RES_STAGE.t:cross": 4, "RES_STAGE.t:pipe": 4, "RES_STAGE.sk:truck2": 4, "SK_STAGE.speed.0": 2, "SK_STAGE.labRoom.0": 2, "BELT_CAP.0": 5, "BELT_CAP.1": 10, "BELT_CAP.2": 20, "BELT_CAP.3": 40, "LV.truck.cap": 10, "OFFICE_LV.cost.0": 600, "OFFICE_LV.cost.1": 2000, "OFFICE_LV.cost.2": 14000, "OFFICE_LV.cost.3": 80000, "OFFICE_LV.cost.4": 492000, "RES_STAGE.sk:land": 4, "RES_STAGE.batch": 3, "RES_STAGE.sk:veteran": 3, "RES_STAGE.f:refinery": 5, "SK_STAGE.labRoom.1": 3, "SK_STAGE.labRoom.2": 4, "BAL.priceUpMul": 1.2, "BAL.priceCostG": 2, "BAL.hotP": 0.033, "BAL.beltSlowMin": 0.03};
 for (const [p2, v] of Object.entries(BAL_PRESET)) balSet(p2, v);
 const BAL_DEF = new Map(balLeaves().map(p2 => [p2, balGet(p2)]));   // 標準の数字（変えた所を見分ける）
 for (const d of TUNE_DEF) if (BAL_DEF.has('TUNE.' + d.k)) BAL_DEF.set('TUNE.' + d.k, d.def);   // 「調整」は保存済みの値が先に入っているので、標準は表の値

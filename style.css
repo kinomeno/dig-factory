@@ -713,3 +713,10 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 /* v1.94：スキップの横の、残りの案内の数 */
 #tutDots { position: fixed; z-index: 43; font-size: 8px; line-height: 12px; letter-spacing: 2px; color: #a4a3a8; pointer-events: none; }
 #tutDots[hidden] { display: none; }
+/* v1.98：資金のドラム（桁ごとに上下に回る） */
+#money { display: inline-flex; line-height: 1em; height: 1em; overflow: hidden; vertical-align: baseline; }
+#moneyHud #money span { font-size: inherit; color: inherit; letter-spacing: inherit; }
+#money .reel { display: inline-block; height: 1em; overflow: hidden; }
+#money .reel i { display: block; font-style: normal; line-height: 1em; text-align: center; transition: transform .09s linear; }
+/* v1.98：飾りの「重ねて置けます」 */
+#subMenu .grpNote { flex-basis: 100%; font-size: 10px; color: #77767c; }
